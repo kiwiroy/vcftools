@@ -39,17 +39,15 @@ void output_log::printLOG(string s)
 
 void output_log::error(string err_msg, int error_code)
 {
-	printLOG("Error:" + err_msg + "\n");
+	cerr << "Error:" << err_msg << "\n";
 	exit(error_code);
 }
 
 
 void output_log::error(string err_msg, double value1, double value2, int error_code)
 {
-	printLOG("Error:" + err_msg + "\n");
-	stringstream ss;
-	ss << "Value1=" << value1 << " Value2=" << value2 << endl;
-	printLOG(ss.str());
+	cerr << "Error:" << err_msg << "\n";
+	cerr << "Value1=" << value1 << " Value2=" << value2 << endl;
 	exit(error_code);
 }
 

@@ -8,26 +8,6 @@
 
 #include "entry.h"
 
-void entry::set_CHROM(const string &in)
-{
-	CHROM = in;
-}
-
-void entry::set_POS(const int in)
-{
-	POS = in;
-}
-
-void entry::set_ID(const string &in)
-{
-	ID = in;
-}
-
-void entry::set_REF(const string &in)
-{
-	REF = in;
-}
-
 void entry::add_ALT_allele(const string &in)
 {
 	if (in != ".")
@@ -42,11 +22,17 @@ void entry::add_ALT_allele(const string &in)
 	parsed_ALT = true;
 }
 
-void entry::add_FILTER_entry(const string &in)
+void entry::set_indv_DEPTH(unsigned int indv, int in)
 {
-	if ((in != "PASS") && (in != "."))
-		if (find(FILTER.begin(), FILTER.end(), in) == FILTER.end())
-			FILTER.push_back(in);
-	sort(FILTER.begin(), FILTER.end());
-	parsed_FILTER = true;
+	parsed_DP[indv] = true;
+	if (in == -1)
+	{
+		if (!DEPTH.empty())
+			DEPTH[indv] = -1;
+		return;
+	}
+	if (DEPTH.empty())
+		DEPTH.resize(N_indv, -1);
+
+	DEPTH[indv] = in;
 }

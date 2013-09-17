@@ -21,12 +21,9 @@ LIB = -lz
 #LIB = -lz -I/opt/local/include/ -L/opt/local/lib/
 
 OBJS = vcftools.o bcf_file.o vcf_file.o variant_file.o \
-		bcf_entry.o vcf_entry.o entry.o entry_setters.o entry_getters.o \
-		vcf_entry_setters.o	bcf_entry_setters.o variant_file_filters.o \
-		variant_file_output.o variant_file_format_convert.o \
-		variant_file_diff.o header.o parameters.o \
-		variant_file_index.o \
-		output_log.o bgzf.o gamma.o
+	header.o bcf_entry.o vcf_entry.o entry.o entry_getters.o entry_setters.o \
+	vcf_entry_setters.o bcf_entry_setters.o entry_filters.o variant_file_filters.o variant_file_output.o parameters.o \
+	variant_file_format_convert.o variant_file_diff.o output_log.o bgzf.o gamma.o
 
 ifeq ($(VCFTOOLS_PCA), 1)
 	# Define flag for PCA routine compilation

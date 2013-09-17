@@ -7,6 +7,8 @@
 
 #include "entry.h"
 
+entry::~entry()
+{}
 /*
 // This function implements an exact SNP test of Hardy-Weinberg
 // Equilibrium as described in Wigginton, JE, Cutler, DJ, and
@@ -100,65 +102,6 @@ double entry::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 	free(het_probs);
 
 	return p_hwe;
-}
-
-int entry::str2int(const string &in, const int missing_value)
-{
-	if ((in.size() == 0) || (in == "."))
-		return missing_value;
-	else
-		return atoi(in.c_str());
-}
-
-double entry::str2double(const string &in, const double missing_value)
-{
-	if ((in.size() == 0) || (in == "."))
-		return missing_value;
-	else
-		return atof(in.c_str());
-}
-
-string entry::int2str(const int in, const int missing_value)
-{
-	if (in == missing_value)
-		return ".";
-	else
-	{
-		static ostringstream out;
-		out.str(""); out.clear();
-		out << in;
-		return out.str();
-	}
-}
-
-string entry::double2str(const double in, const double missing_value)
-{
-	if (in == missing_value)
-		return ".";
-	else
-	{
-		static ostringstream out;
-		out.str(""); out.clear();
-		out << in;
-		return out.str();
-	}
-}
-
-void entry::tokenize(const string &in, char token, vector<string> &out)
-{
-	out.resize(0);
-	istringstream ss(in);
-	string tmp;
-	while( getline(ss, tmp, token) )
-	{
-		out.push_back(tmp);
-	}
-}
-
-void entry::copy_object(vector<char> &out, int &position, const vector<char> &in)
-{
-	memcpy(&out[position], &in, in.size() );
-	position += in.size();
 }
 
 void entry::make_typed_string(vector<char> &out, const string &in, bool typed)
@@ -335,7 +278,7 @@ void entry::encode_genotype(vector<char> &out, string &in, int exp_size)
 		{
 			if(in[ui] != '.')
 			{
-				tmp_int = str2int( in.substr(ui,1) );
+				tmp_int = header::str2int( in.substr(ui,1) );
 			}
 			else
 			{
@@ -376,7 +319,7 @@ void entry::make_typed_int_vector(vector<char> &out, const string &in, int numbe
 		return;
 	}
 
-	tokenize(in, ',', split_string);
+	header::tokenize(in, ',', split_string);
 	if (number == -1)
 	{
 		if (split_string.size() > max_val)
@@ -389,7 +332,7 @@ void entry::make_typed_int_vector(vector<char> &out, const string &in, int numbe
 	{
 		if ( ui<split_string.size() )
 		{
-			converted = str2int(split_string[ui], 0x80000000);
+			converted = header::str2int(split_string[ui], 0x80000000);
 
 			if ((abs(converted) > (int)max) and ( converted != (int)0x80000000))
 				max = abs(converted);
@@ -462,12 +405,12 @@ void entry::make_typed_int_vector(vector<char> &out, const vector<string> &in, i
 
 	for (unsigned int ui=0; ui<in.size(); ui++)
 	{
-		tokenize(in[ui], ',', split_string);
+		header::tokenize(in[ui], ',', split_string);
 		for (unsigned int uj=0; uj<max_val; uj++)
 		{
 			if ( uj<split_string.size() )
 			{
-				converted = str2int(split_string[uj], 0x80000000);
+				converted = header::str2int(split_string[uj], 0x80000000);
 
 				if ((abs(converted) > (int)max) and (converted != (int)0x80000000))
 					max = abs(converted);
@@ -621,7 +564,7 @@ void entry::make_typed_float_vector(vector<char> &out, const string &in, int num
 		return;
 	}
 
-	tokenize(in, ',', split_string);
+	header::tokenize(in, ',', split_string);
 	if (number == -1)
 		max_val = split_string.size();
 	else
@@ -651,7 +594,7 @@ void entry::make_typed_float_vector(vector<char> &out, const string &in, int num
 	for(unsigned int ui=0; (int)ui<max_val; ui++)
 	{
 		if (ui < split_string.size() )
-			value = (float)str2double(split_string[ui], 0x7F800001);
+			value = (float)header::str2double(split_string[ui], 0x7F800001);
 
 		char *p = (char *)&value;
 
@@ -707,11 +650,11 @@ void entry::make_typed_float_vector(vector<char> &out, const vector<string> &in,
 	char missing[4] = {0x01, 0x00, 0x80, 0x7F};
 	for (unsigned int ui=0; ui<in.size(); ui++)
 	{
-		tokenize(in[ui], ',', split_string);
+		header::tokenize(in[ui], ',', split_string);
 		for(unsigned int uj=0; uj<max_val; uj++)
 		{
 			if (uj < split_string.size() )
-				value = (float)str2double(split_string[uj], 0x7F800001);
+				value = (float)header::str2double(split_string[uj], 0x7F800001);
 			else
 				value = (float)0x7F800001;
 
@@ -751,57 +694,6 @@ void entry::make_type_size(vector<char> &out, const unsigned int &type, const un
 	out.insert(out.end(), tmp_vector.begin(), tmp_vector.end());
 }
 
-float entry::get_typed_float(unsigned int * line_position, const vector<char>& line)
-{
-	unsigned int size, type;
-	float out;
-
-	get_type( line_position, line, type, size );
-
-	if (size > 1)
-	{
-		LOG.printLOG("Error: Float vector when expected only a single Float value.\n" );
-		exit(0);
-	}
-
-	if (type == 5)
-	{
-		memcpy(&out, &line[*line_position], sizeof(out));
-		*line_position += sizeof(out);
-	}
-	else
-	{
-		LOG.printLOG("Error: Float expected but found type " + int2str(type) + ".\n" );
-		exit(0);
-	}
-	return out;
-}
-
-vector<float> entry::get_typed_float_vector(unsigned int * line_position, const vector<char>& line)
-{
-	unsigned int size, type;
-
-	get_type( line_position, line, type, size );
-	vector<float> out(size);
-
-	if (type == 5)
-	{
-		float tmp;
-		for (unsigned int ui=0; ui<size; ui++)
-		{
-			memcpy(&tmp, &line[*line_position], sizeof(tmp));
-			*line_position += sizeof(tmp);
-			out[ui] = tmp;
-		}
-	}
-	else
-	{
-		LOG.printLOG("Error: Float expected but found type " + int2str(type) + ".\n" );
-		exit(0);
-	}
-	return out;
-}
-
 string entry::get_typed_string(unsigned int * line_position, const vector<char>& line)
 {
 	unsigned int size, type;
@@ -810,7 +702,7 @@ string entry::get_typed_string(unsigned int * line_position, const vector<char>&
 	get_type( line_position, line, type, size );
 	if (type != 7)
 	{
-		LOG.printLOG("Error: Expected type 7 for string. Found type " + int2str(type) + ".\n");
+		LOG.printLOG("Error: Expected type 7 for string. Found type " + header::int2str(type) + ".\n");
 	}
 
 	char * tmp = new char[size];
@@ -1022,12 +914,6 @@ bool entry::check_missing(unsigned int line_position, const unsigned int type, c
 		missing = false;
 
 	return missing;
-}
-
-void entry::decode_genotype(int8_t in, int &GT, bool &phased)
-{
-	GT = (int)(in >> 1)-1;
-	phased = (in & (int8_t)1);
 }
 
 void entry::get_number(uint32_t &out, unsigned int *line_position, const vector<char>& line)

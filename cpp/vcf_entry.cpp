@@ -8,49 +8,26 @@
 
 #include "vcf_entry.h"
 
-map<string, Field_description> vcf_entry::INFO_map;
-map<string, unsigned int> vcf_entry::INFO_reverse_map;
-map<string, string> vcf_entry::FILTER_map;
-map<string, unsigned int> vcf_entry::FILTER_reverse_map;
-map<string, Field_description> vcf_entry::FORMAT_map;
-map<string, unsigned int> vcf_entry::FORMAT_reverse_map;
-map<string, unsigned int> vcf_entry::CONTIG_map;
 string vcf_entry::convert_line;
 
-vcf_entry::vcf_entry(const unsigned int n_indv, const vector<char> &line)
+vcf_entry::vcf_entry(header &meta_data, vector<bool> &include_individual)
 {
-	N_indv = n_indv;
+	N_indv = meta_data.N_indv;
+	include_indv = include_individual;
+	include_genotype = vector<bool>(N_indv, true);
 	basic_parsed = false; fully_parsed = false;
 	parsed_ALT = false; parsed_FILTER = false;
 	parsed_INFO = false; parsed_FORMAT = false;
 	CHROM = ""; POS = -1; REF = ""; QUAL = -1;
-	passed_filters = false; parsed_FORMAT_binary = false;
+	passed_filters = true; parsed_FORMAT_binary = false;
 	N_INFO_removed = 0; N_FORMAT_removed = 0;
 	parsed_GT = vector<bool>(N_indv, false); parsed_GQ = vector<bool>(N_indv, false);
 	parsed_DP = vector<bool>(N_indv, false); parsed_FT = vector<bool>(N_indv, false);
 	GT_idx = -1; GQ_idx = -1; DP_idx = -1; FT_idx = -1;
-	FORMAT_positions.resize(n_indv); FORMAT_types.resize(n_indv); FORMAT_sizes.resize(n_indv); FORMAT_skip.resize(n_indv); FORMAT_keys.resize(n_indv);
-	convert_line.clear();
-	convert_line.assign(line.begin(), line.end());
-	data_stream.str(convert_line);
-}
-
-// Create an empty VCF entry
-vcf_entry::vcf_entry(const unsigned int n_indv)
-{
-	N_indv = n_indv;
-	basic_parsed = false; fully_parsed = false;
-	parsed_ALT = false; parsed_FILTER = false;
-	parsed_INFO = false; parsed_FORMAT = false;
-	CHROM = ""; POS = -1; REF = ""; QUAL = -1;
-	passed_filters = false; parsed_FORMAT_binary = false;
-	N_INFO_removed = 0; N_FORMAT_removed = 0;
-	parsed_GT = vector<bool>(N_indv, false); parsed_GQ = vector<bool>(N_indv, false);
-	parsed_DP = vector<bool>(N_indv, false); parsed_FT = vector<bool>(N_indv, false);
-	GT_idx = -1; GQ_idx = -1; DP_idx = -1; FT_idx = -1;
-	FORMAT_positions.resize(n_indv); FORMAT_types.resize(n_indv); FORMAT_sizes.resize(n_indv); FORMAT_skip.resize(n_indv); FORMAT_keys.resize(n_indv);
+	FORMAT_positions.resize(N_indv); FORMAT_types.resize(N_indv); FORMAT_sizes.resize(N_indv); FORMAT_skip.resize(N_indv); FORMAT_keys.resize(N_indv);
 	convert_line.clear();
 	data_stream.str("");
+	entry_header = meta_data;
 }
 
 vcf_entry::~vcf_entry() {}
@@ -65,10 +42,12 @@ void vcf_entry::reset(const vector<char> &data_line)
 	parsed_INFO = false;
 	parsed_FORMAT = false;
 	parsed_FORMAT_binary = false;
+	passed_filters = true;
 
 	data_stream.clear();
-	convert_line.clear();
-	convert_line.assign(data_line.begin(), data_line.end());
+	line = data_line;
+
+	convert_line.assign(line.begin(), line.end());
 	data_stream.str(convert_line);
 
 	fill(parsed_GT.begin(), parsed_GT.end(), false);
@@ -83,49 +62,47 @@ void vcf_entry::reset(const vector<char> &data_line)
 // Tokenize the basic information in a VCF data line (at the tab level)
 void vcf_entry::parse_basic_entry(bool parse_ALT, bool parse_FILTER, bool parse_INFO)
 {
-	// The following would break on spaces too, which caused a bug :-(
-	//data_stream >> CHROM >> POS >> ID >> REF >> ALT_str >> QUAL_str >> FILTER_str >> INFO_str;
+	if(!basic_parsed)
+	{
+		getline(data_stream, CHROM, '\t');
 
-	getline(data_stream, CHROM, '\t');
+		getline(data_stream, ID, '\t');
+		POS = atoi(ID.c_str());
+		getline(data_stream, ID, '\t');
+		getline(data_stream, REF, '\t');
+		getline(data_stream, ALT_str, '\t');
+		getline(data_stream, QUAL_str, '\t');
+		getline(data_stream, FILTER_str, '\t');
+		getline(data_stream, INFO_str, '\t');
 
-	getline(data_stream, ID, '\t');
-	POS = atoi(ID.c_str());
-	getline(data_stream, ID, '\t');
-	getline(data_stream, REF, '\t');
-	getline(data_stream, ALT_str, '\t');
-	getline(data_stream, QUAL_str, '\t');
-	getline(data_stream, FILTER_str, '\t');
-	getline(data_stream, INFO_str, '\t');
+		QUAL = header::str2double(QUAL_str);
 
-	QUAL = str2double(QUAL_str);
-
-	// Convert to uppercase for consistency
-	// Note that VCF v4.1 allows mixtures of lower/upper case in REF and ALT.
-	// However, the spec specifically states that tools using VCF are not required
-	// to preserve the case.
-	std::transform(REF.begin(), REF.end(), REF.begin(), ::toupper);
-	std::transform(ALT_str.begin(), ALT_str.end(),ALT_str.begin(), ::toupper);
-
-	parsed_ALT = false;
-	parsed_FILTER = false;
-	parsed_INFO = false;
+		// Convert to uppercase for consistency
+		// Note that VCF v4.1 allows mixtures of lower/upper case in REF and ALT.
+		// However, the spec specifically states that tools using VCF are not required
+		// to preserve the case.
+		std::transform(REF.begin(), REF.end(), REF.begin(), ::toupper);
+		std::transform(ALT_str.begin(), ALT_str.end(),ALT_str.begin(), ::toupper);
+	}
 	basic_parsed = true;
 
-	if (parse_ALT)
+	if (parse_ALT && !parsed_ALT)
 		set_ALT(ALT_str);
-	if (parse_FILTER)
+	if (parse_FILTER && !parsed_FILTER)
 		set_FILTER(FILTER_str);
-	if (parse_INFO)
+	if (parse_INFO && !parsed_INFO)
 		set_INFO(INFO_str);
 }
 
 // Tokenize the genotype information (at the 'tab' level) in the VCF entry
 void vcf_entry::parse_full_entry(bool parse_FORMAT)
 {
+	if (fully_parsed)
+		return;
+
 	if (basic_parsed == false)
 		parse_basic_entry();
 
-	//data_stream >> FORMAT_str;
 	getline(data_stream, FORMAT_str, '\t');
 
 	if (parse_FORMAT)
@@ -135,7 +112,6 @@ void vcf_entry::parse_full_entry(bool parse_FORMAT)
 	GENOTYPE_str.resize(N_indv, tmpstr);
 
 	for (unsigned int ui=0; ui<N_indv; ui++)
-		//data_stream >> GENOTYPE_str[ui];
 		getline(data_stream, GENOTYPE_str[ui], '\t');
 
 	// The following line copies the GENOTYPE fields from the stringstream into the GENOTYPE_str vector.
@@ -171,12 +147,12 @@ void vcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 		}
 		else if (GQ && (i == GQ_idx)) // (FORMAT[ui] == "GQ")
 		{
-			set_indv_GQUALITY(indv, str2double(tmpstr));
+			set_indv_GQUALITY(indv, header::str2double(tmpstr));
 			N_got++;
 		}
 		else if (DP && (i == DP_idx)) // (FORMAT[ui] == "DP")
 		{
-			set_indv_DEPTH(indv, str2int(tmpstr));
+			set_indv_DEPTH(indv, header::str2int(tmpstr));
 			N_got++;
 		}
 		else if (FT && (i == FT_idx)) // (FORMAT[ui] == "FT")
@@ -222,12 +198,13 @@ void vcf_entry::parse_FORMAT()
 	vector<char> tmp_vector;
 	vector<string> tmp_split;
 	vector< vector<string> > format_matrix(N_indv);
+
 	unsigned int type, number, size, position=0;
 
 	for (unsigned int ui=0; ui<N_indv; ui++)
 	{
 		if ( (GENOTYPE_str[ui] != "") and (GENOTYPE_str[ui] != ".") )
-			tokenize(GENOTYPE_str[ui],':', tmp_split);
+			header::tokenize(GENOTYPE_str[ui],':', tmp_split);
 		else
 			tmp_split.assign(FORMAT.size(),".");
 		format_matrix[ui] = tmp_split;
@@ -240,21 +217,21 @@ void vcf_entry::parse_FORMAT()
 
 	for (unsigned int ui=0; ui<FORMAT.size(); ui++)
 	{
-		if (FORMAT_reverse_map.find(FORMAT[ui]) == FORMAT_reverse_map.end())
+		if (entry_header.FORMAT_reverse_map.find(FORMAT[ui]) == entry_header.FORMAT_reverse_map.end())
 		{
 			LOG.one_off_warning("FORMAT value " + FORMAT[ui] + " is not defined in the header and will not be encoded.");
 			N_FORMAT_removed++;
 			continue;
 		}
 		FORMAT_positions[ui] = position;
-		make_typed_int(tmp_vector, FORMAT_reverse_map[ FORMAT[ui] ], true );
+		make_typed_int(tmp_vector, entry_header.FORMAT_reverse_map[ FORMAT[ui] ], true );
 		FORMAT_binary.insert(FORMAT_binary.end(), tmp_vector.begin(), tmp_vector.end() );
 
 		tmp_vector.resize(0);
 		tmp_split.resize(0);
 
-		type = FORMAT_map[ FORMAT[ui] ].Type;
-		number = FORMAT_map[ FORMAT[ui] ].N_entries;
+		type = entry_header.FORMAT_map[ entry_header.FORMAT_reverse_map[FORMAT[ui]] ].Type;
+		number = entry_header.FORMAT_map[ entry_header.FORMAT_reverse_map[FORMAT[ui]] ].N_entries;
 
 		for (unsigned int uj=0; uj<N_indv; uj++)
 			tmp_split.push_back( format_matrix[uj][ui] );
@@ -288,30 +265,15 @@ void vcf_entry::parse_FORMAT()
 	parsed_FORMAT_binary = true;
 }
 
-void vcf_entry::print(ostream &out)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	set<string> INFO_to_keep;
-	print(out, INFO_to_keep, false, include_indv, include_genotype);
-}
-
-void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	print(out, INFO_to_keep, keep_all_INFO, include_indv, include_genotype);
-}
-
 // Output VCF entry to output stream
-void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO, const vector<bool> &include_indv, const vector<bool> &include_genotype)
+void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
 	out << get_CHROM() << '\t' << POS << '\t' << get_ID() << '\t' << REF << '\t' << get_ALT();
 
-	out << '\t' << double2str(QUAL);
+	out << '\t' << header::double2str(QUAL);
 	out << '\t' << get_FILTER();
 	if (keep_all_INFO == false)
 		out << '\t' << get_INFO(INFO_to_keep);
@@ -340,11 +302,11 @@ void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 						get_indv_GENOTYPE_ids(ui, genotype);
 						PHASE = get_indv_PHASE(ui);
 						if ((genotype.first != -1) && (genotype.second != -1))
-							out << int2str(genotype.first) << PHASE << int2str(genotype.second);
+							out << header::int2str(genotype.first) << PHASE << header::int2str(genotype.second);
 						else if ((PHASE == '|') && (genotype.second == -1))
-							out << int2str(genotype.first);	// Handle haploid case
+							out << header::int2str(genotype.first);	// Handle haploid case
 						else
-							out << int2str(genotype.first) << PHASE << int2str(genotype.second);
+							out << header::int2str(genotype.first) << PHASE << header::int2str(genotype.second);
 					}
 					else
 						out << "./.";
@@ -352,12 +314,12 @@ void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 				else if (count == GQ_idx) //(FORMAT[count] == "GQ")
 				{
 					if (count != 0)	out << ':';
-					out << double2str(get_indv_GQUALITY(ui));
+					out << header::double2str(get_indv_GQUALITY(ui));
 				}
 				else if (count == DP_idx) // (FORMAT[count] == "DP")
 				{
 					if (count != 0)	out << ':';
-					out << int2str(get_indv_DEPTH(ui));
+					out << header::int2str(get_indv_DEPTH(ui));
 				}
 				else if (count == FT_idx) // (FORMAT[count] == "FT")
 				{
@@ -377,23 +339,8 @@ void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 	out << '\n';	// endl flushes the buffer, which is slow. This (should be) quicker.
 }
 
-void vcf_entry::print_bcf(BGZF* out)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	set<string> INFO_to_keep;
-	print_bcf(out, INFO_to_keep, false, include_indv, include_genotype);
-}
-
-void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	print_bcf(out, INFO_to_keep, keep_all_INFO, include_indv, include_genotype);
-}
-
 // Output VCF entry to output stream in binary
-void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO, const vector<bool> &include_indv, const vector<bool> &include_genotype)
+void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
@@ -413,10 +360,10 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 	if (tmp_string == "." or tmp_string == " " or tmp_string == "")
 		LOG.error("CHROM value must be defined for all entries.",0);
 
-	if (CONTIG_map.find(tmp_string) == CONTIG_map.end() )
+	if (entry_header.CONTIG_reverse_map.find(tmp_string) == entry_header.CONTIG_reverse_map.end() )
 		LOG.error("CHROM value " + tmp_string + " is not defined on contig dictionary.",0);
 
-	int32_t chrom = (int32_t)CONTIG_map[tmp_string];
+	int32_t chrom = (int32_t)entry_header.CONTIG_reverse_map[tmp_string];
 	memcpy(&out_vector[vector_pos], &chrom, sizeof(chrom));
 	vector_pos += sizeof(chrom);
 
@@ -453,10 +400,10 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 		vector<int> index_vector;
 		for(unsigned int ui=0; ui<filter_vector.size(); ui++)
 		{
-			if ( FILTER_reverse_map.find( filter_vector[ui] ) == FILTER_reverse_map.end() )
+			if ( entry_header.FILTER_reverse_map.find( filter_vector[ui] ) == entry_header.FILTER_reverse_map.end() )
 				LOG.one_off_warning("FILTER value " + filter_vector[ui] + " is not defined in the header and will not be encoded.");
 			else
-				index_vector.push_back( FILTER_reverse_map[ filter_vector[ui] ] );
+				index_vector.push_back( entry_header.FILTER_reverse_map[ filter_vector[ui] ] );
 		}
 		make_typed_int_vector(tmp_vector, index_vector );
 	}
@@ -471,7 +418,7 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 
 	for(unsigned int ui=0; ui<tmp_info.size(); ui++)
 	{
-		if (INFO_reverse_map.find(tmp_info[ui].first) == INFO_reverse_map.end())
+		if (entry_header.INFO_reverse_map.find(tmp_info[ui].first) == entry_header.INFO_reverse_map.end())
 		{
 			LOG.one_off_warning("INFO value " + tmp_info[ui].first + " is not defined in the header and will not be encoded.");
 			N_INFO_removed++;
@@ -479,13 +426,13 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 		}
 
 		tmp_vector.resize(0);
-		index = INFO_reverse_map[ tmp_info[ui].first ];
+		index = entry_header.INFO_reverse_map[ tmp_info[ui].first ];
 		make_typed_int(tmp_vector, index, true);
 		out_vector.insert(out_vector.end(), tmp_vector.begin(), tmp_vector.end());
 
 		tmp_vector.resize(0);
-		map_type = INFO_map[ tmp_info[ui].first ].Type;
-		number = INFO_map[ tmp_info[ui].first ].N_entries;
+		map_type = entry_header.INFO_map[ index ].Type;
+		number = entry_header.INFO_map[ index ].N_entries;
 
 		if (map_type == Integer)
 			make_typed_int_vector(tmp_vector, tmp_info[ui].second, number );
@@ -562,51 +509,47 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 }
 
 // Set the include_genotype flag on the basis of depth
-void vcf_entry::filter_genotypes_by_depth(vector<bool> &include_genotype_out, int min_depth, int max_depth)
+void vcf_entry::filter_genotypes_by_depth(int min_depth, int max_depth)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
-	//if (FORMAT_to_idx.find("DP") != FORMAT_to_idx.end())
 	if (DP_idx != -1)
 	{	// Have depth info
 		int depth;
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_DP[ui] == false)
 				parse_genotype_entry(ui, false, false, true);
 			depth = get_indv_DEPTH(ui);
 			if ((depth < min_depth) || (depth > max_depth))
-				include_genotype_out[ui] = false;
+				include_genotype[ui] = false;
 		}
 	}
 }
 
 // Filter specific genotypes by quality
-void vcf_entry::filter_genotypes_by_quality(vector<bool> &include_genotype_out, double min_genotype_quality)
+void vcf_entry::filter_genotypes_by_quality(double min_genotype_quality)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
-	//if (FORMAT_to_idx.find("GQ") != FORMAT_to_idx.end())
 	if (GQ_idx != -1)
 	{	// Have quality info
 		double quality;
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_GQ[ui] == false)
 				parse_genotype_entry(ui, false, true);
 			quality = get_indv_GQUALITY(ui);
 			if (quality < min_genotype_quality)
-				include_genotype_out[ui] = false;
+				include_genotype[ui] = false;
 		}
 	}
 }
 
 // Exclude genotypes with a filter flag.
-void vcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype_out, const set<string> &filter_flags_to_remove, bool remove_all)
+void vcf_entry::filter_genotypes_by_filter_status(const set<string> &filter_flags_to_remove, bool remove_all)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
@@ -614,7 +557,6 @@ void vcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype
 	vector<string> GFILTERs;
 	if (FT_idx != -1)
 	{	// Have GFilter info
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_FT[ui] == false)
@@ -625,13 +567,13 @@ void vcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype
 			{	// If removing all filters, only keep things with label PASS
 				if (!GFILTERs.empty())
 					if ((GFILTERs[0] != "PASS") && (GFILTERs[0] != "."))
-						include_genotype_out[ui] = false;
+						include_genotype[ui] = false;
 			}
 			else
 			{	// Only removing specific filters
 				for (unsigned int uj=0; uj<GFILTERs.size(); uj++)
 					if (filter_flags_to_remove.find(GFILTERs[uj]) != filter_flags_to_remove.end())
-							include_genotype_out[ui] = false;
+							include_genotype[ui] = false;
 			}
 		}
 	}

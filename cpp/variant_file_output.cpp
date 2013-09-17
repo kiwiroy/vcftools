@@ -7,57 +7,72 @@
  */
 #include "variant_file.h"
 
-void variant_file::output_frequency(const string &output_file_prefix, bool output_counts, bool suppress_allele_output, bool derived)
+void variant_file::output_frequency(const parameters &params, bool output_counts)
 {
 	// Output statistics of frequency at each site
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Frequency Statistics.");
 
 	LOG.printLOG("Outputting Frequency Statistics...\n");
-	string output_file = output_file_prefix + ".frq";
+	string output_file = params.output_prefix + ".frq";
 	if (output_counts)
 		output_file += ".count";
 
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
-	if (suppress_allele_output == false)
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+
+	if (params.suppress_allele_output == false)
 	{
 		out << "CHROM\tPOS\tN_ALLELES\tN_CHR\t{ALLELE:";
 		if (output_counts)
-			out << "COUNT}" << endl;
+			out << "COUNT}\n";
 		else
-			out << "FREQ}" << endl;
+			out << "FREQ}\n";
 	}
 	else
 	{
 		if (output_counts)
-			out << "CHROM\tPOS\tN_ALLELES\tN_CHR\t{COUNT}" << endl;
+			out << "CHROM\tPOS\tN_ALLELES\tN_CHR\t{COUNT}\n";
 		else
-			out << "CHROM\tPOS\tN_ALLELES\tN_CHR\t{FREQ}" << endl;
+			out << "CHROM\tPOS\tN_ALLELES\tN_CHR\t{FREQ}\n";
 	}
 
 	vector<int> allele_counts;
 	unsigned int N_non_missing_chr;
 	unsigned int N_alleles;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	unsigned int aa_idx = 0;
-	for (unsigned int s=0; s<N_entries; s++)
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
 
-		if (derived)
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		if (params.derived)
 			e->parse_basic_entry(true, false, true);
 		else
 			e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 		N_alleles = e->get_N_alleles();
 
-		if (derived)
+		if (params.derived)
 		{
 			string AA = e->get_INFO_value("AA");
 			std::transform(AA.begin(), AA.end(), AA.begin(), ::toupper);	// Comment this out if only want high quality sites.
@@ -86,12 +101,12 @@ void variant_file::output_frequency(const string &output_file_prefix, bool outpu
 			}
 		}
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 
 		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << N_alleles << "\t" << N_non_missing_chr;
 		if (output_counts)
 		{
-			if (suppress_allele_output == false)
+			if (params.suppress_allele_output == false)
 			{
 				out << "\t" << e->get_allele(aa_idx) << ":" << allele_counts[aa_idx];
 				for (unsigned int ui=0; ui<N_alleles; ui++)
@@ -99,7 +114,7 @@ void variant_file::output_frequency(const string &output_file_prefix, bool outpu
 					if (ui != aa_idx)
 						out << "\t" << e->get_allele(ui) << ":" << allele_counts[ui];
 				}
-				out << endl;
+				out << "\n";
 			}
 			else
 			{
@@ -109,13 +124,13 @@ void variant_file::output_frequency(const string &output_file_prefix, bool outpu
 					if (ui != aa_idx)
 						out << "\t" << allele_counts[ui];
 				}
-				out << endl;
+				out << "\n";
 			}
 		}
 		else
 		{
 			double freq;
-			if (suppress_allele_output == false)
+			if (params.suppress_allele_output == false)
 			{
 				freq = allele_counts[aa_idx] / (double)N_non_missing_chr;
 				out << "\t" << e->get_allele(aa_idx) << ":" << freq;
@@ -127,7 +142,7 @@ void variant_file::output_frequency(const string &output_file_prefix, bool outpu
 						out << "\t" << e->get_allele(ui) << ":" << freq;
 					}
 				}
-				out << endl;
+				out << "\n";
 			}
 			else
 			{
@@ -141,27 +156,37 @@ void variant_file::output_frequency(const string &output_file_prefix, bool outpu
 						out << "\t" << freq;
 					}
 				}
-				out << endl;
+				out << "\n";
 			}
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_het(const string &output_file_prefix)
+void variant_file::output_het(const parameters &params)
 {
 	// Output statistics on Heterozygosity for each individual
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Heterozygosity Statistics.");
 	// Following the calculations in PLINK....
 	// Note this assumes Biallelic SNPs.
 
 	LOG.printLOG("Outputting Individual Heterozygosity\n");
 
-	string output_file = output_file_prefix + ".het";
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	string output_file = params.output_prefix + ".het";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+
 	out << "INDV\tO(HOM)\tE(HOM)\tN_SITES\tF" << endl;
 
 	// P(Homo) = F + (1-F)P(Homo by chance)
@@ -175,18 +200,30 @@ void variant_file::output_het(const string &output_file_prefix)
 	//    F = (O-E)/(N-E)
 
 	// First, calc frequency of each site (should really move this to a subroutine)
-	vector<double> freq(N_entries, 0.0);
+	vector<double> freq;
 	vector<int> allele_counts;
-	vector<unsigned int> N_non_missing_chr(N_entries,0);
+	vector<unsigned int> N_non_missing_chr;
+	unsigned int N_non_missing_tmp;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	vector<int> N_sites_included(meta_data.N_indv,0);
+	vector<int> N_obs_hom(meta_data.N_indv,0);
+	vector<double> N_expected_hom(meta_data.N_indv,0);
+	pair<int, int> alleles;
+	entry *e = get_entry_object();
 
-		get_entry(s, variant_line);
+	unsigned int s = -1;
+	while(!eof())
+	{
+		s++;
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -197,51 +234,32 @@ void variant_file::output_het(const string &output_file_prefix)
 
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tIndividual Heterozygosity: Only using fully diploid SNPs.");
 			continue;
 		}
 
 		// Frequency of non-reference allele
-		e->get_allele_counts(allele_counts, N_non_missing_chr[s], include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_tmp);
+		N_non_missing_chr.push_back(N_non_missing_tmp);
 
-		if (N_non_missing_chr[s] > 0)
-			freq[s] = allele_counts[1] / double(N_non_missing_chr[s]);
+		if (N_non_missing_tmp > 0)
+			freq.push_back(allele_counts[1] / double(N_non_missing_tmp) );
 		else
-			freq[s] = -1;
-	}
-
-	vector<int> N_sites_included(N_indv, 0);
-	vector<int> N_obs_hom(N_indv, 0);
-	vector<double> N_expected_hom(N_indv, 0.0);
-	pair<int, int> alleles;
-
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
-		e->reset(variant_line);
-		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
-			continue;
-
-		e->parse_genotype_entries(true);
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
-			continue;
+			freq.push_back(-1);
 
 		if ((freq[s] <= numeric_limits<double>::epsilon())  || (1.0 - freq[s] <= numeric_limits<double>::epsilon()))
 			continue;
 
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		for (unsigned int ui=0; ui<e->N_indv; ui++)
 		{
+			N_sites_included.push_back(0);
+
 			if (include_indv[ui] == false)
 				continue;
 
-			if (include_genotype[s][ui] == true)
+			if (e->include_genotype[ui] == true)
 			{
 				e->get_indv_GENOTYPE_ids(ui, alleles);
 				if ((alleles.first != -1) && (alleles.second != -1))
@@ -261,14 +279,14 @@ void variant_file::output_het(const string &output_file_prefix)
 	}
 
 	out.setf(ios::fixed,ios::floatfield);
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
 		if (N_sites_included[ui] > 0)
 		{
 			double F = (N_obs_hom[ui] - N_expected_hom[ui]) / double(N_sites_included[ui] - N_expected_hom[ui]);
-			out << indv[ui] << "\t" << N_obs_hom[ui] << "\t";
+			out << meta_data.indv[ui] << "\t" << N_obs_hom[ui] << "\t";
 			out.precision(1);
 			out << N_expected_hom[ui] << "\t";
 			out.precision(5);
@@ -276,20 +294,30 @@ void variant_file::output_het(const string &output_file_prefix)
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_hwe(const string &output_file_prefix)
+void variant_file::output_hwe(const parameters &params)
 {
 	// Output HWE statistics for each site as described in Wigginton, Cutler, and Abecasis (2005)
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output HWE Statistics.");
 	// Note this assumes Biallelic SNPs.
 	LOG.printLOG("Outputting HWE statistics (but only for biallelic loci)\n");
 
-	string output_file = output_file_prefix + ".hwe";
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	string output_file = params.output_prefix + ".hwe";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+		ostream out(buf);
+
 	out << "CHR\tPOS\tOBS(HOM1/HET/HOM2)\tE(HOM1/HET/HOM2)\tChiSq\tP" << endl;
 
 	/* PLINK code:
@@ -316,14 +344,19 @@ void variant_file::output_hwe(const string &output_file_prefix)
 	vector<int> allele_counts;
 	unsigned int N_non_missing_chr;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	entry *e = get_entry_object();
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -334,15 +367,15 @@ void variant_file::output_hwe(const string &output_file_prefix)
 
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tHWE: Only using fully diploid SNPs.");
 			continue;	// Isn't diploid
 		}
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		freq = allele_counts[0] / (double)N_non_missing_chr;
-		e->get_genotype_counts(include_indv, include_genotype[s], b11, b12, b22);
+		e->get_genotype_counts(b11, b12, b22);
 		tot = b11 + b12 + b22;
 		exp_11 = freq * freq * tot;
 		exp_12 = 2.0 * freq * (1.0-freq) * tot;
@@ -361,40 +394,52 @@ void variant_file::output_hwe(const string &output_file_prefix)
 		out << "\t" << chisq << "\t" << p << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_individuals_by_mean_depth(const string &output_file_prefix)
+void variant_file::output_individuals_by_mean_depth(const parameters &params)
 {
 	// Output information regarding the mean depth for each individual
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Individuals by Mean Depth Statistics.");
 
 	LOG.printLOG("Outputting Mean Depth by Individual\n");
-	string output = output_file_prefix + ".idepth";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Individual Depth Output File: " + output, 2);
+	string output_file = params.output_prefix + ".idepth";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Individual Depth Output File: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+		ostream out(buf);
+
 	out << "INDV\tN_SITES\tMEAN_DEPTH" << endl;
-	vector<double> depth_sum(N_indv, 0.0);
-	vector<int> count(N_indv, 0);
+	vector<double> depth_sum(meta_data.N_indv, 0.0);
+	vector<int> count(meta_data.N_indv, 0);
 	int depth;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
+	entry *e = get_entry_object();
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
 
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
-			if (include_indv[ui] == false)
+			if (e->include_indv[ui] == false)
 				continue;
 
-			if (include_genotype[s][ui] == true)
+			if (e->include_genotype[ui] == true)
 			{
 				e->parse_genotype_entry(ui, false, false, true);
 				depth = e->get_indv_DEPTH(ui);
@@ -407,112 +452,96 @@ void variant_file::output_individuals_by_mean_depth(const string &output_file_pr
 		}
 	}
 
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
 
 		double mean_depth = depth_sum[ui] / count[ui];
-		out << indv[ui] << "\t" << count[ui] << "\t" << mean_depth << endl;
+		out << meta_data.indv[ui] << "\t" << count[ui] << "\t" << mean_depth << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_SNP_density(const string &output_file_prefix, int bin_size)
+void variant_file::output_SNP_density(const parameters &params)
 {
 	// Output SNP density (technically variant density)
+	int bin_size = params.output_SNP_density_bin_size;
 	if (bin_size <= 0)
 		return;
 	LOG.printLOG("Outputting SNP density\n");
 
-	string output = output_file_prefix + ".snpden";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open SNP Density Output File: " + output, 2);
+	string output_file = params.output_prefix + ".snpden";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open SNP Density Output File: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
-	// Find maximum position
-	map<string, int> max_pos;
-	map<string, int> min_pos;
+	ostream out(buf);
 
 	string CHROM; int POS;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			set_filepos(entry_file_locations[s]);
-			read_CHROM_and_POS_only(CHROM, POS);
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (POS > max_pos[CHROM])
-					max_pos[CHROM] = POS;
-			}
-			else
-				max_pos[CHROM] = POS;
+	entry *e = get_entry_object();
 
-			if (min_pos.find(CHROM) != min_pos.end())
-			{
-				if (POS < min_pos[CHROM])
-					min_pos[CHROM] = POS;
-			}
-			else
-				min_pos[CHROM] = POS;
-		}
-	}
-
-	map<string, int>::iterator it;
-
-	unsigned int N_bins;
 	map<string, vector<int> > bins;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int)((max_pos[CHROM] + bin_size) / double(bin_size));
-		bins[CHROM].resize(N_bins, 0);
-	}
+	vector<string> chrs;
 
 	unsigned int idx;
 	double C = 1.0 / double(bin_size);
 	int prev_pos = -1; string prev_chrom = "";
 	string alt;
-	for (unsigned int s=0; s<N_entries; s++)
+
+	while(!eof())
 	{
-		if (include_entry[s] == true)
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+
+		CHROM = e->get_CHROM();
+		POS = e->get_POS();
+		alt = e->get_ALT();
+
+		if (alt != "." && (POS != prev_pos || CHROM != prev_chrom))
 		{
-			set_filepos(entry_file_locations[s]);
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry(true);
+			idx = (unsigned int)(POS * C);
 
-			CHROM = e->get_CHROM();
-			POS = e->get_POS();
-			alt = e->get_ALT();
+			if (idx>=bins[CHROM].size())
+				bins[CHROM].resize(idx+1,0);
 
-			if (alt != "." && (POS != prev_pos || CHROM != prev_chrom))
-			{
-				idx = (unsigned int)(POS * C);
-				bins[CHROM][idx]++;
-			}
-			prev_pos = POS;
-			prev_chrom = CHROM;
+			bins[CHROM][idx]++;
 		}
+		if (CHROM != prev_chrom)
+			chrs.push_back(CHROM);
+
+		prev_pos = POS;
+		prev_chrom = CHROM;
 	}
 
 	out << "CHROM\tBIN_START\tSNP_COUNT\tVARIANTS/KB" << endl;
-	double sum1=0.0, sum2=0.0;
 	int bin_tot;
 	C = 1000.0 / bin_size;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+
+	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
 		bool output = false;
-		CHROM = (*it).first;
-		sum2 += (max_pos[CHROM] - min_pos[CHROM]);
+		CHROM = chrs[ui];
+
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			bin_tot = bins[CHROM][s];
-			sum1 += bin_tot;
 			if (bin_tot > 0)
 				output = true;
 			if (output == true)
@@ -520,58 +549,57 @@ void variant_file::output_SNP_density(const string &output_file_prefix, int bin_
 		}
 	}
 	delete e;
-	out.close();
-
-	double mean_SNP_density = sum1 / sum2 * 1000;
-	LOG.printLOG("Mean SNP density: " + output_log::dbl2str(mean_SNP_density, 5) + " variants / kb\n");
 }
 
-void variant_file::output_missingness(const string &output_file_prefix)
+void variant_file::output_indv_missingness(const parameters &params)
 {
-	// Output missingness by individual and site
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	// Output missingness by individual
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Missingness Statistics.");
 
-	LOG.printLOG("Outputting Site and Individual Missingness\n");
-	string output1 = output_file_prefix + ".imiss";
-	ofstream out1(output1.c_str());
-	if (!out1.is_open())
-		LOG.error("Could not open Individual Missingness Output File: " + output1, 3);
+	LOG.printLOG("Outputting Individual Missingness\n");
+	string output_file = params.output_prefix + ".imiss";
 
-	string output2 = output_file_prefix + ".lmiss";
-	ofstream out2(output2.c_str());
-	if (!out2.is_open())
-		LOG.error("Could not open Site Missingness Output File: " + output2, 4);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Individual Missingness Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
-	out1 << "INDV\tN_DATA\tN_GENOTYPES_FILTERED\tN_MISS\tF_MISS" << endl;
-	unsigned int ui, s;
-	vector<unsigned int> indv_N_missing(N_indv, 0), indv_N_tot(N_indv, 0);
-	vector<unsigned int> indv_N_geno_filtered(N_indv, 0);
-	unsigned int site_N_missing, site_N_tot, site_N_geno_filtered;
+	ostream out(buf);
+
+	out << "INDV\tN_DATA\tN_GENOTYPES_FILTERED\tN_MISS\tF_MISS" << endl;
+	unsigned int ui;
+	vector<unsigned int> indv_N_missing(meta_data.N_indv, 0), indv_N_tot(meta_data.N_indv, 0);
+	vector<unsigned int> indv_N_geno_filtered(meta_data.N_indv, 0);
 	pair<int, int> alleles;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 
-	out2 << "CHR\tPOS\tN_DATA\tN_GENOTYPE_FILTERED\tN_MISS\tF_MISS" << endl;
-	for (s=0; s<N_entries; s++)
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry();
 
-		site_N_missing = 0;
-		site_N_tot = 0;
-		site_N_geno_filtered = 0;
-		for (ui=0; ui<N_indv; ui++)
+		for (ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
 				continue;
-			if (include_genotype[s][ui] == false)
+			if (e->include_genotype[ui] == false)
 			{
-				site_N_geno_filtered++;
 				indv_N_geno_filtered[ui]++;
 				continue;
 			}
@@ -579,16 +607,86 @@ void variant_file::output_missingness(const string &output_file_prefix)
 			e->parse_genotype_entry(ui, true);
 			e->get_indv_GENOTYPE_ids(ui, alleles);
 			if (alleles.first == -1)
-			{
-				site_N_missing++;
 				indv_N_missing[ui]++;
-			}
 			indv_N_tot[ui]++;
+		}
+	}
 
-			if (alleles.second == -1)
+	for (ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		out << meta_data.indv[ui] << "\t" << indv_N_tot[ui] << "\t";
+		out << indv_N_geno_filtered[ui] << "\t" << indv_N_missing[ui] << "\t";
+		out << indv_N_missing[ui] / double(indv_N_tot[ui]) << endl;
+	}
+
+	delete e;
+}
+
+void variant_file::output_site_missingness(const parameters &params)
+{
+	// Output missingness by site
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to output Missingness Statistics.");
+
+	LOG.printLOG("Outputting Site Missingness\n");
+
+	string output_file = params.output_prefix + ".lmiss";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Site Missingness Output File: " + output_file, 4);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+
+	unsigned int ui;
+	unsigned int site_N_missing, site_N_tot, site_N_geno_filtered;
+	pair<int, int> alleles;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+
+	out << "CHR\tPOS\tN_DATA\tN_GENOTYPE_FILTERED\tN_MISS\tF_MISS" << endl;
+
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry();
+
+		site_N_missing = 0;
+		site_N_tot = 0;
+		site_N_geno_filtered = 0;
+		for (ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if (include_indv[ui] == false)
+				continue;
+			if (e->include_genotype[ui] == false)
 			{
-				site_N_missing++;
+				site_N_geno_filtered++;
+				continue;
 			}
+
+			e->parse_genotype_entry(ui, true);
+			e->get_indv_GENOTYPE_ids(ui, alleles);
+			if (alleles.first == -1)
+				site_N_missing++;
+			if (alleles.second == -1)
+				site_N_missing++;
 			site_N_tot+=2;
 
 			if ((alleles.second == -1) && (e->get_indv_PHASE(ui) == '|'))
@@ -597,25 +695,14 @@ void variant_file::output_missingness(const string &output_file_prefix)
 				site_N_missing--;
 			}
 		}
-		out2 << e->get_CHROM() << "\t" << e->get_POS() << "\t" << site_N_tot << "\t" << site_N_geno_filtered << "\t";
-		out2 << site_N_missing << "\t" << double(site_N_missing) / double(site_N_tot) << endl;
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << site_N_tot << "\t" << site_N_geno_filtered << "\t";
+		out << site_N_missing << "\t" << double(site_N_missing) / double(site_N_tot) << endl;
 	}
-
-	for (ui=0; ui<N_indv; ui++)
-	{
-		if (include_indv[ui] == false)
-			continue;
-		out1 << indv[ui] << "\t" << indv_N_tot[ui] << "\t";
-		out1 << indv_N_geno_filtered[ui] << "\t" << indv_N_missing[ui] << "\t";
-		out1 << indv_N_missing[ui] / double(indv_N_tot[ui]) << endl;
-	}
-
 	delete e;
-	out2.close();
-	out1.close();
 }
 
-void variant_file::calc_hap_r2(entry *e, entry *e2, const vector<bool> &include_geno1, const vector<bool> &include_geno2, double &r2, double &D, double &Dprime, int &chr_count)
+
+void variant_file::calc_hap_r2(entry *e, entry *e2, double &r2, double &D, double &Dprime, int &chr_count)
 {
 	double x11=0, x12=0, x21=0, x22=0;
 	double X=0, X2=0, Y=0, Y2=0, XY=0;
@@ -625,9 +712,9 @@ void variant_file::calc_hap_r2(entry *e, entry *e2, const vector<bool> &include_
 	chr_count = 0;
 	pair<int, int> geno1, geno2;
 	int allele1, allele2;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
-		if ((include_indv[ui] == false) || (include_geno1[ui] == false) || (include_geno2[ui] == false))
+		if ((include_indv[ui] == false) || (e->include_genotype[ui] == false) || (e2->include_genotype[ui] == false))
 			continue;
 
 		e->get_indv_GENOTYPE_ids(ui, geno1);
@@ -711,14 +798,14 @@ void variant_file::calc_hap_r2(entry *e, entry *e2, const vector<bool> &include_
 }
 
 // Calculate r2 for either haplotypes or genotypes using the em algorithm...
-void variant_file::calc_r2_em(entry *e, entry *e2, const vector<bool> &include_geno1, const vector<bool> &include_geno2, double &r2, int &indv_count)
+void variant_file::calc_r2_em(entry *e, entry *e2, double &r2, int &indv_count)
 {
 	r2 = 0;
 	indv_count = 0;
 	pair<int, int> geno1, geno2;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
-		if ((include_indv[ui] == false) || (include_geno1[ui] == false) || (include_geno2[ui] == false))
+		if ((include_indv[ui] == false) || (e->include_genotype[ui] == false) || (e2->include_genotype[ui] == false))
 			continue;
 
 		e->get_indv_GENOTYPE_ids(ui, geno1);
@@ -730,17 +817,17 @@ void variant_file::calc_r2_em(entry *e, entry *e2, const vector<bool> &include_g
 
 }
 
-void variant_file::calc_geno_r2(entry *e, entry *e2, const vector<bool> &include_geno1, const vector<bool> &include_geno2, double &r2, int &indv_count)
+void variant_file::calc_geno_r2(entry *e, entry *e2, double &r2, int &indv_count)
 {
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 	double X=0, X2=0, Y=0, Y2=0, XY=0;
 	double sx, sy;
 	indv_count = 0;
 	pair<int, int> geno1, geno2;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
-		if ((include_indv[ui] == false) || (include_geno1[ui] == false) || (include_geno2[ui] == false))
+		if ((include_indv[ui] == false) || (e->include_genotype[ui] == false) || (e2->include_genotype[ui] == false))
 			continue;
 
 		e->get_indv_GENOTYPE_ids(ui, geno1);
@@ -800,9 +887,9 @@ void variant_file::calc_geno_r2(entry *e, entry *e2, const vector<bool> &include
 	r2 = cov12 * cov12 / (var1 * var2);
 }
 
-void variant_file::calc_geno_chisq(entry *e, entry *e2, const vector<bool> &include_geno1, const vector<bool> &include_geno2, double &chisq, double &dof, double &pval, int &indv_count)
+void variant_file::calc_geno_chisq(entry *e, entry *e2, double &chisq, double &dof, double &pval, int &indv_count)
 {
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
 	int N0 = e->get_N_alleles();
@@ -814,9 +901,9 @@ void variant_file::calc_geno_chisq(entry *e, entry *e2, const vector<bool> &incl
 	vector<vector<double> > observed(N_genotypes0, vector<double>(N_genotypes1,0));
 	indv_count = 0;
 	pair<int, int> geno1, geno2;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
-		if ((include_indv[ui] == false) || (include_geno1[ui] == false) || (include_geno2[ui] == false))
+		if ((include_indv[ui] == false) || (e->include_genotype[ui] == false) || (e2->include_genotype[ui] == false))
 			continue;
 
 		e->get_indv_GENOTYPE_ids(ui, geno1);
@@ -930,172 +1017,310 @@ void variant_file::calc_geno_chisq(entry *e, entry *e2, const vector<bool> &incl
 	pval = 1.0-gammp(dof/2, chisq/2);
 }
 
-void variant_file::output_haplotype_r2(const string &output_file_prefix, int snp_window_size, int snp_window_min, int bp_window_size, int bp_window_min, double min_r2)
+void variant_file::output_haplotype_r2(const parameters &params)
 {
 	// Output pairwise LD statistics, using traditional r^2. Requires phased haplotypes.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
-	unsigned int s, s2;
+	int snp_window_size = params.ld_snp_window_size;
+	int snp_window_min = params.ld_snp_window_min;
+	int bp_window_size = params.ld_bp_window_size;
+	int bp_window_min = params.ld_bp_window_min;
+	double min_r2 = params.min_r2;
 
 	LOG.printLOG("Outputting Pairwise LD (phased bi-allelic only)\n");
-	string output = output_file_prefix + ".hap.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".hap.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR\tPOS1\tPOS2\tN_CHR\tR^2\tD\tDprime" << endl;
 
 	double r2, D, Dprime;
 	int chr_count;
 	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
-	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<(N_entries-1); s++)
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
+	bool first = true;
+	vector<string> tmp_files;
+	int count = -1;
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
-		e->reset(variant_line);
-		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
+		if (first)
 		{
+			get_entry(variant_line);
+			e->reset(variant_line);
+			e->apply_filters(params);
+			N_entries++;
+			if(!e->passed_filters)
+				continue;
+			N_kept_entries++;
+
+			e->parse_basic_entry(true);
+
+			if (e->get_N_alleles() != 2)
+			{
+				LOG.one_off_warning("\tLD: Only using biallelic variants.");
+				continue;	// Isn't biallelic
+			}
+			first = false;
+			e->parse_genotype_entries(true);
+			count = 0;
+		}
+
+		count++;
+		get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+		N_entries++;
+
+		if(!e2->passed_filters)
+		{
+			tmp_files.push_back("");
+			continue;
+		}
+		N_kept_entries++;
+
+		e2->parse_basic_entry(true);
+
+		if (e2->get_N_alleles() != 2)
+		{
+			tmp_files.push_back("");
 			LOG.one_off_warning("\tLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
 
+		e2->parse_genotype_entries(true);
+
+		if (count > snp_window_size)
+			continue;
+		if (e->get_CHROM() != e2->get_CHROM())
+			continue;
+		if ((e2->get_POS() - e->get_POS()) < bp_window_min)
+			continue;
+		if ((e2->get_POS() - e->get_POS()) > bp_window_size)
+			continue;
+
+		calc_hap_r2(e, e2, r2, D, Dprime, chr_count);
+
+		if (min_r2 > 0)
+			if ((r2 < min_r2) | (r2 != r2))
+				continue;
+
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << chr_count << "\t" << r2 << "\t" << D << "\t" << Dprime << "\t" << endl;
+	}
+
+	unsigned int uj;
+	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
+	{
+		if (tmp_files[ui] == "")
+			continue;
+
+		ifstream read_file(tmp_files[ui].c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 
-		for (s2 = s+skip; s2<N_entries; s2++)
+		for(uj=ui+skip; uj<tmp_files.size(); uj++)
 		{
-			if (include_entry[s2] == false)
+			if (tmp_files[uj] == "")
 				continue;
-
-			if (int(s2 - s) > snp_window_size)
-			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
+			if (int(uj-ui) > snp_window_size)
 				continue;
-			}
-
-			get_entry(s2, variant_line2);
+			ifstream read_file2(tmp_files[uj].c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file2)), istreambuf_iterator<char>());
 			e2->reset(variant_line2);
 			e2->parse_basic_entry(true);
 
 			if (e->get_CHROM() != e2->get_CHROM())
-			{
-				s2 = N_entries;	// No need to go any further (assuming SNPs are sorted)
 				continue;
-			}
-
 			if ((e2->get_POS() - e->get_POS()) < bp_window_min)
-					continue;
-
+				continue;
 			if ((e2->get_POS() - e->get_POS()) > bp_window_size)
 			{
-				s2 = N_entries;	// No need to go any further (assuming SNPs are sorted)
+				uj = tmp_files.size();
 				continue;
 			}
-
-			if (e2->get_N_alleles() != 2)
-			{
-				LOG.one_off_warning("\tLD: Only using biallelic variants.");
-				continue;
-			}
-
-			calc_hap_r2(e, e2, include_genotype[s], include_genotype[s2], r2, D, Dprime, chr_count);
-
+			calc_hap_r2(e, e2, r2, D, Dprime, chr_count);
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
 					continue;
 
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << chr_count << "\t" << r2 << "\t" << D << "\t" << Dprime << "\t" << endl;
 		}
+		remove(tmp_files[ui].c_str());
 	}
+	remove(tmp_files[uj].c_str());
+
 	delete e;
 	delete e2;
-	out.close();
 }
 
-void variant_file::output_genotype_r2(const string &output_file_prefix, int snp_window_size, int snp_window_min, int bp_window_size, int bp_window_min, double min_r2)
+void variant_file::output_genotype_r2(const parameters &params)
 {
 	// Output pairwise LD statistics, using genotype r^2. This is the same formula as used by PLINK, and is basically the squared
 	// correlation coefficient between genotypes numbered as 0, 1, 2.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
-	unsigned int s, s2;
+	int snp_window_size = params.ld_snp_window_size;
+	int snp_window_min = params.ld_snp_window_min;
+	int bp_window_size = params.ld_bp_window_size;
+	int bp_window_min = params.ld_bp_window_min;
+	double min_r2 = params.min_r2;
 
 	LOG.printLOG("Outputting Pairwise LD (bi-allelic only)\n");
-	string output = output_file_prefix + ".geno.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".geno.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR\tPOS1\tPOS2\tN_INDV\tR^2" << endl;
 
 	double r2;
 	int indv_count;
 	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
 	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<(N_entries-1); s++)
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
+	bool first = true;
+	vector<string> tmp_files;
+	int count = -1;
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
-		e->reset(variant_line);
-		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
+		if (first)
 		{
-			LOG.one_off_warning("\tgenoLD: Only using biallelic variants.");
-			continue;	// Isn't biallelic
-		}
-
-		e->parse_genotype_entries(true);
-
-		for (s2 = s+skip; s2<N_entries; s2++)
-		{
-			if (include_entry[s2] == false)
+			get_entry(variant_line);
+			e->reset(variant_line);
+			e->apply_filters(params);
+			N_entries++;
+			if(!e->passed_filters)
 				continue;
+			N_kept_entries++;
 
-			if (int(s2 - s) > snp_window_size)
-			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
-				continue;
-			}
+			e->parse_basic_entry(true);
 
-			get_entry(s2, variant_line2);
-			e2->reset(variant_line2);
-			e2->parse_basic_entry(true);
-
-			if (e2->get_N_alleles() != 2)
+			if (e->get_N_alleles() != 2)
 			{
 				LOG.one_off_warning("\tgenoLD: Only using biallelic variants.");
 				continue;	// Isn't biallelic
 			}
+			first = false;
+			e->parse_genotype_entries(true);
+			count = 0;
+		}
+
+		count++;
+		get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+		N_entries++;
+		if(!e2->passed_filters)
+		{
+			tmp_files.push_back("");
+			continue;
+		}
+		N_kept_entries++;
+
+		e2->parse_basic_entry(true);
+
+		if (e2->get_N_alleles() != 2)
+		{
+			tmp_files.push_back("");
+			LOG.one_off_warning("\tgenoLD: Only using biallelic variants.");
+			continue;	// Isn't biallelic
+		}
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+
+		e2->parse_genotype_entries(true);
+
+		if (count > snp_window_size)
+			continue;
+		if (e->get_CHROM() != e2->get_CHROM())
+			continue;
+		if ((e2->get_POS() - e->get_POS()) < bp_window_min)
+			continue;
+		if ((e2->get_POS() - e->get_POS()) > bp_window_size)
+			continue;
+
+		calc_geno_r2(e, e2, r2, indv_count);
+
+		if (min_r2 > 0)
+			if ((r2 < min_r2) | (r2 != r2))
+				continue;
+
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
+	}
+
+	unsigned int uj;
+	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
+	{
+		if (tmp_files[ui] == "")
+			continue;
+
+		ifstream read_file(tmp_files[ui].c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
+		e->parse_genotype_entries(true);
+
+		for(uj=ui+skip; uj<tmp_files.size(); uj++)
+		{
+			if (tmp_files[uj] == "")
+				continue;
+			if (int(uj-ui) > snp_window_size)
+				continue;
+			ifstream read_file2(tmp_files[uj].c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file2)), istreambuf_iterator<char>());
+			e2->reset(variant_line2);
+			e2->parse_basic_entry(true);
 
 			if (e->get_CHROM() != e2->get_CHROM())
-			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
 				continue;
-			}
-
 			if ((e2->get_POS() - e->get_POS()) < bp_window_min)
-				continue;
-
+					continue;
 			if ((e2->get_POS() - e->get_POS()) > bp_window_size)
 			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
+				uj = tmp_files.size();
 				continue;
 			}
-
-			calc_geno_r2(e, e2, include_genotype[s], include_genotype[s2], r2, indv_count);
+			calc_geno_r2(e, e2, r2, indv_count);
 
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
@@ -1103,147 +1328,279 @@ void variant_file::output_genotype_r2(const string &output_file_prefix, int snp_
 
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
 		}
+		remove(tmp_files[ui].c_str());
 	}
+	remove(tmp_files[uj].c_str());
+
 	delete e;
 	delete e2;
-	out.close();
 }
 
-void variant_file::output_genotype_chisq(const string &output_file_prefix, int snp_window_size, int snp_window_min, int bp_window_size, int bp_window_min, double min_pval)
+void variant_file::output_genotype_chisq(const parameters &params, double min_pval)
 {
 	// Output pairwise LD statistics, using genotype r^2. This is the same formula as used by PLINK, and is basically the squared
 	// correlation coefficient between genotypes numbered as 0, 1, 2.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
-	unsigned int s, s2;
+	int snp_window_size = params.ld_snp_window_size;
+	int snp_window_min = params.ld_snp_window_min;
+	int bp_window_size = params.ld_bp_window_size;
+	int bp_window_min = params.ld_bp_window_min;
 
 	LOG.printLOG("Outputting Pairwise LD\n");
-	string output = output_file_prefix + ".geno.chisq";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".geno.chisq";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR\tPOS1\tPOS2\tN_INDV\tCHI^2\tDOF\tPVAL" << endl;
 
 	double chisq, dof, pval;
 	int indv_count;
 	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
-	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<(N_entries-1); s++)
+	vector<char> variant_line;//, variant_line2;
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
+	bool first = true;
+	vector<string> tmp_files;
+	int count = -1;
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
+		if (first)
+		{
+			get_entry(variant_line);
+			e->reset(variant_line);
+			e->apply_filters(params);
+			N_entries++;
+			if(!e->passed_filters)
+				continue;
+			N_kept_entries++;
+
+			e->parse_basic_entry(true);
+			first = false;
+			e->parse_genotype_entries(true);
+			count = 0;
+		}
+
+		count++;
+		get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+		N_entries++;
+		if(!e2->passed_filters)
+		{
+			tmp_files.push_back("");
+			continue;
+		}
+		N_kept_entries++;
+		e2->parse_basic_entry(true);
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+
+		e2->parse_genotype_entries(true);
+
+		if (count > snp_window_size)
+			continue;
+		if (e->get_CHROM() != e2->get_CHROM())
+			continue;
+		if ((e2->get_POS() - e->get_POS()) < bp_window_min)
+			continue;
+		if ((e2->get_POS() - e->get_POS()) > bp_window_size)
 			continue;
 
-		get_entry(s, variant_line);
-		e->reset(variant_line);
+		calc_geno_chisq(e, e2, chisq, dof, pval, indv_count);
+
+		if (min_pval > 0)
+			if ((pval < min_pval) | (pval != pval))
+				continue;
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << chisq << "\t" << dof << "\t" << pval << endl;
+	}
+
+	unsigned int uj;
+	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
+	{
+		if (tmp_files[ui] == "")
+			continue;
+
+		ifstream read_file(tmp_files[ui].c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
 		e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 
-		for (s2 = s+skip; s2<N_entries; s2++)
+		for(uj=ui+skip; uj<tmp_files.size(); uj++)
 		{
-			if (include_entry[s2] == false)
+			if (tmp_files[uj] == "")
 				continue;
-
-			if (int(s2 - s) > snp_window_size)
-			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
+			if (int(uj-ui) > snp_window_size)
 				continue;
-			}
-
-			get_entry(s2, variant_line2);
+			ifstream read_file2(tmp_files[uj].c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file2)), istreambuf_iterator<char>());
 			e2->reset(variant_line2);
 			e2->parse_basic_entry(true);
 
 			if (e->get_CHROM() != e2->get_CHROM())
-			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
 				continue;
-			}
-
 			if ((e2->get_POS() - e->get_POS()) < bp_window_min)
 				continue;
-
 			if ((e2->get_POS() - e->get_POS()) > bp_window_size)
 			{
-				s2 = N_entries;	// SNPs sorted, so no need to go any further
+				uj = tmp_files.size();
 				continue;
 			}
-
-			calc_geno_chisq(e, e2, include_genotype[s], include_genotype[s2], chisq, dof, pval, indv_count);
+			calc_geno_chisq(e, e2, chisq, dof, pval, indv_count);
 
 			if (min_pval > 0)
 				if ((pval < min_pval) | (pval != pval))
 					continue;
-
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << chisq << "\t" << dof << "\t" << pval << endl;
 		}
+		remove(tmp_files[ui].c_str());
 	}
+	remove(tmp_files[uj].c_str());
+
 	delete e;
 	delete e2;
-	out.close();
 }
 
-void variant_file::output_interchromosomal_genotype_r2(const string &output_file_prefix, double min_r2)
+void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 {
 	// Output pairwise LD statistics, using genotype r^2. This is the same formula as used by PLINK, and is basically the squared
 	// correlation coefficient between genotypes numbered as 0, 1, 2.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
-	unsigned int s, s2;
+	double min_r2 = params.min_r2;
 
 	LOG.printLOG("Outputting Interchromosomal Pairwise Genotype LD (bi-allelic only)\n");
-	string output = output_file_prefix + ".interchrom.geno.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".interchrom.geno.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+			buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR1\tPOS1\tCHR2\tPOS2\tN_INDV\tR^2" << endl;
 
 	int indv_count;
 	double r2;
-	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<(N_entries-1); s++)
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
+	bool first = true;
+	vector<string> tmp_files;
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
-		e->reset(variant_line);
-		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
+		if (first)
 		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-			continue;	// Isn't biallelic
-		}
-
-		e->parse_genotype_entries(true);
-
-		for (s2 = s+1; s2<N_entries; s2++)
-		{
-			if (include_entry[s2] == false)
+			get_entry(variant_line);
+			e->reset(variant_line);
+			e->apply_filters(params);
+			N_entries++;
+			if(!e->passed_filters)
 				continue;
+			N_kept_entries++;
 
-			get_entry(s2, variant_line2);
-			e2->reset(variant_line2);
-			e2->parse_basic_entry(true);
+			e->parse_basic_entry(true);
 
-			if (e2->get_N_alleles() != 2)
+			if (e->get_N_alleles() != 2)
 			{
 				LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
 				continue;	// Isn't biallelic
 			}
+			first = false;
+			e->parse_genotype_entries(true);
+		}
+		get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+		N_entries++;
+		if(!e2->passed_filters)
+		{
+			tmp_files.push_back("");
+			continue;
+		}
+		N_kept_entries++;
+		e2->parse_basic_entry(true);
+
+		if (e2->get_N_alleles() != 2)
+		{
+			tmp_files.push_back("");
+			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			continue;	// Isn't biallelic
+		}
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+
+		e2->parse_genotype_entries(true);
+
+		if (e->get_CHROM() == e2->get_CHROM())
+			continue;
+
+		calc_geno_r2(e, e2, r2, indv_count);
+
+		if (min_r2 > 0)
+			if ((r2 < min_r2) | (r2 != r2))
+				continue;
+
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
+	}
+
+	unsigned int uj;
+	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
+	{
+		if (tmp_files[ui] == "")
+			continue;
+
+		ifstream read_file(tmp_files[ui].c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
+		e->parse_genotype_entries(true);
+
+		for(uj=ui+1; uj<tmp_files.size(); uj++)
+		{
+			if (tmp_files[uj] == "")
+				continue;
+			ifstream read_file2(tmp_files[uj].c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file2)), istreambuf_iterator<char>());
+			e2->reset(variant_line2);
+			e2->parse_basic_entry(true);
 
 			if (e->get_CHROM() == e2->get_CHROM())
 				continue;
 
-			calc_geno_r2(e, e2, include_genotype[s], include_genotype[s2], r2, indv_count);
+			calc_geno_r2(e, e2, r2, indv_count);
 
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
@@ -1251,72 +1608,135 @@ void variant_file::output_interchromosomal_genotype_r2(const string &output_file
 
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
 		}
+		remove(tmp_files[ui].c_str());
 	}
+	remove(tmp_files[uj].c_str());
 	delete e;
 	delete e2;
-	out.close();
 }
 
-void variant_file::output_interchromosomal_haplotype_r2(const string &output_file_prefix, double min_r2)
+void variant_file::output_interchromosomal_haplotype_r2(const parameters &params)
 {
+	double min_r2 = params.min_r2;
 	// Output pairwise LD statistics, using genotype r^2. This is the same formula as used by PLINK, and is basically the squared
 	// correlation coefficient between genotypes numbered as 0, 1, 2.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
-	unsigned int s, s2;
-
 	LOG.printLOG("Outputting Interchromosomal Pairwise LD (bi-allelic only)\n");
-	string output = output_file_prefix + ".interchrom.hap.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".interchrom.hap.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR1\tPOS1\tCHR2\tPOS2\tN_CHR\tR^2" << endl;
 
 	double D, Dprime;
 	int chr_count;
 	double r2;
-	vector<char> variant_line, variant_line2;
+	vector<char> variant_line;
 	entry *e, *e2;
-	e = get_entry_object(N_indv);
-	e2 = get_entry_object(N_indv);
-	for (s=0; s<(N_entries-1); s++)
+	e = get_entry_object();
+	e2 = get_entry_object();
+	bool first = true;
+	vector<string> tmp_files;
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
-		e->reset(variant_line);
-		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
+		if (first)
 		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-			continue;	// Isn't biallelic
-		}
-
-		e->parse_genotype_entries(true);
-
-		for (s2 = s+1; s2<N_entries; s2++)
-		{
-			if (include_entry[s2] == false)
+			get_entry(variant_line);
+			e->reset(variant_line);
+			e->apply_filters(params);
+			N_entries++;
+			if(!e->passed_filters)
 				continue;
+			N_kept_entries++;
 
-			get_entry(s2, variant_line2);
-			e2->reset(variant_line2);
-			e2->parse_basic_entry(true);
+			e->parse_basic_entry(true);
 
-			if (e2->get_N_alleles() != 2)
+			if (e->get_N_alleles() != 2)
 			{
 				LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
 				continue;	// Isn't biallelic
 			}
+			first = false;
+			e->parse_genotype_entries(true);
+		}
+		get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+		N_entries++;
+		if(!e2->passed_filters)
+		{
+			tmp_files.push_back("");
+			continue;
+		}
+		N_kept_entries++;
+		e2->parse_basic_entry(true);
+
+		if (e2->get_N_alleles() != 2)
+		{
+			tmp_files.push_back("");
+			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			continue;	// Isn't biallelic
+		}
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+
+		e2->parse_genotype_entries(true);
+
+		if (e->get_CHROM() == e2->get_CHROM())
+			continue;
+
+		calc_hap_r2(e, e2, r2, D, Dprime, chr_count);
+
+		if (min_r2 > 0)
+			if ((r2 < min_r2) | (r2 != r2))
+				continue;
+
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << chr_count << "\t" << r2 << endl;
+	}
+
+	unsigned int uj;
+	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
+	{
+		if (tmp_files[ui] == "")
+			continue;
+
+		ifstream read_file(tmp_files[ui].c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
+		e->parse_genotype_entries(true);
+
+		for(uj=ui+1; uj<tmp_files.size(); uj++)
+		{
+			if (tmp_files[uj] == "")
+				continue;
+			ifstream read_file2(tmp_files[uj].c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file2)), istreambuf_iterator<char>());
+			e2->reset(variant_line2);
+			e2->parse_basic_entry(true);
 
 			if (e->get_CHROM() == e2->get_CHROM())
 				continue;
 
-			calc_hap_r2(e, e2, include_genotype[s], include_genotype[s2], r2, D, Dprime, chr_count);
+			calc_hap_r2(e, e2, r2, D, Dprime, chr_count);
 
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
@@ -1324,19 +1744,22 @@ void variant_file::output_interchromosomal_haplotype_r2(const string &output_fil
 
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << chr_count << "\t" << r2 << endl;
 		}
+		remove(tmp_files[ui].c_str());
 	}
+	remove(tmp_files[uj].c_str());
 	delete e;
 	delete e2;
-	out.close();
 }
 
-void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const string &output_file_prefix, const string &positions_file, double min_r2)
+void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameters &params)
 {
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 			LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
 	LOG.printLOG("Outputting haplotype pairwise LD (bi-allelic only) for a set of SNPs verses all others.\n");
 
+	string positions_file = params.hap_rsq_position_list;
+	double min_r2 = params.min_r2;
 	vector< set<int > > keep_positions;
 	map<string, int> chr_to_idx;
 	string line;
@@ -1344,6 +1767,8 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const string &o
 	string chr;
 	int pos1, idx;
 	unsigned int N_chr=0;
+	vector<string> list_files;
+	vector<string> all_files;
 
 	ifstream BED(positions_file.c_str());
 	if (!BED.is_open())
@@ -1372,28 +1797,53 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const string &o
 	}
 	BED.close();
 
-	unsigned int s, s2;
-	string output = output_file_prefix + ".list.hap.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".list.hap.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR1\tPOS1\tCHR2\tPOS2\tN_CHR\tR^2" << endl;
 
 	double D, Dprime;
 	int chr_count;
 	double r2;
-	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
 
-		get_entry(s, variant_line);
+	while (!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
+
+		if (e->get_N_alleles() != 2)
+		{
+			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			continue;	// Isn't biallelic
+		}
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		all_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
 
 		e->get_CHROM(chr);
 		if (chr_to_idx.find(chr) == chr_to_idx.end())
@@ -1405,33 +1855,31 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const string &o
 		if (keep_positions[idx].find(pos1) == keep_positions[idx].end())
 			continue;
 
-		if (e->get_N_alleles() != 2)
-		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-			continue;	// Isn't biallelic
-		}
+		list_files.push_back(filename);
+	}
 
+	for (unsigned int ui=0; ui<list_files.size(); ui++)
+	{
+		string filename_1 = list_files[ui];
+		ifstream read_file(filename_1.c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 
-		for (s2 = 0; s2<N_entries; s2++)
+		for (unsigned int uj = 0; uj<all_files.size(); uj++)
 		{
-			if (include_entry[s2] == false)
+			string filename_2 = all_files[uj];
+			if (filename_1 == filename_2)
 				continue;
 
-			if (s == s2)
-				continue;
-
-			get_entry(s2, variant_line2);
+			ifstream read_file(filename_2.c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line2);
 			e2->parse_basic_entry(true);
+			e2->parse_genotype_entries(true);
 
-			if (e2->get_N_alleles() != 2)
-			{
-				LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-				continue;	// Isn't biallelic
-			}
-
-			calc_hap_r2(e, e2, include_genotype[s], include_genotype[s2], r2, D, Dprime, chr_count);
+			calc_hap_r2(e, e2, r2, D, Dprime, chr_count);
 
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
@@ -1440,12 +1888,17 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const string &o
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << chr_count << "\t" << r2 << endl;
 		}
 	}
-	out.close();
+
+	for (unsigned int ui=0; ui<all_files.size(); ui++)
+		remove(all_files[ui].c_str());
+
+	delete e;
+	delete e2;
 }
 
-void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const string &output_file_prefix, const string &positions_file, double min_r2)
+void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters &params)
 {
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 			LOG.error("Require Genotypes in VCF file in order to output LD Statistics.");
 
 	LOG.printLOG("Outputting genotype pairwise LD (bi-allelic only) for a set of SNPs verses all others.\n");
@@ -1457,10 +1910,13 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const string &ou
 	string chr;
 	int pos1, idx;
 	unsigned int N_chr=0;
+	double min_r2 = params.min_r2;
+	vector<string> list_files;
+	vector<string> all_files;
 
-	ifstream BED(positions_file.c_str());
+	ifstream BED(params.geno_rsq_position_list.c_str());
 	if (!BED.is_open())
-		LOG.error("Could not open Positions file: " + positions_file);
+		LOG.error("Could not open Positions file: " + params.geno_rsq_position_list);
 		// Skip header
 	BED.ignore(numeric_limits<streamsize>::max(), '\n');
 	while (!BED.eof())
@@ -1485,27 +1941,52 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const string &ou
 	}
 	BED.close();
 
-	unsigned int s, s2;
-	string output = output_file_prefix + ".list.geno.ld";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open LD Output File: " + output, 3);
+	string output_file = params.output_prefix + ".list.geno.ld";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LD Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHR1\tPOS1\tCHR2\tPOS2\tN_INDV\tR^2" << endl;
 
 	int indv_count;
 	double r2;
-	vector<char> variant_line, variant_line2;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = get_entry_object(N_indv);
-	for (s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	entry *e2 = get_entry_object();
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
+
+		if (e->get_N_alleles() != 2)
+		{
+			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			continue;	// Isn't biallelic
+		}
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		all_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
 
 		e->get_CHROM(chr);
 		if (chr_to_idx.find(chr) == chr_to_idx.end())
@@ -1517,32 +1998,31 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const string &ou
 		if (keep_positions[idx].find(pos1) == keep_positions[idx].end())
 			continue;
 
-		if (e->get_N_alleles() != 2)
-		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-			continue;	// Isn't biallelic
-		}
+		list_files.push_back(filename);
+	}
 
+	for (unsigned int ui=0; ui<list_files.size(); ui++)
+	{
+		string filename_1 = list_files[ui];
+		ifstream read_file(filename_1.c_str(), ios::binary);
+		vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+		e->reset(variant_line1);
+		e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 
-		for (s2 = 0; s2<N_entries; s2++)
+		for (unsigned int uj=0; uj<all_files.size(); uj++)
 		{
-			if (include_entry[s2] == false)
-				continue;
-			if (s == s2)
+			string filename_2 = all_files[uj];
+			if (filename_1 == filename_2)
 				continue;
 
-			get_entry(s2, variant_line2);
+			ifstream read_file(filename_2.c_str(), ios::binary);
+			vector<char> variant_line2((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line2);
 			e2->parse_basic_entry(true);
+			e2->parse_genotype_entries(true);
 
-			if (e2->get_N_alleles() != 2)
-			{
-				LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
-				continue;	// Isn't biallelic
-			}
-
-			calc_geno_r2(e, e2, include_genotype[s], include_genotype[s2], r2, indv_count);
+			calc_geno_r2(e, e2, r2, indv_count);
 
 			if (min_r2 > 0)
 				if ((r2 < min_r2) | (r2 != r2))
@@ -1551,20 +2031,35 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const string &ou
 			out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_CHROM() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
 		}
 	}
-	out.close();
+
+	for (unsigned int ui=0; ui<all_files.size(); ui++)
+			remove(all_files[ui].c_str());
+
+	delete e;
+	delete e2;
 }
 
-void variant_file::output_singletons(const string &output_file_prefix)
+void variant_file::output_singletons(const parameters &params)
 {
 	// Locate and output singletons (and private doubletons)
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Singletons.");
 
 	LOG.printLOG("Outputting Singleton Locations\n");
-	string output = output_file_prefix + ".singletons";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Singleton Output File: " + output, 3);
+	string output_file = params.output_prefix + ".singletons";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Singleton output file: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	out << "CHROM\tPOS\tSINGLETON/DOUBLETON\tALLELE\tINDV" << endl;
 
@@ -1576,25 +2071,29 @@ void variant_file::output_singletons(const string &output_file_prefix)
 	pair<int, int> geno;
 	string allele;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
+	entry *e = get_entry_object();
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 		e->parse_genotype_entries(true);
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		N_alleles = e->get_N_alleles();
 
 		for (a=0; a<(signed)N_alleles; a++)
 		{
 			if (allele_counts[a] == 1)
 			{	// Singleton
-				for (ui=0; ui<N_indv; ui++)
+				for (ui=0; ui<meta_data.N_indv; ui++)
 				{
 					if (include_indv[ui] == false)
 						continue;
@@ -1602,15 +2101,15 @@ void variant_file::output_singletons(const string &output_file_prefix)
 					if ((geno.first == a) || (geno.second == a))
 					{
 						e->get_allele(a, allele);
-						out << e->get_CHROM() << "\t" << e->get_POS() << "\tS\t" << allele << "\t" << indv[ui] << endl;
-						ui=N_indv;
+						out << e->get_CHROM() << "\t" << e->get_POS() << "\tS\t" << allele << "\t" << meta_data.indv[ui] << endl;
+						ui=meta_data.N_indv;
 						break;
 					}
 				}
 			}
 			else if (allele_counts[a] == 2)
 			{	// Possible doubleton
-				for (ui=0; ui<N_indv; ui++)
+				for (ui=0; ui<meta_data.N_indv; ui++)
 				{
 					if (include_indv[ui] == false)
 						continue;
@@ -1618,8 +2117,8 @@ void variant_file::output_singletons(const string &output_file_prefix)
 					if ((geno.first == a) && (geno.second == a))
 					{
 						e->get_allele(a, allele);
-						out << e->get_CHROM() << "\t" << e->get_POS() << "\tD\t" << allele << "\t" << indv[ui] << endl;
-						ui=N_indv;
+						out << e->get_CHROM() << "\t" << e->get_POS() << "\tD\t" << allele << "\t" << meta_data.indv[ui] << endl;
+						ui=meta_data.N_indv;
 						break;
 					}
 				}
@@ -1627,50 +2126,63 @@ void variant_file::output_singletons(const string &output_file_prefix)
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_genotype_depth(const string &output_file_prefix)
+void variant_file::output_genotype_depth(const parameters &params)
 {
 	// Output genotype depth in tab-delimited format.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Genotype Depth Statistics.");
 
 	LOG.printLOG("Outputting Depth for Each Genotype\n");
-	string output = output_file_prefix + ".gdepth";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Genotype Depth Output File: " + output, 7);
+	string output_file = params.output_prefix + ".gdepth";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Genotype Depth Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	out << "CHROM\tPOS";
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
 
-		out << "\t" << indv[ui];
+		out << "\t" << meta_data.indv[ui];
 	}
 	out << endl;
 
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
+	entry *e = get_entry_object();
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry();
 
 		out << e->get_CHROM() << "\t" << e->get_POS();
 
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
 				continue;
 
-			if (include_genotype[s][ui] == true)
+			if (e->include_genotype[ui] == true)
 			{
 				e->parse_genotype_entry(ui, false, false, true);
 				out << "\t" << e->get_indv_DEPTH(ui);
@@ -1681,10 +2193,9 @@ void variant_file::output_genotype_depth(const string &output_file_prefix)
 		out << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_FILTER_summary(const string &output_file_prefix)
+void variant_file::output_FILTER_summary(const parameters &params)
 {
 	// Output a summary of sites in various FILTER categories.
 	LOG.printLOG("Outputting Filter Summary (for bi-allelic loci only)\n");
@@ -1698,18 +2209,21 @@ void variant_file::output_FILTER_summary(const string &output_file_prefix)
 	model_to_idx["GT"] = 5;
 	string FILTER;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 
 	map<string, pair<int, int> > FILTER_to_TsTv;
 	map<string, int > FILTER_to_Nsites;
 	map<string, int >::iterator FILTER_to_Nsites_it;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true, true);
 
 		string model = e->get_REF() + e->get_ALT_allele(0);
@@ -1749,11 +2263,19 @@ void variant_file::output_FILTER_summary(const string &output_file_prefix)
 
 	sort(count_to_FILTER.begin(), count_to_FILTER.end());
 
-	string output = output_file_prefix + ".FILTER.summary";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Filter Summary Output File: " + output, 7);
+	string output_file = params.output_prefix + ".FILTER.summary";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Filter Summary Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "FILTER\tN_VARIANTS\tN_Ts\tN_Tv\tTs/Tv" << endl;
 
 	for (int i=count_to_FILTER.size()-1; i > -1; i--)
@@ -1766,13 +2288,13 @@ void variant_file::output_FILTER_summary(const string &output_file_prefix)
 		out << Ts << "\t" << Tv << "\t" << double(Ts)/Tv << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
+void variant_file::output_TsTv(const parameters &params)
 {
 	// Output Ts/Tv ratios in bins of a given size.
-	LOG.printLOG("Outputting Ts/Tv in bins of " + output_log::int2str(bin_size) + "bp\n");
+	int bin_size = params.output_TsTv_bin_size;
+	LOG.printLOG("Outputting Ts/Tv in bins of " + header::int2str(bin_size) + "bp\n");
 
 	map<string, unsigned int> model_to_idx;
 	model_to_idx["AC"] = 0;
@@ -1785,52 +2307,27 @@ void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
 	map<string, int> max_pos;
 	string CHROM;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
-
-			CHROM = e->get_CHROM();
-
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (e->get_POS() > max_pos[CHROM])
-					max_pos[CHROM] = e->get_POS();
-			}
-			else
-				max_pos[CHROM] = e->get_POS();
-		}
-	}
-
-	map<string, int>::iterator it;
-
-	unsigned int N_bins;
+	entry *e = get_entry_object();
 	map<string, vector<int> > Ts_counts;
 	map<string, vector<int> > Tv_counts;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int)((max_pos[CHROM] + bin_size) / double(bin_size));
-		Ts_counts[CHROM].resize(N_bins, 0);
-		Tv_counts[CHROM].resize(N_bins, 0);
-	}
+	vector<string> chrs;
+	string prev_chr = "";
 
-	vector<unsigned int> model_counts(6,0);
+	vector<int> model_counts(6,0);
 	double C = 1.0 / double(bin_size);
 	unsigned int idx;
-
 	string model;
-	for (unsigned int s=0; s<N_entries; s++)
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (!e->is_biallelic_SNP())
@@ -1841,6 +2338,16 @@ void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
 
 		CHROM = e->get_CHROM();
 		idx = (unsigned int)(e->get_POS() * C);
+
+		if(idx>=Ts_counts[CHROM].size())
+			Ts_counts[CHROM].resize(idx+1,0);
+		if(idx>=Tv_counts[CHROM].size())
+			Tv_counts[CHROM].resize(idx+1,0);
+		if(CHROM != prev_chr)
+		{
+			chrs.push_back(CHROM);
+			prev_chr = CHROM;
+		}
 
 		if (model_to_idx.find(model) != model_to_idx.end())
 		{
@@ -1863,19 +2370,27 @@ void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
 			}
 		}
 		else
-			LOG.warning("Unknown model type. Not a SNP? " + CHROM + ":" + output_log::int2str(e->get_POS()) +"\n");
+			LOG.warning("Unknown model type. Not a SNP? " + CHROM + ":" + header::int2str(e->get_POS()) +"\n");
 	}
 
-	string output = output_file_prefix + ".TsTv";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open TsTv Output File: " + output, 7);
+	string output_file = params.output_prefix + ".TsTv";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open TsTv Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tBinStart\tSNP_count\tTs/Tv" << endl;
 	double ratio;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+	for(unsigned int ui=0; ui<chrs.size(); ui++)
 	{
-		CHROM = (*it).first;
+		CHROM = chrs[ui];
 		for (unsigned int s=0; s<Ts_counts[CHROM].size(); s++)
 		{
 			ratio = 0.0;
@@ -1884,13 +2399,69 @@ void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
 			out << CHROM << "\t" << s*bin_size << "\t" << Ts_counts[CHROM][s]+Tv_counts[CHROM][s] << "\t" << ratio << endl;
 		}
 	}
-	out.close();
+	unsigned int Ts = model_counts[1] + model_counts[4];
+	unsigned int Tv = model_counts[0] + model_counts[2] + model_counts[3] + model_counts[5];
 
-	output = output_file_prefix + ".TsTv.summary";
-	out.open(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open TsTv Summary Output File: " + output, 7);
+	LOG.printLOG("Ts/Tv ratio: " + output_log::dbl2str(double(Ts)/Tv, 4) + "\n");
+	delete e;
+}
 
+void variant_file::output_TsTv_summary(const parameters &params)
+{
+	// Output Ts/Tv summary.
+	LOG.printLOG("Outputting Ts/Tv summary\n");
+
+	map<string, unsigned int> model_to_idx;
+	model_to_idx["AC"] = 0;
+	model_to_idx["AG"] = 1;
+	model_to_idx["AT"] = 2;
+	model_to_idx["CG"] = 3;
+	model_to_idx["CT"] = 4;
+	model_to_idx["GT"] = 5;
+
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+
+	vector<unsigned int> model_counts(6,0);
+	string model;
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+
+		if (!e->is_biallelic_SNP())
+			continue;
+
+		model = e->get_REF() + e->get_ALT_allele(0);
+		sort(model.begin(), model.end());
+
+		if (model_to_idx.find(model) != model_to_idx.end())
+			model_counts[model_to_idx[model]]++;
+		else
+			LOG.warning("Unknown model type. Not a SNP? " + e->get_CHROM() + ":" + header::int2str(e->get_POS()) +"\n");
+	}
+
+	string output_file = params.output_prefix + ".TsTv.summary";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open TsTv Summary Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "MODEL\tCOUNT" << endl;
 	out << "AC\t" << model_counts[0] << endl;
 	out << "AG\t" << model_counts[1] << endl;
@@ -1904,12 +2475,10 @@ void variant_file::output_TsTv(const string &output_file_prefix, int bin_size)
 	out << "Tv\t" << Tv << endl;
 
 	LOG.printLOG("Ts/Tv ratio: " + output_log::dbl2str(double(Ts)/Tv, 4) + "\n");
-
 	delete e;
-	out.close();
 }
 
-void variant_file::output_TsTv_by_count(const string &output_file_prefix)
+void variant_file::output_TsTv_by_count(const parameters &params)
 {
 	// Output Ts/Tv ratios in bins of a given size.
 	LOG.printLOG("Outputting Ts/Tv by Alternative Allele Count\n");
@@ -1920,7 +2489,7 @@ void variant_file::output_TsTv_by_count(const string &output_file_prefix)
 
 	string model;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	map<string, unsigned int> model_to_Ts_or_Tv;
 	model_to_Ts_or_Tv["AC"] = 1;
 	model_to_Ts_or_Tv["CA"] = 1;
@@ -1938,24 +2507,30 @@ void variant_file::output_TsTv_by_count(const string &output_file_prefix)
 	vector<int> allele_counts;
 	unsigned int allele_count;
 	unsigned int N_included_indv;
-	for (unsigned int s=0; s<N_entries; s++)
+
+	while(!eof())
 	{
-		if (include_entry[s] == true)
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+
+		if (!e->is_biallelic_SNP())
+			continue;
+
+		e->parse_genotype_entries(true);
+		e->get_allele_counts(allele_counts, N_included_indv);
+		allele_count = allele_counts[1];
+
+		model = e->get_REF() + e->get_ALT_allele(0);
+		if (model_to_Ts_or_Tv.find(model) != model_to_Ts_or_Tv.end())
 		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry(true);
-
-			if (!e->is_biallelic_SNP())
-				continue;
-
-			e->parse_genotype_entries(true);
-			e->get_allele_counts(allele_counts, N_included_indv, include_indv, include_genotype[s]);
-			allele_count = allele_counts[1];
-
-			model = e->get_REF() + e->get_ALT_allele(0);
-			if (model_to_Ts_or_Tv.find(model) != model_to_Ts_or_Tv.end())
-			{
 				idx = model_to_Ts_or_Tv[model];
 				if (idx == 0) // Ts
 					Ts_counts[allele_count]++;
@@ -1963,16 +2538,24 @@ void variant_file::output_TsTv_by_count(const string &output_file_prefix)
 					Tv_counts[allele_count]++;
 				else
 					LOG.error("Unknown model type\n");
-			}
-			else
-				LOG.warning("Unknown model type. Not a SNP? " + e->get_CHROM() + ":" + output_log::int2str(e->get_POS()) +"\n");
 		}
+		else
+			LOG.warning("Unknown model type. Not a SNP? " + e->get_CHROM() + ":" + output_log::int2str(e->get_POS()) +"\n");
 	}
 
-	string output = output_file_prefix + ".TsTv.count";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open TsTv by Count Output File: " + output, 7);
+	string output_file = params.output_prefix + ".TsTv.count";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open TsTv by Count Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	double ratio;
 	out << "ALT_ALLELE_COUNT\tN_Ts\tN_Tv\tTs/Tv" << endl;
@@ -1982,10 +2565,9 @@ void variant_file::output_TsTv_by_count(const string &output_file_prefix)
 		out << ui << "\t" << Ts_counts[ui] << "\t" << Tv_counts[ui] << "\t" << ratio << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_TsTv_by_quality(const string &output_file_prefix)
+void variant_file::output_TsTv_by_quality(const parameters &params)
 {
 	// Output Ts/Tv ratios in bins of a given size.
 	LOG.printLOG("Outputting Ts/Tv By Quality\n");
@@ -1994,7 +2576,7 @@ void variant_file::output_TsTv_by_quality(const string &output_file_prefix)
 
 	string model;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	map<string, unsigned int> model_to_Ts_or_Tv;
 	model_to_Ts_or_Tv["AC"] = 1;
 	model_to_Ts_or_Tv["CA"] = 1;
@@ -2010,45 +2592,59 @@ void variant_file::output_TsTv_by_quality(const string &output_file_prefix)
 	model_to_Ts_or_Tv["TG"] = 1;
 	unsigned int idx;
 	double QUAL;
-	for (unsigned int s=0; s<N_entries; s++)
+
+	while(!eof())
 	{
-		if (include_entry[s] == true)
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+
+		if (!e->is_biallelic_SNP())
+			continue;
+
+		QUAL = e->get_QUAL();
+		if (QUAL > max_qual)
+			max_qual = QUAL;
+		if (QUAL < min_qual)
+			min_qual = QUAL;
+
+		model = e->get_REF() + e->get_ALT_allele(0);;
+		if (model_to_Ts_or_Tv.find(model) != model_to_Ts_or_Tv.end())
 		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry(true);
-
-			if (!e->is_biallelic_SNP())
-				continue;
-
-			QUAL = e->get_QUAL();
-			if (QUAL > max_qual)
-				max_qual = QUAL;
-			if (QUAL < min_qual)
-				min_qual = QUAL;
-
-			model = e->get_REF() + e->get_ALT_allele(0);;
-			if (model_to_Ts_or_Tv.find(model) != model_to_Ts_or_Tv.end())
+			idx = model_to_Ts_or_Tv[model];
+			if (idx == 0) // Ts
 			{
-				idx = model_to_Ts_or_Tv[model];
-				if (idx == 0) // Ts
-				{
-					TsTv_counts[QUAL].first++;
-				}
-				else if (idx == 1) // Tv;
-					TsTv_counts[QUAL].second++;
-				else
-					LOG.error("Unknown model type\n");
+				TsTv_counts[QUAL].first++;
 			}
+			else if (idx == 1) // Tv;
+				TsTv_counts[QUAL].second++;
 			else
-				LOG.warning("Unknown model type. Not a SNP? " + e->get_CHROM() + ":" + output_log::int2str(e->get_POS()) +"\n");
+				LOG.error("Unknown model type\n");
 		}
+		else
+			LOG.warning("Unknown model type. Not a SNP? " + e->get_CHROM() + ":" + output_log::int2str(e->get_POS()) +"\n");
 	}
 
-	string output = output_file_prefix + ".TsTv.qual";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open TsTv by Count Output File: " + output, 7);
+	string output_file = params.output_prefix + ".TsTv.qual";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open TsTv by Quality Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	out << "QUAL_THRESHOLD";
 	out << "\tN_Ts_LT_QUAL_THRESHOLD\tN_Tv_LT_QUAL_THRESHOLD\tTs/Tv_LT_QUAL_THRESHOLD";
@@ -2099,52 +2695,68 @@ void variant_file::output_TsTv_by_quality(const string &output_file_prefix)
 		out << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_site_quality(const string &output_file_prefix)
+void variant_file::output_site_quality(const parameters &params)
 {
 	// Output per-site quality information.
 	LOG.printLOG("Outputting Quality for Each Site\n");
-	string output = output_file_prefix + ".lqual";
+	string output_file = params.output_prefix + ".lqual";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open TsTv by Count Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Site Depth Output File: " + output, 7);
-
+	ostream out(buf);
 	out << "CHROM\tPOS\tQUAL" << endl;
 
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
+	entry *e = get_entry_object();
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
-		e->parse_basic_entry();
+		e->apply_filters(params);
 
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry();
 		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e->get_QUAL() << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_site_depth(const string &output_file_prefix, bool output_mean)
+void variant_file::output_site_depth(const parameters &params, bool output_mean)
 {
 	// Output per-site depth information
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Site Depth Statistics.");
 
 	LOG.printLOG("Outputting Depth for Each Site\n");
-	string output = output_file_prefix + ".ldepth";
+	string output_file = params.output_prefix + ".ldepth";
 	if (output_mean)
-		output += ".mean";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Site Depth Output File: " + output, 7);
+		output_file += ".mean";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Site Depth Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tPOS\t";
 	if (output_mean)
 		out << "MEAN_DEPTH\tVAR_DEPTH" << endl;
@@ -2153,14 +2765,19 @@ void variant_file::output_site_depth(const string &output_file_prefix, bool outp
 
 	int depth;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	entry *e = get_entry_object();
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry();
 
 		out << e->get_CHROM() << "\t" << e->get_POS() << "\t";
@@ -2168,11 +2785,11 @@ void variant_file::output_site_depth(const string &output_file_prefix, bool outp
 		unsigned int sum=0;
 		unsigned int sumsq=0;
 		unsigned int n=0;
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
 				continue;
-			if (include_genotype[s][ui] == false)
+			if (e->include_genotype[ui] == false)
 				continue;
 
 			e->parse_genotype_entry(ui, false, false, true);
@@ -2195,10 +2812,9 @@ void variant_file::output_site_depth(const string &output_file_prefix, bool outp
 			out << sum << "\t" << sumsq << endl;
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_hapmap_fst(const string &output_file_prefix, const vector<string> &indv_files)
+void variant_file::output_hapmap_fst(const parameters &params)
 {
 	// Calculate Fst using individuals in one (rather than two VCF files)
 	// Calculate, and output, Fst using the formula outlined in HapMap I
@@ -2210,31 +2826,31 @@ void variant_file::output_hapmap_fst(const string &output_file_prefix, const vec
 	// Pi_between = sum_i(2*n_i*x_i*(1-x_i) / (n_i - 1))
 	// where j is the population index, and i is the SNP index
 
-	if (indv_files.size() == 1)
+	if (params.hapmap_fst_populations.size() == 1)
 	{
 		LOG.printLOG("Require at least two populations to estimate Fst. Skipping\n");
 		return;
 	}
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Fst statistics.");
 
 	LOG.printLOG("Outputting HapMap-style Fst estimates.\n");
 
 	// First, read in the relevant files.
 	vector< vector<bool> > indvs_in_pops;
-	unsigned int N_pops = indv_files.size();
-	indvs_in_pops.resize(N_pops, vector<bool>(N_indv, false));
-	vector<bool> all_indv(N_indv,false);
+	unsigned int N_pops = params.hapmap_fst_populations.size();
+	indvs_in_pops.resize(N_pops, vector<bool>(meta_data.N_indv, false));
+	vector<bool> all_indv(meta_data.N_indv,false);
 	map<string, int> indv_to_idx;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
-			indv_to_idx[indv[ui]] = ui;
+			indv_to_idx[meta_data.indv[ui]] = ui;
 	for (unsigned int ui=0; ui<N_pops; ui++)
 	{
-		ifstream indv_file(indv_files[ui].c_str());
+		ifstream indv_file(params.hapmap_fst_populations[ui].c_str());
 		if (!indv_file.is_open())
-			LOG.error("Could not open Individual file: " + indv_files[ui]);
+			LOG.error("Could not open Individual file: " + params.hapmap_fst_populations[ui]);
 		string line;
 		string tmp_indv;
 		stringstream ss;
@@ -2253,24 +2869,37 @@ void variant_file::output_hapmap_fst(const string &output_file_prefix, const vec
 		indv_file.close();
 	}
 
-	string output = output_file_prefix + ".hapmap.fst";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Fst Output File: " + output, 7);
+	string output_file = params.output_prefix + ".hapmap.fst";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Fst Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tPOS\tHAPMAP_FST" << endl;
 
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	vector<char> variant_line;
 	vector<int> allele_counts1;
 	double Fst_tot_num=0.0, Fst_tot_denom=0.0;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -2283,7 +2912,7 @@ void variant_file::output_hapmap_fst(const string &output_file_prefix, const vec
 		e->parse_genotype_entries(true);
 
 		unsigned int N_chr;
-		e->get_allele_counts(allele_counts1, N_chr, all_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts1, N_chr, all_indv, e->include_genotype);
 		double count_all = allele_counts1[1];
 		double N_chr_all = N_chr;
 
@@ -2295,7 +2924,7 @@ void variant_file::output_hapmap_fst(const string &output_file_prefix, const vec
 		vector<double> pop_N_choose_2(N_pops, 0);
 		for (unsigned int p=0; p<N_pops; p++)
 		{
-			e->get_allele_counts(allele_counts1, N_chr, indvs_in_pops[p], include_genotype[s]);
+			e->get_allele_counts(allele_counts1, N_chr, indvs_in_pops[p], e->include_genotype);
 			counts[p] = allele_counts1[1];
 			pop_N_chr[p] = N_chr;
 			pop_N_choose_2[p] = N_chr * (N_chr-1.0) / 2.0;
@@ -2323,36 +2952,35 @@ void variant_file::output_hapmap_fst(const string &output_file_prefix, const vec
 	LOG.printLOG("HapMap-style Fst = " + output_log::dbl2str(Fst_tot, 6) + "\n");
 
 	delete e;
-	out.close();
 }
 
-void variant_file::output_weir_and_cockerham_fst(const string &output_file_prefix, const vector<string> &indv_files)
+void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 {	// Implements the bi-allelic version of Weir and Cockerham's Fst
-	if (indv_files.size() == 1)
+	if (params.weir_fst_populations.size() == 1)
 	{
 		LOG.printLOG("Require at least two populations to estimate Fst. Skipping\n");
 		return;
 	}
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Fst statistics.");
 
 	LOG.printLOG("Outputting Weir and Cockerham Fst estimates.\n");
 
 	// First, read in the relevant files.
 	vector< vector<bool> > indvs_in_pops;
-	unsigned int N_pops = indv_files.size();
-	indvs_in_pops.resize(N_pops, vector<bool>(N_indv, false));
-	vector<bool> all_indv(N_indv,false);
+	unsigned int N_pops = params.weir_fst_populations.size();
+	indvs_in_pops.resize(N_pops, vector<bool>(meta_data.N_indv, false));
+	vector<bool> all_indv(meta_data.N_indv,false);
 	map<string, int> indv_to_idx;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
-			indv_to_idx[indv[ui]] = ui;
+			indv_to_idx[meta_data.indv[ui]] = ui;
 	for (unsigned int ui=0; ui<N_pops; ui++)
 	{
-		ifstream indv_file(indv_files[ui].c_str());
+		ifstream indv_file(params.weir_fst_populations[ui].c_str());
 		if (!indv_file.is_open())
-			LOG.error("Could not open Individual file: " + indv_files[ui]);
+			LOG.error("Could not open Individual file: " + params.weir_fst_populations[ui]);
 		string line;
 		string tmp_indv;
 		stringstream ss;
@@ -2371,26 +2999,39 @@ void variant_file::output_weir_and_cockerham_fst(const string &output_file_prefi
 		indv_file.close();
 	}
 
-	string output = output_file_prefix + ".weir.fst";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Fst Output File: " + output, 7);
+	string output_file = params.output_prefix + ".weir.fst";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Fst Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tPOS\tWEIR_AND_COCKERHAM_FST" << endl;
 
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	vector<char> variant_line;
 
 	double snp_Fst;
 	double sum1=0.0, sum2 = 0.0;
 	double sum3=0.0, count = 0.0;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -2402,7 +3043,7 @@ void variant_file::output_weir_and_cockerham_fst(const string &output_file_prefi
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tFst: Only using diploid sites.");
 			continue;
@@ -2420,7 +3061,7 @@ void variant_file::output_weir_and_cockerham_fst(const string &output_file_prefi
 
 		for (unsigned int j=0; j<N_pops; j++)
 		{
-			e->get_genotype_counts(indvs_in_pops[j], include_genotype[s], N_hom1, N_het, N_hom2);
+			e->get_genotype_counts(indvs_in_pops[j], e->include_genotype, N_hom1, N_het, N_hom2);
 			n[j] = N_hom1 + N_het + N_hom2;
 			hbar += N_het;
 			p[j] = N_het + 2*N_hom2;
@@ -2473,10 +3114,11 @@ void variant_file::output_weir_and_cockerham_fst(const string &output_file_prefi
 	delete e;
 }
 
-void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_file_prefix, const vector<string> &indv_files, int fst_window_size, int fst_window_step)
+void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &params)
 {
-	if (fst_window_size <= 0)
-		return;
+	int fst_window_size = params.fst_window_size;
+	int fst_window_step = params.fst_window_step;
+	vector<string> indv_files = params.weir_fst_populations;
 
 	if ((fst_window_step <= 0) || (fst_window_step > fst_window_size))
 		fst_window_step = fst_window_size;
@@ -2487,7 +3129,7 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 		return;
 	}
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Fst statistics.");
 
 	LOG.printLOG("Outputting Windowed Weir and Cockerham Fst estimates.\n");
@@ -2495,12 +3137,12 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 	// First, read in the relevant files.
 	vector< vector<bool> > indvs_in_pops;
 	unsigned int N_pops = indv_files.size();
-	indvs_in_pops.resize(N_pops, vector<bool>(N_indv, false));
-	vector<bool> all_indv(N_indv,false);
+	indvs_in_pops.resize(N_pops, vector<bool>(meta_data.N_indv, false));
+	vector<bool> all_indv(meta_data.N_indv,false);
 	map<string, int> indv_to_idx;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
-			indv_to_idx[indv[ui]] = ui;
+			indv_to_idx[meta_data.indv[ui]] = ui;
 	for (unsigned int ui=0; ui<N_pops; ui++)
 	{
 		ifstream indv_file(indv_files[ui].c_str());
@@ -2524,31 +3166,10 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 		indv_file.close();
 	}
 
-	// Find maximum position on each chromosome
-	map<string, int> max_pos;
-	map<string, int>::iterator it;
-	string CHROM;
+	string CHROM; string last_chr = "";
+	vector<string> chrs;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
-
-			CHROM = e->get_CHROM();
-
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (e->get_POS() > max_pos[CHROM])
-					max_pos[CHROM] = e->get_POS();
-			}
-			else
-				max_pos[CHROM] = e->get_POS();
-		}
-	}
+	entry *e = get_entry_object();
 
 	// Calculate number of bins for each chromosome and allocate memory for them.
 	// Each bin is a vector with four entries:
@@ -2556,26 +3177,23 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 	// N_variant_site_pairs: Number of possible pairwise mismatches at polymorphic sites within a window
 	// N_mismatches: Number of actual pairwise mismatches at polymorphic sites within a window
 	// N_polymorphic_sites: number of sites within a window where there is at least 1 sample that is polymorphic with respect to the reference allele
-	unsigned int N_bins;
 	const vector< double > empty_vector(4, 0);	// sum1, sum2, sum3, count
 	map<string, vector< vector< double > > > bins;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int) ceil( (max_pos[CHROM]+1) / double(fst_window_step));
-		bins[CHROM].resize(N_bins, empty_vector);
-	}
-
 	double snp_Fst;
 	double sum1=0.0, sum2 = 0.0;
 	double sum3=0.0, count = 0.0;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -2587,7 +3205,7 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tFst: Only using diploid sites.");
 			continue;
@@ -2605,7 +3223,7 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 
 		for (unsigned int j=0; j<N_pops; j++)
 		{
-			e->get_genotype_counts(indvs_in_pops[j], include_genotype[s], N_hom1, N_het, N_hom2);
+			e->get_genotype_counts(indvs_in_pops[j], e->include_genotype, N_hom1, N_het, N_hom2);
 
 			n[j] = N_hom1 + N_het + N_hom2;
 			hbar += N_het;
@@ -2641,12 +3259,18 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 			// Place the results into bins
 			int pos = (int)e->get_POS();
 			CHROM = e->get_CHROM();
+			if (CHROM != last_chr)
+				chrs.push_back(CHROM);
+
 			int first = (int) ceil((pos - fst_window_size)/double(fst_window_step));
 			if (first < 0)
 				first = 0;
 			int last = (int) ceil(pos/double(fst_window_step));
 			for(int idx = first; idx < last; idx++)
 			{
+				if (idx >= bins[CHROM].size())
+					bins[CHROM].resize(idx+1, empty_vector);
+
 				bins[CHROM][idx][0] += S1;
 				bins[CHROM][idx][1] += S2;
 				bins[CHROM][idx][2] += snp_Fst;
@@ -2665,16 +3289,24 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 	LOG.printLOG("Weir and Cockerham mean Fst estimate: " + output_log::dbl2str(mean_Fst, 5) + "\n");
 	LOG.printLOG("Weir and Cockerham weighted Fst estimate: " + output_log::dbl2str(weighted_Fst, 5) + "\n");
 
-	string output = output_file_prefix + ".windowed.weir.fst";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Fst Output File: " + output, 7);
+	string output_file = params.output_prefix + ".windowed.weir.fst";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Fst Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tBIN_START\tBIN_END\tN_VARIANTS\tWEIGHTED_FST\tMEAN_FST" << endl;
 
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
-		CHROM = (*it).first;
+		CHROM = chrs[ui];
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			if ((bins[CHROM][s][1] != 0) && (!isnan(bins[CHROM][s][0])) && (!isnan(bins[CHROM][s][1])) && (bins[CHROM][s][3] > 0))
@@ -2690,14 +3322,14 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const string &output_f
 			}
 		}
 	}
-	out.close();
 	delete e;
 }
 
-void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, const vector<string> &indv_files, int fst_window_size, int fst_window_step)
+void variant_file::output_windowed_hapmap_fst(const parameters &params)
 {
-	if (fst_window_size <= 0)
-		return;
+	int fst_window_size = params.fst_window_size;
+	int fst_window_step = params.fst_window_step;
+	vector<string> indv_files = params.hapmap_fst_populations;
 
 	if ((fst_window_step <= 0) || (fst_window_step > fst_window_size))
 		fst_window_step = fst_window_size;
@@ -2708,7 +3340,7 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 		return;
 	}
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Fst statistics.");
 
 	LOG.printLOG("Outputting Windowed HapMap Fst estimates.\n");
@@ -2716,12 +3348,12 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 	// First, read in the relevant files.
 	vector< vector<bool> > indvs_in_pops;
 	unsigned int N_pops = indv_files.size();
-	indvs_in_pops.resize(N_pops, vector<bool>(N_indv, false));
-	vector<bool> all_indv(N_indv,false);
+	indvs_in_pops.resize(N_pops, vector<bool>(meta_data.N_indv, false));
+	vector<bool> all_indv(meta_data.N_indv,false);
 	map<string, int> indv_to_idx;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
-			indv_to_idx[indv[ui]] = ui;
+			indv_to_idx[meta_data.indv[ui]] = ui;
 	for (unsigned int ui=0; ui<N_pops; ui++)
 	{
 		ifstream indv_file(indv_files[ui].c_str());
@@ -2745,56 +3377,29 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 		indv_file.close();
 	}
 
-	// Find maximum position on each chromosome
-	map<string, int> max_pos;
-	map<string, int>::iterator it;
-	string CHROM;
+	string CHROM; string last_chr = "";
+	vector<string> chrs;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
+	entry *e = get_entry_object();
 
-			CHROM = e->get_CHROM();
-
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (e->get_POS() > max_pos[CHROM])
-					max_pos[CHROM] = e->get_POS();
-			}
-			else
-				max_pos[CHROM] = e->get_POS();
-		}
-	}
-
-	// Calculate number of bins for each chromosome and allocate memory for them.
 	// Each bin is a vector with four entries:
 	// N_variant_sites: Number of sites in a window that have VCF entries
 	// N_variant_site_pairs: Number of possible pairwise mismatches at polymorphic sites within a window
 	// N_mismatches: Number of actual pairwise mismatches at polymorphic sites within a window
 	// N_polymorphic_sites: number of sites within a window where there is at least 1 sample that is polymorphic with respect to the reference allele
-	unsigned int N_bins;
 	const vector< double > empty_vector(4, 0);	// sum1, sum2, sum3, count
 	map<string, vector< vector< double > > > bins;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int) ceil( (max_pos[CHROM]+1) / double(fst_window_step));
-		bins[CHROM].resize(N_bins, empty_vector);
-	}
-
 	vector<int> allele_counts1;
-	for (unsigned int s=0; s<N_entries; s++)
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
@@ -2807,7 +3412,7 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 		e->parse_genotype_entries(true);
 
 		unsigned int N_chr;
-		e->get_allele_counts(allele_counts1, N_chr, all_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts1, N_chr, all_indv, e->include_genotype);
 		double count_all = allele_counts1[1];
 		double N_chr_all = N_chr;
 
@@ -2819,7 +3424,7 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 		vector<double> pop_N_choose_2(N_pops, 0);
 		for (unsigned int p=0; p<N_pops; p++)
 		{
-			e->get_allele_counts(allele_counts1, N_chr, indvs_in_pops[p], include_genotype[s]);
+			e->get_allele_counts(allele_counts1, N_chr, indvs_in_pops[p], e->include_genotype);
 			counts[p] = allele_counts1[1];
 			pop_N_chr[p] = N_chr;
 			pop_N_choose_2[p] = N_chr * (N_chr-1.0) / 2.0;
@@ -2843,12 +3448,18 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 
 		int pos = (int)e->get_POS();
 		CHROM = e->get_CHROM();
+		if (CHROM != last_chr)
+			chrs.push_back(CHROM);
+
 		int first = (int) ceil((pos - fst_window_size)/double(fst_window_step));
 		if (first < 0)
 			first = 0;
 		int last = (int) ceil(pos/double(fst_window_step));
 		for(int idx = first; idx < last; idx++)
 		{
+			if (idx >= bins[CHROM].size())
+				bins[CHROM].resize(idx+1,empty_vector);
+
 			bins[CHROM][idx][0] += Fst_num;
 			bins[CHROM][idx][1] += tmp;
 			bins[CHROM][idx][2] += Fst_SNP;
@@ -2856,16 +3467,24 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 		}
 	}
 
-	string output = output_file_prefix + ".windowed.hapmap.fst";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Fst Output File: " + output, 7);
+	string output_file = params.output_prefix + ".windowed.hapmap.fst";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Fst Output file: " + output_file, 7);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	out << "CHROM\tBIN_START\tBIN_END\tN_VARIANTS\tWEIGHTED_FST\tMEAN_FST" << endl;
 
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
-		CHROM = (*it).first;
+		CHROM = chrs[ui];
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			// if ((denominator_total != 0) && (!isnan(numerator)) && (!isnan(denominator_total)) && (!isnan(snp_Fst)))
@@ -2882,48 +3501,60 @@ void variant_file::output_windowed_hapmap_fst(const string &output_file_prefix, 
 			}
 		}
 	}
-	out.close();
 	delete e;
 }
 
-void variant_file::output_per_site_nucleotide_diversity(const string &output_file_prefix)
+void variant_file::output_per_site_nucleotide_diversity(const parameters &params)
 {
 	// Output nucleotide diversity, calculated on a per-site basis.
 	// Pi = average number of pairwise differences
 	// Assumes a constant distance of 1 between all possible mutations
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Nucleotide Diversity Statistics.");
 
 	LOG.printLOG("Outputting Per-Site Nucleotide Diversity Statistics...\n");
-	string output_file = output_file_prefix + ".sites.pi";
+	string output_file = params.output_prefix + ".sites.pi";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Nucleotide Diversity Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	ostream out(buf);
 	out << "CHROM\tPOS\tPI" << endl;
 
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	vector<int> allele_counts;
-	for (unsigned int s=0; s<N_entries; s++)
+
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
-		e->parse_basic_entry(true);
+		e->apply_filters(params);
 
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tsitePi: Only using fully diploid sites.");
 			continue;
 		}
 
 		unsigned int N_non_missing_chr;
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		unsigned int total_alleles = std::accumulate(allele_counts.begin(), allele_counts.end(), 0);
 
 		unsigned int N_alleles = e->get_N_alleles();
@@ -2942,18 +3573,20 @@ void variant_file::output_per_site_nucleotide_diversity(const string &output_fil
 	delete e;
 }
 
-// Output Tajima's D
-// Carlson et al. Genome Res (2005)
-void variant_file::output_Tajima_D(const string &output_file_prefix, int window_size)
+//Output Tajima's D
+//Carlson et al. Genome Res (2005)
+void variant_file::output_Tajima_D(const parameters &params)
 {
+	int window_size = params.output_Tajima_D_bin_size;
+
 	if (window_size <= 0)
 		return;
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Tajima's D Statistic.");
 
 	LOG.printLOG("Outputting Tajima's D Statistic...\n");
-	string output_file = output_file_prefix + ".Tajima.D";
+	string output_file = params.output_prefix + ".Tajima.D";
 
 	double a1=0.0, a2=0.0, b1, b2, c1, c2, e1, e2;
 	unsigned int n = N_kept_individuals()*2;
@@ -2972,53 +3605,29 @@ void variant_file::output_Tajima_D(const string &output_file_prefix, int window_
 	e1 = c1 / a1;
 	e2 = c2 / ((a1*a1) + a2);
 
-	// Find maximum position
-	map<string, int> max_pos;
 	string CHROM;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
-
-			CHROM = e->get_CHROM();
-
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (e->get_POS() > max_pos[CHROM])
-					max_pos[CHROM] = e->get_POS();
-			}
-			else
-				max_pos[CHROM] = e->get_POS();
-		}
-	}
-
-	map<string, int>::iterator it;
-	unsigned int N_bins;
+	entry *e = get_entry_object();
 	map<string, vector< pair<int, double> > > bins;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int)((max_pos[CHROM] + window_size) / double(window_size));
-		bins[CHROM].resize(N_bins, make_pair(0,0));
-	}
 
 	unsigned int idx;
 	double C = 1.0 / double(window_size);
 	vector<int> allele_counts;
 	unsigned int N_non_missing_chr;
 	unsigned int N_alleles;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
+	string prev_chr = "";
+	vector<string> chrs;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
 		N_alleles = e->get_N_alleles();
 
@@ -3032,29 +3641,46 @@ void variant_file::output_Tajima_D(const string &output_file_prefix, int window_
 		idx = (unsigned int)(e->get_POS() * C);
 		e->parse_genotype_entries(true);
 
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tTajimaD: Only using fully diploid sites.");
 			continue;
 		}
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
-
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		double p = double(allele_counts[0]) / N_non_missing_chr;
+
+		if(idx>=bins[CHROM].size())
+			bins[CHROM].resize(idx+1, make_pair(0,0));
+		if(CHROM != prev_chr)
+		{
+			chrs.push_back(CHROM);
+			prev_chr = CHROM;
+		}
+
 		if ((p > 0.0) && (p < 1.0))
 		{
 			bins[CHROM][idx].first++;
 			bins[CHROM][idx].second += p * (1.0-p);
 		}
 	}
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Tajima D Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	ostream out(buf);
 	out << "CHROM\tBIN_START\tN_SNPS\tTajimaD" << endl;
 
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
-		CHROM = (*it).first;
+		CHROM = chrs[ui];
 		bool output = false;
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
@@ -3075,50 +3701,30 @@ void variant_file::output_Tajima_D(const string &output_file_prefix, int window_
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_windowed_nucleotide_diversity(const string &output_file_prefix, int window_size, int window_step)
+void variant_file::output_windowed_nucleotide_diversity(const parameters &params)
 {
 	// Output nucleotide diversity, as calculated in windows.
 	// Average number of pairwise differences in windows.
+	int window_size = params.pi_window_size;
+	int window_step = params.pi_window_step;
+
 	if (window_size <= 0)
 		return;
 
 	if ((window_step <= 0) || (window_step > window_size))
 		window_step = window_size;
 
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Nucleotide Diversity Statistics.");
 
 	LOG.printLOG("Outputting Windowed Nucleotide Diversity Statistics...\n");
-	string output_file = output_file_prefix + ".windowed.pi";
+	string output_file = params.output_prefix + ".windowed.pi";
 
-	// Find maximum position on each chromosome
-	map<string, int> max_pos;
-	map<string, int>::iterator it;
 	string CHROM;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
-
-			CHROM = e->get_CHROM();
-
-			if (max_pos.find(CHROM) != max_pos.end())
-			{
-				if (e->get_POS() > max_pos[CHROM])
-					max_pos[CHROM] = e->get_POS();
-			}
-			else
-				max_pos[CHROM] = e->get_POS();
-		}
-	}
+	entry *e = get_entry_object();
 
 	// Calculate number of bins for each chromosome and allocate memory for them.
 	// Each bin is a vector with four entries:
@@ -3126,44 +3732,41 @@ void variant_file::output_windowed_nucleotide_diversity(const string &output_fil
 	// N_variant_site_pairs: Number of possible pairwise mismatches at polymorphic sites within a window
 	// N_mismatches: Number of actual pairwise mismatches at polymorphic sites within a window
 	// N_polymorphic_sites: number of sites within a window where there is at least 1 sample that is polymorphic with respect to the reference allele
-	unsigned int N_bins;
 	const unsigned int N_variant_sites = 0;
 	const unsigned int N_variant_site_pairs = 1;
 	const unsigned int N_mismatches = 2;
 	const unsigned int N_polymorphic_sites = 3;
 	const vector< unsigned long > empty_vector(4, 0);
 	map<string, vector< vector< unsigned long> > > bins;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
-	{
-		CHROM = (*it).first;
-		N_bins = (unsigned int) ceil( (max_pos[CHROM]+1) / double(window_step));
-		bins[CHROM].resize(N_bins, empty_vector);
-	}
+	vector<string> chrs;
+	string prev_chr;
 
 	// Count polymorphic sites and pairwise mismatches
 	vector<int> allele_counts;
 	unsigned int N_non_missing_chr;
 	unsigned long N_comparisons;
-	for (unsigned int s=0; s<N_entries; s++)
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
-		e->parse_basic_entry(true);
+		e->apply_filters(params);
 
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+		e->parse_genotype_entries(true);
 		CHROM = e->get_CHROM();
 
-		e->parse_genotype_entries(true);
-
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\twindowPi: Only using fully diploid sites.");
 			continue;
 		}
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 
 		unsigned int N_site_mismatches = 0;
 		for (vector<int>::iterator ac = allele_counts.begin(); ac != allele_counts.end(); ++ac)
@@ -3181,6 +3784,16 @@ void variant_file::output_windowed_nucleotide_diversity(const string &output_fil
 			first = 0;
 		int last = (int) ceil(pos/double(window_step));
 		N_comparisons = N_non_missing_chr * (N_non_missing_chr - 1);
+
+		if(CHROM != prev_chr)
+		{
+			chrs.push_back(CHROM);
+			prev_chr = CHROM;
+			bins[CHROM].resize(1,empty_vector);
+		}
+		if(last>=bins[CHROM].size())
+			bins[CHROM].resize(last+1,empty_vector);
+
 		for(int idx = first; idx < last; idx++)
 		{
 			bins[CHROM][idx][N_variant_sites]++;
@@ -3193,8 +3806,18 @@ void variant_file::output_windowed_nucleotide_diversity(const string &output_fil
 	}
 
 	// Calculate and print nucleotide diversity statistics
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Windowed Nucleotide Diversity Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "CHROM\tBIN_START\tBIN_END\tN_VARIANTS\tPI" << endl;
 
 	unsigned long N_monomorphic_sites = 0;
@@ -3202,9 +3825,10 @@ void variant_file::output_windowed_nucleotide_diversity(const string &output_fil
 	N_comparisons = (N_kept_chr * (N_kept_chr - 1)); 	// Number of pairwise comparisons at a monomorphic site
 	unsigned long N_pairs = 0; 								// Number of pairwise comparisons within a window
 	double pi = 0;
-	for (it=max_pos.begin(); it != max_pos.end(); ++it)
+
+	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
-		CHROM = (*it).first;
+		CHROM = chrs[ui];
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			if( (bins[CHROM][s][N_polymorphic_sites] > 0) || (bins[CHROM][s][N_mismatches] > 0) )
@@ -3228,56 +3852,106 @@ void variant_file::output_windowed_nucleotide_diversity(const string &output_fil
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_kept_and_removed_sites(const string &output_file_prefix)
+void variant_file::output_kept_sites(const parameters &params)
 {
 	// Output lists of sites that have been filtered (or not).
-	LOG.printLOG("Outputting Kept and Removed Sites...\n");
-	string output_file1 = output_file_prefix + ".kept.sites";
-	string output_file2 = output_file_prefix + ".removed.sites";
+	LOG.printLOG("Outputting Kept Sites...\n");
+	string output_file = params.output_prefix + ".kept.sites";
 
 	string CHROM;
 	vector<char> variant_line;
 	int POS;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 
-	ofstream out1(output_file1.c_str());
-	if (!out1.is_open()) LOG.error("Could not open output file: " + output_file1, 12);
-	out1 << "CHROM\tPOS" << endl;
-
-	ofstream out2(output_file2.c_str());
-	if (!out2.is_open()) LOG.error("Could not open output file: " + output_file2, 12);
-	out2 << "CHROM\tPOS" << endl;
-
-	for (unsigned int s=0; s<N_entries; s++)
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
 	{
-		get_entry(s, variant_line);
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Kept Site Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	out << "CHROM\tPOS" << endl;
+
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
 		e->parse_basic_entry();
 		POS = e->get_POS();
 		CHROM = e->get_CHROM();
-		if (include_entry[s] == true)
-			out1 << CHROM << "\t" << POS << endl;
-		else
-			out2 << CHROM << "\t" << POS << endl;
+		out << CHROM << "\t" << POS << endl;
 	}
 	delete e;
-	out1.close();
-	out2.close();
 }
 
-void variant_file::output_LROH(const string &output_file_prefix)
+void variant_file::output_removed_sites(const parameters &params)
+{
+	// Output lists of sites that have been filtered (or not).
+	LOG.printLOG("Outputting Removed Sites...\n");
+	string output_file = params.output_prefix + ".removed.sites";
+
+	string CHROM;
+	vector<char> variant_line;
+	int POS;
+	entry *e = get_entry_object();
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Removed Site Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	out << "CHROM\tPOS" << endl;
+
+	while (!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry();
+		POS = e->get_POS();
+		CHROM = e->get_CHROM();
+		out << CHROM << "\t" << POS << endl;
+	}
+	delete e;
+}
+
+void variant_file::output_LROH(const parameters &params)
 {
 	// Detect and output Long Runs of Homozygosity, following the method
 	// developed by Adam Boyko, and described in Auton et al., Genome Research, 2009
 	// (Although using Forward-backwards algorithm in place of Viterbi).
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output LROH.");
 
 	LOG.printLOG("Outputting Long Runs of Homozygosity (Experimental)... \n");
-	string output_file = output_file_prefix + ".LROH";
+	string output_file = params.output_prefix + ".LROH";
 
 	unsigned int nGen=4;				// Number of generations since common ancestry
 	double genotype_error_rate = 0.01;	// Assumed genotype error rate
@@ -3288,36 +3962,67 @@ void variant_file::output_LROH(const string &output_file_prefix)
 	string CHROM;
 	vector<char> variant_line;
 	int POS;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	pair<int, int> alleles;
 	vector<unsigned int> s_vector;
 	vector<pair<double, double> > p_emission;
 	vector<vector<double> > p_trans;
+	vector<string> tmp_files;
 
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open LROH Output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "CHROM\tAUTO_START\tAUTO_END\tN_VARIANTS\tINDV" << endl;
 
-	// TODO - refactor this so that Entries loop is on the outside.
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n");
+		tmp_files.push_back(filename);
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+	}
+	// TODO - refactor this so that file loop is on the outside.
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
 
-		LOG.printLOG("\t" + indv[ui] + "\n");
+		LOG.printLOG("\t" + meta_data.indv[ui] + "\n");
 
 		int last_POS = -1;
 		s_vector.resize(0);	p_emission.resize(0); p_trans.resize(0);
 
-		for (unsigned int s=0; s<N_entries; s++)
+		for (unsigned int uj=0; uj<tmp_files.size(); uj++)
 		{
-			if ((include_entry[s] == false) || (include_genotype[s][ui] == false))
-				continue;
-
-			get_entry(s, variant_line);
-			e->reset(variant_line);
+			string filename = tmp_files[uj];
+			ifstream read_file(filename.c_str(), ios::binary);
+			vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+			e->reset(variant_line1);
 			e->parse_basic_entry(true);
 
+			if (e->include_genotype[ui] == false)
+				continue;
 			if (e->get_N_alleles() != 2)
 			{
 				LOG.one_off_warning("\tLROH: Only using bialleleic sites.");
@@ -3344,13 +4049,13 @@ void variant_file::output_LROH(const string &output_file_prefix)
 			// TODO: Would be better to do this once, but for simplicity, do it for each individual.
 			unsigned int N_genotypes = 0;
 			unsigned int N_hets = 0;
-			for (unsigned int uj=0; uj<N_indv; uj++)
+			for (unsigned int uk=0; uk<meta_data.N_indv; uk++)
 			{
-				if ((include_indv[uj] == false) || (include_genotype[s][ui] == false))
+				if ((include_indv[uk] == false) || (e->include_genotype[uk] == false))
 					continue;
 
-				e->parse_genotype_entry(uj, true);
-				e->get_indv_GENOTYPE_ids(uj, alleles);
+				e->parse_genotype_entry(uk, true);
+				e->get_indv_GENOTYPE_ids(uk, alleles);
 				if ((alleles.first != -1) && (alleles.second != -1))
 				{
 					N_genotypes++;
@@ -3392,7 +4097,7 @@ void variant_file::output_LROH(const string &output_file_prefix)
 			A[2] = p_trans_nonauto_to_auto;
 			A[3] = p_trans_nonauto_to_nonauto;
 
-			s_vector.push_back(s);
+			s_vector.push_back(uj);
 
 			p_trans.push_back(A);
 			last_POS = POS;
@@ -3450,6 +4155,7 @@ void variant_file::output_LROH(const string &output_file_prefix)
 		// (i.e. extend regions out until first heterozygote),
 		// as opposed to regions with p>threshold.
 		// TODO: Also would be good to report heterozygotic SNPs found in homozygotic regions.
+
 		bool in_auto=false;
 		int start_pos=0, end_pos=0;
 		int N_SNPs = 0;
@@ -3460,8 +4166,10 @@ void variant_file::output_LROH(const string &output_file_prefix)
 				if (in_auto == false)
 				{	// Start of autozygous region
 					unsigned int s = s_vector[i];
-					get_entry(s, variant_line);
-					e->reset(variant_line);
+					string filename = tmp_files[s];
+					ifstream read_file(filename.c_str(), ios::binary);
+					vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+					e->reset(variant_line1);
 					e->parse_basic_entry(true);
 					CHROM = e->get_CHROM();
 					start_pos = e->get_POS();
@@ -3474,12 +4182,14 @@ void variant_file::output_LROH(const string &output_file_prefix)
 				if (in_auto == true)
 				{	// end of autozygous region
 					unsigned int s = s_vector[i];
-					get_entry(s, variant_line);
-					e->reset(variant_line);
+					string filename = tmp_files[s];
+					ifstream read_file(filename.c_str(), ios::binary);
+					vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+					e->reset(variant_line1);
 					e->parse_basic_entry(true);
 					end_pos = e->get_POS();
 					if (N_SNPs >= min_SNPs)
-						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << indv[ui] << endl;
+						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 				}
 				in_auto = false;
 				N_SNPs = 0;
@@ -3488,52 +4198,67 @@ void variant_file::output_LROH(const string &output_file_prefix)
 		if (in_auto == true)
 		{	// Report final region if needed
 			unsigned int s = s_vector[N_obs-1];
-			get_entry(s, variant_line);
-			e->reset(variant_line);
+			string filename = tmp_files[s];
+			ifstream read_file(filename.c_str(), ios::binary);
+			vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+			e->reset(variant_line1);
 			e->parse_basic_entry(true);
 			end_pos = e->get_POS();
 			if (N_SNPs >= min_SNPs)
-				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << indv[ui] << endl;
+				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 		}
 	}
+
+	for (unsigned int ui=0; ui<tmp_files.size(); ui++)
+		remove(tmp_files[ui].c_str());
 	delete e;
-	out.close();
 }
 
-void variant_file::output_indv_relatedness(const string &output_file_prefix)
+void variant_file::output_indv_relatedness(const parameters &params)
 {
 	// Calculate and output a relatedness statistic based on the method of
 	// Yang et al, 2010 (doi:10.1038/ng.608). Specifically, calculate the
 	// unadjusted Ajk statistic (equation 6 of paper).
 	// Expectation of Ajk is zero for individuals within a populations, and
 	// one for an individual with themselves.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to output Individual Relatedness.");
 
 	LOG.printLOG("Outputting Individual Relatedness\n");
-	string output = output_file_prefix + ".relatedness";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Individual Relatedness Output File: " + output, 2);
+	string output_file = params.output_prefix + ".relatedness";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Individual Relatedness Output file: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "INDV1\tINDV2\tRELATEDNESS" << endl;
 
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	vector<int> allele_counts;
 	unsigned int N_alleles, N_non_missing_chr;
 	double freq;
 	pair<int, int> geno_id;
-	vector<vector<double> > Ajk(N_indv, vector<double>(N_indv, 0.0));
-	vector<vector<double> > N_sites(N_indv, vector<double>(N_indv, 0.0));
+	vector<vector<double> > Ajk(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));
+	vector<vector<double> > N_sites(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));
 
-	for (unsigned int s=0; s<N_entries; s++)
+	while(!eof())
 	{
-		if (include_entry[s] == false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
 
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
 		N_alleles = e->get_N_alleles();
 
@@ -3544,20 +4269,20 @@ void variant_file::output_indv_relatedness(const string &output_file_prefix)
 		}
 
 		e->parse_genotype_entries(true);
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tRelatedness: Only using fully diploid sites.");
 			continue;
 		}
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		freq = allele_counts[1] / (double)N_non_missing_chr;	// Alt allele frequency
 
 		if ((freq <= numeric_limits<double>::epsilon()) || (freq >= (1.0-numeric_limits<double>::epsilon())))
 			continue;
 
-		vector<double> x(N_indv, -1.0);
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		vector<double> x(meta_data.N_indv, -1.0);
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
 				continue;
@@ -3567,15 +4292,15 @@ void variant_file::output_indv_relatedness(const string &output_file_prefix)
 		}
 
 		double div = 1.0/(2.0*freq*(1.0-freq));
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
-			if ((include_indv[ui] == false) || (include_genotype[s][ui] == false) || (x[ui] < 0))
+			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false) || (x[ui] < 0))
 				continue;
 			Ajk[ui][ui] += (x[ui]*x[ui] - (1 + 2.0*freq)*x[ui] + 2.0*freq*freq) * div;
 			N_sites[ui][ui]++;
-			for (unsigned int uj=(ui+1); uj<N_indv; uj++)
+			for (unsigned int uj=(ui+1); uj<meta_data.N_indv; uj++)
 			{
-				if ((include_indv[uj] == false) || (include_genotype[s][uj] == false) || (x[uj] < 0))
+				if ((include_indv[uj] == false) || (e->include_genotype[uj] == false) || (x[uj] < 0))
 					continue;
 				Ajk[ui][uj] += (x[ui] - 2.0*freq) * (x[uj] - 2.0*freq) * div;
 				N_sites[ui][uj]++;
@@ -3583,53 +4308,56 @@ void variant_file::output_indv_relatedness(const string &output_file_prefix)
 		}
 	}
 
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
 		Ajk[ui][ui] = 1.0 + (Ajk[ui][ui] / N_sites[ui][ui]);
-		out << indv[ui] << "\t" << indv[ui] << "\t" << Ajk[ui][ui] << endl;
-		for (unsigned int uj=(ui+1); uj<N_indv; uj++)
+		out << meta_data.indv[ui] << "\t" << meta_data.indv[ui] << "\t" << Ajk[ui][ui] << endl;
+		for (unsigned int uj=(ui+1); uj<meta_data.N_indv; uj++)
 		{
 			if (include_indv[uj] == false)
 				continue;
 			Ajk[ui][uj] /= N_sites[ui][uj];
-			out << indv[ui] << "\t" << indv[uj] << "\t" << Ajk[ui][uj] << endl;
+			out << meta_data.indv[ui] << "\t" << meta_data.indv[uj] << "\t" << Ajk[ui][uj] << endl;
 		}
 	}
 	delete e;
-	out.close();
 }
 
-void variant_file::output_PCA(const string &output_file_prefix, bool use_normalisation, int SNP_loadings_N_PCs)
+void variant_file::output_PCA(const parameters &params)
 {
+	bool use_normalisation = !params.PCA_no_normalisation;
 #ifndef VCFTOOLS_PCA
-	use_normalisation = true;
-	SNP_loadings_N_PCs = -1;
 	string out = "Cannot run PCA analysis. Vcftools has been compiled without PCA enabled (requires LAPACK).";
 	LOG.error(out);
 #else
 	// Output PCA, following method of Patterson, Price and Reich 2006.
-	if ((has_genotypes == false) | (N_kept_individuals() == 0))
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
 		LOG.error("Require Genotypes in VCF file in order to perform PCA.");
 
 	if (use_normalisation)
 		LOG.printLOG("Outputting Principal Component Analysis (with normalisation)\n");
 	else
 		LOG.printLOG("Outputting Principal Component Analysis (without normalisation)\n");
-	string output = output_file_prefix + ".pca";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Principal Component Analysis Output File: " + output, 2);
+	string output_file = params.output_prefix + ".pca";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Principal Component Analysis Output file: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	unsigned int N_indvs = N_kept_individuals();
-	unsigned int N_sites = N_kept_sites();
-
-	if (N_indvs >= N_sites)
-		LOG.error("PCA computation requires that there are more sites than individuals.");
-
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	pair<int, int> geno_id;
 	double x, freq;
 	vector<int> allele_counts;
@@ -3638,28 +4366,30 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 	// Store list of included individuals
 	vector<string> included_indvs(N_indvs);
 	unsigned int ui_prime = 0;
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
 		if (include_indv[ui] == false)
 			continue;
-		included_indvs[ui_prime] = indv[ui];
+		included_indvs[ui_prime] = meta_data.indv[ui];
 		ui_prime++;
 	}
 
 	// Potentially uses a lot of memory. Should issue a warning about this.
-	double **M = new double*[N_indvs];	// m rows = indv
-	for (unsigned int ui=0; ui<N_indvs; ui++)
-		M[ui] = new double[N_sites];	// n columns
+	vector< vector<double> > M(N_indvs);
 
 	// Populate M
 	unsigned int s_prime = 0;
-	for (unsigned int s=0; s<N_entries; s++)
+	unsigned int N_sites = 0;
+	while(!eof())
 	{
-		if (include_entry[s]==false)
-			continue;
-
-		get_entry(s, variant_line);
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 
 		e->parse_basic_entry(true);
 		N_alleles = e->get_N_alleles();
@@ -3667,10 +4397,10 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 			LOG.error("PCA only works for biallelic sites.");
 
 		e->parse_genotype_entries(true);
-		if (e->is_diploid(include_indv, include_genotype[s]) == false)
+		if (e->is_diploid() == false)
 			LOG.error("PCA only works for fully diploid sites. Non-diploid site at " + e->get_CHROM() + ":" + output_log::int2str(e->get_POS()));
 
-		e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		freq = allele_counts[1] / (double)N_non_missing_chr;	// Alt allele frequency
 
 		if ((freq <= numeric_limits<double>::epsilon()) || (freq >= (1.0-numeric_limits<double>::epsilon())))
@@ -3680,7 +4410,7 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 		double div = 1.0 / sqrt(freq * (1.0-freq));
 
 		ui_prime = 0;
-		for (unsigned int ui=0; ui<N_indv; ui++)
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
 				continue;
@@ -3690,14 +4420,18 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 			if (x > -1)
 			{
 				if (use_normalisation == true)
-					M[ui_prime][s_prime] = (x - mu) * div;
+					M[ui_prime].push_back((x - mu) * div);
 				else
-					M[ui_prime][s_prime] = (x - mu);
+					M[ui_prime].push_back((x - mu));
 			}
 			ui_prime++;
 		}
 		s_prime++;
+		N_sites++;
 	}
+
+	if (N_indvs >= N_sites)
+		LOG.error("PCA computation requires that there are more sites than individuals.");
 
 	// Now construct X = (1/n)MM'.
 	double **X = new double *[N_indvs];
@@ -3713,8 +4447,6 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 		for (unsigned int uj=ui; uj<N_indvs; uj++)
 			for (unsigned int s=0; s<N_sites; s++)
 				X[ui][uj] += M[ui][s] * M[uj][s];
-
-	delete [] M;
 
 	// Populate other half
 	for (unsigned int ui=0; ui<N_indvs; ui++)
@@ -3759,72 +4491,6 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 		out << endl;
 	}
 
-	out.close();
-
-	if (SNP_loadings_N_PCs > 0)
-	{	// Output SNP loadings
-		LOG.printLOG("Outputting " + output_log::int2str(SNP_loadings_N_PCs) + " SNP loadings\n");
-		output = output_file_prefix + ".pca.loadings";
-		out.open(output.c_str());
-		if (!out.good())
-			LOG.error("Could not open Principal Component SNP Loading Output File: " + output, 2);
-		out << "CHROM\tPOS";
-		for (unsigned int ui=0; ui<(unsigned int)SNP_loadings_N_PCs; ui++)
-			out << "\tGAMMA_" << ui;
-		out << endl;
-
-		for (unsigned int s=0; s<N_entries; s++)
-		{
-			if (include_entry[s]==false)
-				continue;
-
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-
-			e->parse_basic_entry(true);
-			N_alleles = e->get_N_alleles();
-			if (N_alleles != 2)
-				LOG.error("PCA only works for biallelic sites.");
-
-			e->parse_genotype_entries(true);
-			if (e->is_diploid(include_indv, include_genotype[s]) == false)
-				LOG.error("PCA only works for fully diploid sites.");
-
-			e->get_allele_counts(allele_counts, N_non_missing_chr, include_indv, include_genotype[s]);
-			freq = allele_counts[1] / (double)N_non_missing_chr;	// Alt allele frequency
-
-			if ((freq <= numeric_limits<double>::epsilon()) || (freq >= (1.0-numeric_limits<double>::epsilon())))
-				continue;
-
-			vector<double> gamma(SNP_loadings_N_PCs, 0.0);
-			vector<double> a_sum(SNP_loadings_N_PCs, 0.0);
-
-			ui_prime = 0;
-			for (unsigned int ui=0; ui<N_indv; ui++)
-			{
-				if (include_indv[ui] == false)
-					continue;
-
-				e->get_indv_GENOTYPE_ids(ui, geno_id);
-				x = geno_id.first + geno_id.second;
-				if (x > -1)
-				{
-					for (unsigned int uj=0; uj<(unsigned int)SNP_loadings_N_PCs; uj++)
-					{
-						gamma[uj] += (x * Evecs[ui_prime][uj]);
-						a_sum[uj] += (Evecs[ui_prime][uj]*Evecs[ui_prime][uj]);
-					}
-				}
-				ui_prime++;
-			}
-
-			out << e->get_CHROM() << "\t" << e->get_POS();
-			for (unsigned int uj=0; uj<(unsigned int)SNP_loadings_N_PCs; uj++)
-				out << "\t" << gamma[uj] / a_sum[uj];
-			out << endl;
-		}
-		out.close();
-	}
 	delete e;
 	delete [] Er;
 	delete [] Ei;
@@ -3833,32 +4499,220 @@ void variant_file::output_PCA(const string &output_file_prefix, bool use_normali
 #endif
 }
 
-void variant_file::output_indel_hist(const string &output_file_prefix)
+void variant_file::output_PCA_SNP_loadings(const parameters &params)
+{
+	int SNP_loadings_N_PCs = params.output_N_PCA_SNP_loadings;
+	bool use_normalisation = !params.PCA_no_normalisation;
+#ifndef VCFTOOLS_PCA
+	string out = "Cannot run PCA analysis. Vcftools has been compiled without PCA enabled (requires LAPACK).";
+	LOG.error(out);
+#else
+	// Output PCA, following method of Patterson, Price and Reich 2006.
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to perform PCA.");
+
+	if (use_normalisation)
+		LOG.printLOG("Outputting " + header::int2str(SNP_loadings_N_PCs) + " SNP loadings (with normalisation\n");
+	else
+		LOG.printLOG("Outputting " + header::int2str(SNP_loadings_N_PCs) + " SNP loadings (without normalisation\n");
+	string output_file = params.output_prefix + ".pca.loadings";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Principal Component SNP Loading Output file: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	out << "CHROM\tPOS";
+	for (unsigned int ui=0; ui<(unsigned int)SNP_loadings_N_PCs; ui++)
+		out << "\tGAMMA_" << ui;
+	out << endl;
+
+	unsigned int N_indvs = N_kept_individuals();
+	vector<string> included_indvs(N_indvs);
+	unsigned int ui_prime = 0;
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		included_indvs[ui_prime] = meta_data.indv[ui];
+		ui_prime++;
+	}
+
+	vector< vector<double> > M(N_indvs);
+	vector< vector<double> > ids(N_indvs);
+
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	pair<int, int> geno_id;
+	double x, freq;
+	vector<int> allele_counts;
+	unsigned int N_alleles, N_non_missing_chr;
+
+	ui_prime = 0;
+	unsigned int s_prime = 0;
+	unsigned int N_sites = 0;
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+		e->parse_basic_entry(true);
+		N_alleles = e->get_N_alleles();
+		if (N_alleles != 2)
+			LOG.error("PCA only works for biallelic sites.");
+
+		e->parse_genotype_entries(true);
+		if (e->is_diploid() == false)
+			LOG.error("PCA only works for fully diploid sites.");
+
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
+		freq = allele_counts[1] / (double)N_non_missing_chr;	// Alt allele frequency
+
+		if ((freq <= numeric_limits<double>::epsilon()) || (freq >= (1.0-numeric_limits<double>::epsilon())))
+			continue;
+
+		double mu = freq*2.0;
+		double div = 1.0 / sqrt(freq * (1.0-freq));
+
+		ui_prime = 0;
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if (include_indv[ui] == false)
+				continue;
+
+			e->get_indv_GENOTYPE_ids(ui, geno_id);
+			x = geno_id.first + geno_id.second;
+			if (x > -1)
+			{
+				if (use_normalisation == true)
+					M[ui_prime].push_back((x - mu) * div);
+				else
+					M[ui_prime].push_back((x - mu));
+			}
+			ids[ui_prime].push_back(x);
+			ui_prime++;
+		}
+		s_prime++;
+		N_sites++;
+	}
+
+	if (N_indvs >= N_sites)
+		LOG.error("PCA computation requires that there are more sites than individuals.");
+
+	// Now construct X = (1/n)MM'.
+	double **X = new double *[N_indvs];
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		X[ui] = new double[N_indvs];
+
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		for (unsigned int uj=0; uj<N_indvs; uj++)
+			X[ui][uj] = 0;
+
+	// Only populate one half of matrix
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		for (unsigned int uj=ui; uj<N_indvs; uj++)
+			for (unsigned int s=0; s<N_sites; s++)
+				X[ui][uj] += M[ui][s] * M[uj][s];
+
+	// Populate other half
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		for (unsigned int uj=0; uj<ui; uj++)
+			X[ui][uj] = X[uj][ui];
+
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		for (unsigned int uj=0; uj<N_indvs; uj++)
+			X[ui][uj] /= N_sites;
+
+	double *Er = new double[N_indvs];
+	double *Ei = new double[N_indvs];
+	double **Evecs = new double*[N_indvs];
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		Evecs[ui] = new double[N_indvs];
+
+	// Call LAPACK routine to calculate eigenvectors and eigenvalues
+	dgeev(X, N_indvs, Er, Ei, Evecs);
+
+	// Check there are no complex eigenvalues.
+	for (unsigned int ui=0; ui<N_indvs; ui++)
+		if (Ei[ui] != 0)
+			LOG.error("Complex eigenvalue.");
+
+	for (unsigned int ui=0; ui<N_sites; ui++)
+	{
+		vector<double> gamma(SNP_loadings_N_PCs, 0.0);
+		vector<double> a_sum(SNP_loadings_N_PCs, 0.0);
+		out << e->get_CHROM() << "\t" << e->get_POS();
+
+		for (unsigned int uj_prime=0; uj_prime<meta_data.N_indv; uj_prime++)
+		{
+			x = ids[ui][uj_prime];
+			if (x > -1)
+			{
+				for (unsigned int uk=0; uk<(unsigned int)SNP_loadings_N_PCs; uk++)
+				{
+					gamma[uk] += (x * Evecs[ui][uk]);
+					a_sum[uk] += (Evecs[ui][uk]*Evecs[ui][uk]);
+				}
+			}
+		}
+		for (unsigned int uj=0; uj<(unsigned int)SNP_loadings_N_PCs; uj++)
+			out << "\t" << gamma[uj] / a_sum[uj];
+		out << endl;
+	}
+	delete e;
+#endif
+}
+
+void variant_file::output_indel_hist(const parameters &params)
 {
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
+	entry *e = get_entry_object();
 	string allele;
 	unsigned int ref_len, N_alleles;
 	int indel_len, smallest_len, largest_len, snp_count;
 	vector<int> s_vector;
 
-	string output = output_file_prefix + ".indel.hist";
-	ofstream out(output.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Indel Hist File: " + output, 7);
+	string output_file = params.output_prefix + ".indel.hist";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Indel Histogram Output file: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
 
+	ostream out(buf);
 	LOG.printLOG("Outputting Indel Histogram\n");
 	out << "LENGTH\tCOUNT\tPRCT" << endl;
 	largest_len = 0;
 	smallest_len = 0;
 	snp_count = 0;
-	for (unsigned int s=0; s<N_entries; s++)
-	{
-		if (include_entry[s] == false)
-			continue;
 
-		get_entry(s, variant_line);
+	while(!eof())
+	{
+		get_entry(variant_line);
 		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true);
 
 		allele = e->get_REF();
@@ -3882,6 +4736,7 @@ void variant_file::output_indel_hist(const string &output_file_prefix)
 			}
 		}
 	}
+
 	double total = s_vector.size() + snp_count;
 	double pct;
 	for (int i=smallest_len; i<=largest_len; i++)
@@ -3899,6 +4754,4 @@ void variant_file::output_indel_hist(const string &output_file_prefix)
 			out << i << "\t" << snp_count << "\t" << pct << endl;
 		}
 	}
-	out.close();
 }
-

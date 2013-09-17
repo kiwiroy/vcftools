@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <stdint.h>
 
 #include "output_log.h"
 
@@ -25,11 +26,14 @@ extern output_log LOG;
 
 using namespace std;
 
-const string VCFTOOLS_VERSION="v0.1.11";
+const string VCFTOOLS_VERSION="v0.1.12";
+static const uint8_t bgzf_magic[19] = "\037\213\010\4\0\0\0\0\0\377\6\0\102\103\2\0\0\0"; //just compare the first 16 chars? though
+static const uint8_t gzip_magic[2] = {0x1f,0x8b};
 
 class parameters
 {
 public:
+	bool stream_in;
 	bool bcf_format;
 	bool BED_exclude;
 	string BED_file;
@@ -46,7 +50,6 @@ public:
 	bool diff_switch_error;
 	int end_pos;
 	string exclude_positions_file;
-	bool force_write_index;
 	string FORMAT_id_to_extract;
 	set<string> geno_filter_flags_to_exclude;
 	string geno_rsq_position_list;
@@ -72,7 +75,6 @@ public:
 	string mask_file;
 	int max_alleles;
 	int max_genotype_depth;
-	double max_indv_mean_depth;
 	int max_mac;
 	double max_maf;
 	double max_mean_depth;
@@ -84,8 +86,6 @@ public:
 	int min_genotype_depth;
 	double min_genotype_quality;
 	double min_HWE_pvalue;
-	double min_indv_call_rate;
-	double min_indv_mean_depth;
 	int min_interSNP_distance;
 	int min_kept_mask_value;
 	double min_mean_depth;
@@ -94,6 +94,7 @@ public:
 	double min_quality;
 	double min_r2;
 	double min_site_call_rate;
+	int num_outputs;
 	bool output_012_matrix;
 	bool output_as_IMPUTE;
 	bool output_as_ldhat_phased;
@@ -102,7 +103,6 @@ public:
 	bool output_BEAGLE_genotype_likelihoods_PL;
 	bool output_counts;
 	bool output_filter_summary;
-	bool output_filtered_sites;
 	bool output_freq;
 	bool output_geno_depth;
 	bool output_geno_chisq;
@@ -112,17 +112,20 @@ public:
 	bool output_HWE;
 	bool output_indel_hist;
 	bool output_indv_depth;
+	bool output_indv_missingness;
 	bool output_interchromosomal_hap_rsq;
 	bool output_interchromosomal_geno_rsq;
+	bool output_kept_sites;
 	bool output_LROH;
-	bool output_missingness;
 	int output_N_PCA_SNP_loadings;
 	bool output_PCA;
 	string output_prefix;
 	bool output_relatedness;
+	bool output_removed_sites;
 	bool output_singletons;
 	bool output_site_depth;
 	bool output_site_mean_depth;
+	bool output_site_missingness;
 	bool output_site_pi;
 	bool output_site_quality;
 	int output_SNP_density_bin_size;
@@ -130,6 +133,7 @@ public:
 	int output_TsTv_bin_size;
 	bool output_TsTv_by_count;
 	bool output_TsTv_by_qual;
+	bool output_TsTv_summary;
 	bool phased_only;
 	bool PCA_no_normalisation;
 	int pi_window_size;
@@ -139,8 +143,6 @@ public:
 	string positions_file;
 	bool recode;
 	bool recode_bcf;
-	bool recode_to_stream;
-	bool recode_bcf_to_stream;
 	set<string> recode_INFO_to_keep;
 	bool recode_all_INFO;
 	bool remove_all_filtered_genotypes;
@@ -154,8 +156,10 @@ public:
 	string snps_to_keep_file;
 	set<string> snps_to_keep;
 	int start_pos;
+	bool stream_out;
 	bool suppress_allele_output;
 	string vcf_filename;
+	bool vcf_format;
 	bool vcf_compressed;
 
 	parameters(int argc, char *argv[]);

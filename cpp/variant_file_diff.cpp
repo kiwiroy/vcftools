@@ -8,47 +8,74 @@
 
 #include "variant_file.h"
 
-void variant_file::return_site_union(variant_file &file2, map<pair<string, int>, pair<int, int> > &CHROMPOS_to_filepos_pair)
+void variant_file::return_site_union(variant_file &file2, const parameters &params, map<pair<string, int>, pair<string, string> > &CHROMPOS_to_filename_pair)
 {
-	unsigned int s;
 	int POS;
 	string CHROM;
 	vector<char> variant_line;
-	entry *e = get_entry_object(N_indv);
-	entry *e2 = file2.get_entry_object(file2.N_indv);
-	for (s=0; s<N_entries; s++)
+	entry *e = get_entry_object();
+	entry *e2 = file2.get_entry_object();
+
+	while(!eof())
 	{
-		if (include_entry[s] == true)
-		{
-			get_entry(s, variant_line);
-			e->reset(variant_line);
-			e->parse_basic_entry();
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
 
-			CHROM = e->get_CHROM();
-			POS = e->get_POS();
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+		e->parse_basic_entry();
 
-			CHROMPOS_to_filepos_pair[make_pair<string,int>(CHROM, POS)] = make_pair<int,int>(s, -1);
-		}
+		CHROM = e->get_CHROM();
+		POS = e->get_POS();
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n"
+					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
+					"Try using ulimit -n <int> to increase the number of allowed open files.\n", 12);
+
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+		CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>(filename, "");
 	}
-	for (s=0; s<file2.N_entries; s++)
+	while (!file2.eof())
 	{
-		if (file2.include_entry[s] == true)
+		file2.get_entry(variant_line);
+		e2->reset(variant_line);
+		e2->apply_filters(params);
+
+		file2.N_entries++;
+		if(!e2->passed_filters)
+			continue;
+		e2->parse_basic_entry();
+		file2.N_kept_entries++;
+
+		CHROM = e2->get_CHROM();
+		POS = e2->get_POS();
+
+		string filename(tmpnam(NULL));
+		ofstream *tmp_file = new ofstream(filename.c_str());
+		if (!tmp_file->good())
+			LOG.error("\n\nCould not open temporary file.\n\n"
+					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
+					"Try using ulimit -n <int> to increase the number of allowed open files.\n", 12);
+
+		tmp_file->write((const char*)&variant_line[0], variant_line.size());
+		tmp_file->close();
+		delete tmp_file;
+
+		if (CHROMPOS_to_filename_pair.find(make_pair<string,int>(CHROM, POS)) != CHROMPOS_to_filename_pair.end())
 		{
-			file2.get_entry(s, variant_line);
-			e2->reset(variant_line);
-			e2->parse_basic_entry();
-
-			CHROM = e2->get_CHROM();
-			POS = e2->get_POS();
-
-			if (CHROMPOS_to_filepos_pair.find(make_pair<string,int>(CHROM, POS)) != CHROMPOS_to_filepos_pair.end())
-			{
-				CHROMPOS_to_filepos_pair[make_pair<string,int>(CHROM, POS)].second = s;
-			}
-			else
-			{
-				CHROMPOS_to_filepos_pair[make_pair<string,int>(CHROM, POS)] = make_pair<int,int>(-1, s);
-			}
+			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)].second = filename;
+		}
+		else
+		{
+			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>("", filename);
 		}
 	}
 	delete e;
@@ -80,16 +107,16 @@ void variant_file::return_indv_union(variant_file &file2, map<string, pair< int,
 		LOG.printLOG("Read " + LOG.int2str(indv_map.size()) + " entries.\n");
 	}
 
-	for (unsigned int ui=0; ui<N_indv; ui++)
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
 		{
-			combined_individuals[indv[ui]] = make_pair<int,int>(ui, -1);
+			combined_individuals[meta_data.indv[ui]] = make_pair<int,int>(ui, -1);
 		}
 
-	for (unsigned int ui=0; ui<file2.N_indv; ui++)
+	for (unsigned int ui=0; ui<file2.meta_data.N_indv; ui++)
 		if (file2.include_indv[ui] == true)
 		{
-			string indv_id = file2.indv[ui];
+			string indv_id = file2.meta_data.indv[ui];
 			if (use_map == true)
 			{
 				if (indv_map.find(indv_id) != indv_map.end())
@@ -98,52 +125,68 @@ void variant_file::return_indv_union(variant_file &file2, map<string, pair< int,
 			if (combined_individuals.find(indv_id) != combined_individuals.end())
 			{
 				combined_individuals[indv_id].second = ui;
-				//cout << combined_individuals[indv_id].first << " " << combined_individuals[indv_id].second << endl;
 			}
 			else
 				combined_individuals[indv_id] = make_pair<int,int>(-1, ui);
 		}
 }
 
-void variant_file::output_sites_in_files(const string &output_file_prefix, variant_file &diff_variant_file)
+void variant_file::output_sites_in_files(const parameters &params, variant_file &diff_variant_file)
+{
+	map<pair<string, int>, pair<string,string> > CHROMPOS_to_filename_pair;
+	map<pair<string, int>, pair<string,string> >::iterator CHROMPOS_to_filename_pair_it;
+
+	return_site_union(diff_variant_file, params, CHROMPOS_to_filename_pair);
+	output_sites_in_files(params, diff_variant_file, CHROMPOS_to_filename_pair);
+
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+	{
+		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+	}
+}
+
+
+void variant_file::output_sites_in_files(const parameters &params, variant_file &diff_variant_file, map<pair<string, int>, pair<string,string> > &CHROMPOS_to_filename_pair)
 {
 	LOG.printLOG("Comparing sites in VCF files...\n");
 
-	map<pair<string, int>, pair<int, int> > CHROMPOS_to_filepos_pair;
-	map<pair<string, int>, pair<int, int> >::iterator CHROMPOS_to_filepos_pair_it;
-	return_site_union(diff_variant_file, CHROMPOS_to_filepos_pair);
-
+	map<pair<string, int>, pair<string,string> >::iterator CHROMPOS_to_filename_pair_it;
 	vector<char> variant_line;
 	string CHROM;
 	int POS;
 
-	string output_file = output_file_prefix + ".diff.sites_in_files";
+	string output_file = params.output_prefix + ".diff.sites_in_files";
 	ofstream sites_in_files(output_file.c_str());
 	sites_in_files << "CHROM\tPOS\tIN_FILE\tREF\tALT1\tALT2" << endl;
 
-	int s1, s2;
+	string f1, f2;
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
-	for (CHROMPOS_to_filepos_pair_it=CHROMPOS_to_filepos_pair.begin(); CHROMPOS_to_filepos_pair_it!=CHROMPOS_to_filepos_pair.end(); ++CHROMPOS_to_filepos_pair_it)
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
-		s1 = CHROMPOS_to_filepos_pair_it->second.first;
-		s2 = CHROMPOS_to_filepos_pair_it->second.second;
+		f1 = CHROMPOS_to_filename_pair_it->second.first;
+		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
-		CHROM = CHROMPOS_to_filepos_pair_it->first.first;
-		POS = CHROMPOS_to_filepos_pair_it->first.second;
+		CHROM = CHROMPOS_to_filename_pair_it->first.first;
+		POS = CHROMPOS_to_filename_pair_it->first.second;
 
-		entry *e1 = get_entry_object(N_indv);
-		entry *e2 = diff_variant_file.get_entry_object(diff_variant_file.N_indv);
+		entry *e1 = get_entry_object();
+		entry *e2 = diff_variant_file.get_entry_object();
 
 		// Read entries from file (if available)
-		if (s1 != -1)
+		if (f1 != "")
 		{
-			get_entry(s1, variant_line);
+			ifstream read_file(f1.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+			get_entry(variant_line);
 			e1->reset(variant_line);
 		}
 
-		if (s2 != -1)
+		if (f2 != "")
 		{
-			diff_variant_file.get_entry(s2, variant_line);
+			ifstream read_file(f2.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
+			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
 		}
 
@@ -166,17 +209,17 @@ void variant_file::output_sites_in_files(const string &output_file_prefix, varia
 		}
 
 		sites_in_files << CHROM << "\t" << POS << "\t";
-		if ((s1 != -1) && (s2 != -1))
+		if ((f1 != "") && (f2 != ""))
 		{
 			N_common_SNPs++;
 			sites_in_files << "B";
 		}
-		else if ((s1 != -1) && (s2 == -1))
+		else if ((f1 != "") && (f2 == ""))
 		{
 			N_SNPs_file1_only++;
 			sites_in_files << "1";
 		}
-		else if ((s1 == -1) && (s2 != -1))
+		else if ((f1 == "") && (f2 != ""))
 		{
 			N_SNPs_file2_only++;
 			sites_in_files << "2";
@@ -189,7 +232,6 @@ void variant_file::output_sites_in_files(const string &output_file_prefix, varia
 		delete e1;
 		delete e2;
 	}
-
 	sites_in_files.close();
 
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
@@ -197,11 +239,11 @@ void variant_file::output_sites_in_files(const string &output_file_prefix, varia
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
 }
 
-void variant_file::output_indv_in_files(const string &output_file_prefix, variant_file &diff_variant_file, const string &indv_ID_map_file)
+void variant_file::output_indv_in_files(const parameters &params, variant_file &diff_variant_file)
 {
 	LOG.printLOG("Comparing individuals in VCF files...\n");
 
-	string output_file = output_file_prefix + ".diff.indv_in_files";
+	string output_file = params.output_prefix + ".diff.indv_in_files";
 
 	ofstream out(output_file.c_str());
 	if (!out.is_open())
@@ -211,7 +253,7 @@ void variant_file::output_indv_in_files(const string &output_file_prefix, varian
 	// Build a list of individuals contained in each file
 	map<string, pair< int, int> > combined_individuals;
 	map<string, pair< int, int> >::iterator combined_individuals_it;
-	return_indv_union(diff_variant_file, combined_individuals, indv_ID_map_file);
+	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
 	unsigned int N_combined_indv = combined_individuals.size();
 	unsigned int N[3]={0,0,0};
@@ -243,45 +285,42 @@ void variant_file::output_indv_in_files(const string &output_file_prefix, varian
 	LOG.printLOG("N_individuals_unique_to_file2:\t" + output_log::int2str(N[2]) + "\n");
 }
 
-void variant_file::output_discordance_by_indv(const string &output_file_prefix, variant_file &diff_variant_file, const string &indv_ID_map_file)
+void variant_file::output_discordance_by_indv(const parameters &params, variant_file &diff_variant_file)
 {
-	LOG.printLOG("Outputting Discordance By Individual...\n");
-
-	map<pair<string, int>, pair<int, int> > CHROMPOS_to_filepos_pair;
-	map<pair<string, int>, pair<int, int> >::iterator CHROMPOS_to_filepos_pair_it;
-	return_site_union(diff_variant_file, CHROMPOS_to_filepos_pair);
+	map<pair<string, int>, pair<string, string> > CHROMPOS_to_filename_pair;
+	map<pair<string, int>, pair<string, string> >::iterator CHROMPOS_to_filename_pair_it;
+	return_site_union(diff_variant_file, params, CHROMPOS_to_filename_pair);
 
 	map<string, pair< int, int> > combined_individuals;
 	map<string, pair< int, int> >::iterator combined_individuals_it;
-	return_indv_union(diff_variant_file, combined_individuals, indv_ID_map_file);
+	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
+	output_sites_in_files(params, diff_variant_file, CHROMPOS_to_filename_pair);
+
+	LOG.printLOG("Outputting Discordance By Individual...\n");
 	map<string, pair<int, int> > indv_sums;
 
-	string CHROM;
 	vector<char> variant_line;
-	int POS;
-	int s1, s2, indv1, indv2;
+	int indv1, indv2;
+	string f1, f2;
 
-	entry * e1 = get_entry_object(N_indv);
-	entry * e2 = diff_variant_file.get_entry_object(diff_variant_file.N_indv);
-	for (CHROMPOS_to_filepos_pair_it=CHROMPOS_to_filepos_pair.begin(); CHROMPOS_to_filepos_pair_it != CHROMPOS_to_filepos_pair.end(); ++CHROMPOS_to_filepos_pair_it)
+	entry * e1 = get_entry_object();
+	entry * e2 = diff_variant_file.get_entry_object();
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it != CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
-		CHROM = CHROMPOS_to_filepos_pair_it->first.first;
-		POS = CHROMPOS_to_filepos_pair_it->first.second;
-
-		s1 = CHROMPOS_to_filepos_pair_it->second.first;
-		s2 = CHROMPOS_to_filepos_pair_it->second.second;
+		f1 = CHROMPOS_to_filename_pair_it->second.first;
+		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
 		// Read entries from file (if available)
-		if (s1 != -1)
+		if (f1 != "")
 		{
-			get_entry(s1, variant_line);
+			get_entry(variant_line);
 			e1->reset(variant_line);
 		}
 
-		if (s2 != -1)
+		if (f2 != "")
 		{
-			diff_variant_file.get_entry(s2, variant_line);
+			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
 		}
 
@@ -396,7 +435,7 @@ void variant_file::output_discordance_by_indv(const string &output_file_prefix, 
 		}
 	}
 
-	string output_file = output_file_prefix + ".diff.indv";
+	string output_file = params.output_prefix + ".diff.indv";
 	ofstream out(output_file.c_str());
 	if (!out.is_open())
 		LOG.error("Could not open Sites Differences File: " + output_file, 3);
@@ -412,60 +451,68 @@ void variant_file::output_discordance_by_indv(const string &output_file_prefix, 
 		discordance = N_discord / double(N);
 		out << "\t" << N << "\t" << N_discord << "\t" << discordance << endl;
 	}
-
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+	{
+		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+	}
 	delete e1;
 	delete e2;
 	out.close();
 }
 
-void variant_file::output_discordance_by_site(const string &output_file_prefix, variant_file &diff_variant_file, const string &indv_ID_map_file)
+void variant_file::output_discordance_by_site(const parameters &params, variant_file &diff_variant_file)
 {
-	LOG.printLOG("Outputting Discordance By Site...\n");
 
-	map<pair<string, int>, pair<int, int> > CHROMPOS_to_filepos_pair;
-	map<pair<string, int>, pair<int, int> >::iterator CHROMPOS_to_filepos_pair_it;
-	return_site_union(diff_variant_file, CHROMPOS_to_filepos_pair);
+	map<pair<string, int>, pair<string, string> > CHROMPOS_to_filename_pair;
+	map<pair<string, int>, pair<string, string> >::iterator CHROMPOS_to_filename_pair_it;
+	return_site_union(diff_variant_file, params, CHROMPOS_to_filename_pair);
 
 	map<string, pair< int, int> > combined_individuals;
 	map<string, pair< int, int> >::iterator combined_individuals_it;
-	return_indv_union(diff_variant_file, combined_individuals, indv_ID_map_file);
+	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
+	output_sites_in_files(params, diff_variant_file, CHROMPOS_to_filename_pair);
+
+	LOG.printLOG("Outputting Discordance By Site...\n");
 	string CHROM;
 	vector<char> variant_line;
 	int POS;
-	int s1, s2, indv1, indv2;
-	entry * e1 = get_entry_object(N_indv);
-	entry * e2 = diff_variant_file.get_entry_object(diff_variant_file.N_indv);
+	int indv1, indv2;
+	string f1, f2;
 
-	string output_file = output_file_prefix + ".diff.sites";
+	entry * e1 = get_entry_object();
+	entry * e2 = diff_variant_file.get_entry_object();
+
+	string output_file = params.output_prefix + ".diff.sites";
 	ofstream diffsites(output_file.c_str());
 	if (!diffsites.is_open())
 		LOG.error("Could not open Sites Differences File: " + output_file, 3);
 	diffsites << "CHROM\tPOS\tFILES\tMATCHING_ALLELES\tN_COMMON_CALLED\tN_DISCORD\tDISCORDANCE" << endl;
 
-	for (CHROMPOS_to_filepos_pair_it=CHROMPOS_to_filepos_pair.begin(); CHROMPOS_to_filepos_pair_it != CHROMPOS_to_filepos_pair.end(); ++CHROMPOS_to_filepos_pair_it)
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it != CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
-		CHROM = CHROMPOS_to_filepos_pair_it->first.first;
-		POS = CHROMPOS_to_filepos_pair_it->first.second;
+		CHROM = CHROMPOS_to_filename_pair_it->first.first;
+		POS = CHROMPOS_to_filename_pair_it->first.second;
 
 		diffsites << CHROM << "\t" << POS;
 
-		s1 = CHROMPOS_to_filepos_pair_it->second.first;
-		s2 = CHROMPOS_to_filepos_pair_it->second.second;
+		f1 = CHROMPOS_to_filename_pair_it->second.first;
+		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
 		bool data_in_both = true;
 		// Read entries from file (if available)
-		if (s1 != -1)
+		if (f1 != "")
 		{
-			get_entry(s1, variant_line);
+			get_entry(variant_line);
 			e1->reset(variant_line);
 		}
 		else
 			data_in_both = false;
 
-		if (s2 != -1)
+		if (f2 != "")
 		{
-			diff_variant_file.get_entry(s2, variant_line);
+			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
 		}
 		else
@@ -473,9 +520,9 @@ void variant_file::output_discordance_by_site(const string &output_file_prefix, 
 
 		if (data_in_both)
 			diffsites << "\tB";
-		else if ((s1 != -1) && (s2 == -1))
+		else if ((f1 != "") && (f2 == ""))
 			diffsites << "\t1";
-		else if ((s1 == -1) && (s2 != -1))
+		else if ((f1 == "") && (f2 != ""))
 			diffsites << "\t2";
 		else
 			LOG.error("Unhandled condition");
@@ -600,45 +647,52 @@ void variant_file::output_discordance_by_site(const string &output_file_prefix, 
 		diffsites << "\t" << N_common_called << "\t" << N_discord << "\t" << discordance;
 		diffsites << endl;
 	}
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+	{
+		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+	}
 	delete e1;
 	delete e2;
 	diffsites.close();
 }
 
-void variant_file::output_discordance_matrix(const string &output_file_prefix, variant_file &diff_variant_file, const string &indv_ID_map_file)
+void variant_file::output_discordance_matrix(const parameters &params, variant_file &diff_variant_file)
 {
-	LOG.printLOG("Outputting Discordance Matrix\n\tFor bi-allelic loci, called in both files, with matching alleles only...\n");
-
-	map<pair<string, int>, pair<int, int> > CHROMPOS_to_filepos_pair;
-	map<pair<string, int>, pair<int, int> >::iterator CHROMPOS_to_filepos_pair_it;
-	return_site_union(diff_variant_file, CHROMPOS_to_filepos_pair);
+	map<pair<string, int>, pair<string, string> > CHROMPOS_to_filename_pair;
+	map<pair<string, int>, pair<string, string> >::iterator CHROMPOS_to_filename_pair_it;
+	return_site_union(diff_variant_file, params, CHROMPOS_to_filename_pair);
 
 	map<string, pair< int, int> > combined_individuals;
 	map<string, pair< int, int> >::iterator combined_individuals_it;
-	return_indv_union(diff_variant_file, combined_individuals, indv_ID_map_file);
+	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
+	output_sites_in_files(params, diff_variant_file, CHROMPOS_to_filename_pair);
+
+	LOG.printLOG("Outputting Discordance Matrix\n\tFor bi-allelic loci, called in both files, with matching alleles only...\n");
 	vector<char> variant_line;
-	int s1, s2, indv1, indv2;
-	entry * e1 = get_entry_object(N_indv);
-	entry * e2 = diff_variant_file.get_entry_object(diff_variant_file.N_indv);
+	int indv1, indv2;
+	string f1, f2;
+	entry * e1 = get_entry_object();
+	entry * e2 = diff_variant_file.get_entry_object();
 
 	vector<vector<int> > discordance_matrix(4, vector<int>(4, 0));
 
-	for (CHROMPOS_to_filepos_pair_it=CHROMPOS_to_filepos_pair.begin(); CHROMPOS_to_filepos_pair_it != CHROMPOS_to_filepos_pair.end(); ++CHROMPOS_to_filepos_pair_it)
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it != CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
-		s1 = CHROMPOS_to_filepos_pair_it->second.first;
-		s2 = CHROMPOS_to_filepos_pair_it->second.second;
+		f1 = CHROMPOS_to_filename_pair_it->second.first;
+		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
 		// Read entries from file (if available)
-		if (s1 != -1)
+		if (f1 != "")
 		{
-			get_entry(s1, variant_line);
+			get_entry(variant_line);
 			e1->reset(variant_line);
 		}
 
-		if (s2 != -1)
+		if (f2 != "")
 		{
-			diff_variant_file.get_entry(s2, variant_line);
+			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
 		}
 
@@ -717,7 +771,7 @@ void variant_file::output_discordance_matrix(const string &output_file_prefix, v
 		}
 	}
 
-	string output_file = output_file_prefix + ".diff.discordance_matrix";
+	string output_file = params.output_prefix + ".diff.discordance_matrix";
 	ofstream out(output_file.c_str());
 	if (!out.is_open())
 		LOG.error("Could not open Discordance Matrix File: " + output_file, 3);
@@ -727,32 +781,40 @@ void variant_file::output_discordance_matrix(const string &output_file_prefix, v
 	out << "N_0/1_file2\t" << discordance_matrix[0][1] << "\t" << discordance_matrix[1][1] << "\t" << discordance_matrix[2][1] << "\t" << discordance_matrix[3][1] << endl;
 	out << "N_1/1_file2\t" << discordance_matrix[0][2] << "\t" << discordance_matrix[1][2] << "\t" << discordance_matrix[2][2] << "\t" << discordance_matrix[3][2] << endl;
 	out << "N_./._file2\t" << discordance_matrix[0][3] << "\t" << discordance_matrix[1][3] << "\t" << discordance_matrix[2][3] << "\t" << discordance_matrix[3][3] << endl;
+
+for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+{
+	remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+	remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+}
 	out.close();
 	delete e1;
 	delete e2;
 }
 
-void variant_file::output_switch_error(const string &output_file_prefix, variant_file &diff_variant_file, const string &indv_ID_map_file)
+void variant_file::output_switch_error(const parameters &params, variant_file &diff_variant_file)
 {
-	LOG.printLOG("Outputting Phase Switch Errors...\n");
-
-	map<pair<string, int>, pair<int, int> > CHROMPOS_to_filepos_pair;
-	map<pair<string, int>, pair<int, int> >::iterator CHROMPOS_to_filepos_pair_it;
-	return_site_union(diff_variant_file, CHROMPOS_to_filepos_pair);
+	map<pair<string, int>, pair<string, string> > CHROMPOS_to_filename_pair;
+	map<pair<string, int>, pair<string, string> >::iterator CHROMPOS_to_filename_pair_it;
+	return_site_union(diff_variant_file, params, CHROMPOS_to_filename_pair);
 
 	map<string, pair< int, int> > combined_individuals;
 	map<string, pair< int, int> >::iterator combined_individuals_it;
-	return_indv_union(diff_variant_file, combined_individuals, indv_ID_map_file);
+	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
+	output_sites_in_files(params, diff_variant_file, CHROMPOS_to_filename_pair);
+
+	LOG.printLOG("Outputting Phase Switch Errors...\n");
 	string CHROM;
 	vector<char> variant_line;
 	int POS;
-	int s1, s2, indv1, indv2;
+	int indv1, indv2;
+	string f1, f2;
 
-	entry * e1 = get_entry_object(N_indv);
-	entry * e2 = diff_variant_file.get_entry_object(diff_variant_file.N_indv);
+	entry * e1 = get_entry_object();
+	entry * e2 = diff_variant_file.get_entry_object();
 
-	string output_file = output_file_prefix + ".diff.switch";
+	string output_file = params.output_prefix + ".diff.switch";
 	ofstream switcherror(output_file.c_str());
 	if (!switcherror.is_open())
 		LOG.error("Could not open Switch Error file: " + output_file, 4);
@@ -767,24 +829,24 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 	vector<pair<string, string> > prev_geno_file2(N_combined_indv, missing_genotype);
 	pair<string, string> file1_hap1, file1_hap2, file2_hap1;
 
-	for (CHROMPOS_to_filepos_pair_it=CHROMPOS_to_filepos_pair.begin(); CHROMPOS_to_filepos_pair_it != CHROMPOS_to_filepos_pair.end(); ++CHROMPOS_to_filepos_pair_it)
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it != CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
-		CHROM = CHROMPOS_to_filepos_pair_it->first.first;
-		POS = CHROMPOS_to_filepos_pair_it->first.second;
+		CHROM = CHROMPOS_to_filename_pair_it->first.first;
+		POS = CHROMPOS_to_filename_pair_it->first.second;
 
-		s1 = CHROMPOS_to_filepos_pair_it->second.first;
-		s2 = CHROMPOS_to_filepos_pair_it->second.second;
+		f1 = CHROMPOS_to_filename_pair_it->second.first;
+		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
 		// Read entries from file (if available)
-		if (s1 != -1)
+		if (f1 != "")
 		{
-			get_entry(s1, variant_line);
+			get_entry(variant_line);
 			e1->reset(variant_line);
 		}
 
-		if (s2 != -1)
+		if (f2 != "")
 		{
-			diff_variant_file.get_entry(s2, variant_line);
+			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
 		}
 
@@ -803,7 +865,6 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 		unsigned int N_common_called=0;	// Number of genotypes called in both files
 		unsigned int indv_count=0;
 
-		// Bug fix applied (#3354189) - July 5th 2011
 		for (combined_individuals_it=combined_individuals.begin();
 				combined_individuals_it!=combined_individuals.end();
 				++combined_individuals_it, indv_count++)
@@ -840,9 +901,9 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 								string indv_id;
 								N_switch_errors[indv_count]++;
 								if (indv1 != -1)
-									indv_id = indv[indv1];
+									indv_id = meta_data.indv[indv1];
 								else
-									indv_id = diff_variant_file.indv[indv2];
+									indv_id = diff_variant_file.meta_data.indv[indv2];
 								switcherror << CHROM << "\t" << POS << "\t" << indv_id << endl;
 							}
 							prev_geno_file1[indv_count] = genotype1;
@@ -855,7 +916,7 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 	}
 	switcherror.close();
 
-	output_file = output_file_prefix + ".diff.indv.switch";
+	output_file = params.output_prefix + ".diff.indv.switch";
 	ofstream idiscord(output_file.c_str());
 	if (!idiscord.is_open())
 		LOG.error("Could not open Individual Discordance File: " + output_file, 3);
@@ -870,9 +931,9 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 		indv2 = combined_individuals_it->second.second;
 
 		if (indv1 != -1)
-			indv_id = indv[indv1];
+			indv_id = meta_data.indv[indv1];
 		else
-			indv_id = diff_variant_file.indv[indv2];
+			indv_id = diff_variant_file.meta_data.indv[indv2];
 
 		if (N_phased_het_sites[indv_count] > 0)
 			switch_error = double(N_switch_errors[indv_count]) / N_phased_het_sites[indv_count];
@@ -882,6 +943,11 @@ void variant_file::output_switch_error(const string &output_file_prefix, variant
 
 		indv_count++;
 	}
+for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+{
+	remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+	remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+}
 	delete e1;
 	delete e2;
 	idiscord.close();
