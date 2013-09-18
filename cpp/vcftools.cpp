@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
 
 		delete variant_diff;
 	}
+	if (params.num_outputs == 0) vf->write_stats(params);
 	if (!params.INFO_to_extract.empty()) vf->output_INFO_for_each_site(params);
 	if (params.FORMAT_id_to_extract != "") vf->output_FORMAT_information(params);
 	if (params.output_indv_depth == true) vf->output_individuals_by_mean_depth(params);

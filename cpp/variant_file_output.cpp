@@ -4755,3 +4755,22 @@ void variant_file::output_indel_hist(const parameters &params)
 		}
 	}
 }
+
+void variant_file::write_stats(const parameters &params)
+{
+	while(!eof())
+	{
+		vector<char> variant_line;
+		entry *e = get_entry_object();
+
+		get_entry(variant_line);
+		e->reset(variant_line);
+		e->apply_filters(params);
+
+		N_entries++;
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+		e->parse_basic_entry(true);
+	}
+}

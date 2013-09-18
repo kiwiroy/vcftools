@@ -134,6 +134,7 @@ public:
 	void output_discordance_by_indv(const parameters &params, variant_file &diff_vcf_file);
 	void output_switch_error(const parameters &params, variant_file &diff_vcf_file);
 	void output_INFO_for_each_site(const parameters &params);
+	void write_stats(const parameters &params);
 
 	virtual void print(const parameters &params) = 0;
 	virtual void print_bcf(const parameters &params) = 0;
