@@ -31,7 +31,7 @@
     The <b>latest development version</b> can be retrieved by running the following command:
     </p>
     <!--<p class="codebox" style="text-align: center;"> svn checkout https://vcftools.svn.sourceforge.net/svnroot/vcftools vcftools </p>-->
-    <p class="codebox" style="text-align: center;"> svn checkout https://svn.code.sf.net/p/vcftools/code vcftools </p>
+    <p class="codebox" style="text-align: center;"> svn checkout svn://svn.code.sf.net/p/vcftools/code/trunk/ vcftools </p>
     <p>
     The above command is required to be run only once, for any subsequent updates run this command from the vcftools directory: 
     </p>
