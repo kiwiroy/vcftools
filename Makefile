@@ -11,17 +11,22 @@
 #   Add the MODDIR to your PERL5LIB environment variable:
 #       export PERL5LIB=${PREFIX}/lib:${PERL5LIB}
 #
+#   Add the MANDIR to your MANPATH environment variable:
+#       export MANPATH=${PREFIX}/bin:$MANPATH
+#
 
 
 ifndef PREFIX
     export PREFIX = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 endif
 export BINDIR = ${PREFIX}/bin
+export MANDIR = ${PREFIX}/bin/man1
 export MODDIR = ${PREFIX}/lib/perl5/site_perl
 
 DIRS = cpp perl
 install:
-	    @mkdir -p $(BINDIR); mkdir -p $(MODDIR); \
+	    @mkdir -p $(BINDIR); mkdir -p $(MODDIR); mkdir -p $(MANDIR); \
+	    cp ${PREFIX}/cpp/vcftools.1.gz $(MANDIR); \
         for dir in $(DIRS); do cd $$dir && $(MAKE) $(MAKEFLAGS) && cd ..; done
 
 clean:

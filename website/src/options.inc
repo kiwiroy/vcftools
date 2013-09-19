@@ -45,7 +45,7 @@ checkout the latest code, as described on the <a href="http://vcftools.sourcefor
 <br>
 This option defines the VCF file to be processed. The files need to be decompressed prior to use with vcftools. 
 <b>vcftools expects files in VCF format v4.0, a specification of which can be found <a href="specs.html">here</a></b>. Version
-v4.1 is also supported, with some small limitations. 
+v4.1 is also supported, with some small limitations. If there is no filename provided, the program expects a VCF file to be piped in through standard in.
 <br>
 <br>
 </li>
@@ -59,7 +59,7 @@ This option can be used in place of the --vcf option to read compressed (gzipped
 <br>
 This option can be used in place of the --vcf option to read BCF files directly. 
 You do not need to specify if this file is compressed with BGZF encoding.
-Due to differences in current BCF formatting, you may need to also include the --gatk tag to signify that your BCF file came from that program.
+Due to differences in current BCF formatting, you may need to also include the --gatk tag to signify that your BCF file came from that program. If there is no filename provided, the program expects a VCF file to be piped in through standard in.
 <br>
 <br>
 </li>
@@ -70,6 +70,9 @@ by vcftools. For example, if &lt;prefix&gt; is set to&nbsp;<span style="font-sty
 then all output files will be of the form <span style="font-style: italic;">output_filename.*** </span>.
 If this option is omitted, all output files will have the prefix 'out.'.<br>
 <br>
+</li>
+<li>--stdout <br>
+This option directs the vcftools output to standard out so it can be piped into another program or written directly to a filename of choice. However, a select few output functions cannot be written to standard out.
 </li>
 </ul>
 </div>
@@ -242,9 +245,14 @@ In this example, sites in the VCF file located within the first 5 bases of the s
 The threshold integer that determines if sites are filtered or not is set using the --mask-min option, which defaults to 0. 
 The chromosomes contained in the mask file must be sorted in the same order as the VCF file. 
 The --mask option is used to specify the mask file to be used, whereas the --invert-mask option can be used to specify a mask file that will be inverted before being applied.
+<br><br>
+</li>
+<li>--phased<br>
+<br>
+Excludes all sites with unphased genotypes. The remaining
+data&nbsp;therefore consists of&nbsp;phased data only.
 <br>
 </li>
-
 </ul>
 </div>
 <div class="item">
@@ -278,26 +286,6 @@ headerline) should be included on a separate line. If both the --keep
 and the --remove options are used, then the --keep option is execute before
 the --remove option.<br>
 <br>
-</li>
-<li>--min-indv-meanDP &lt;float&gt;</li>
-<li>--max-indv-mean-DP &lt;float&gt;<br>
-<br>
-Calculate the mean coverage on a per-individual basis. Only individuals
-with coverage within the range specified by these options are included
-in subsequent analyses.<br>
-<br>
-</li>
-<li>--mind &lt;float&gt;<br>
-<br>
-Specify the minimum call rate threshold for each individual. <br>
-<br>
-</li>
-<li>--phased<br>
-<br>
-First excludes all individuals having all genotypes unphased, and <span style="text-decoration: underline;">subsequently excludes
-all sites with unphased genotypes</span>. The remaining
-data&nbsp;therefore consists of&nbsp;phased data only.
-<br><br>
 </li>
 <li>--max-indv &lt;int&gt;<br>
 <br>
@@ -391,11 +379,15 @@ and Heterozygotes and the corresponding&nbsp;Expected numbers under
 HWE.&nbsp;<br>
 <br>
 </li>
-<li>--missing<br>
+<li>--missing-indv<br>
 <br>
-Generates
-two files reporting the missingness on a per-individual and per-site
-basis. The two files have suffixes '.imiss' and '.lmiss' respectively.<br>
+Generates a file reporting the missingness on a per-individual basis. 
+The file has the  suffix '.imiss'.<br>
+<br>
+<li>--missing-site<br>
+<br>
+Generates a filea reporting the missingness on a per-site basis. 
+The file has the suffix '.lmiss'.<br>
 <br>
 </li>
 <li>--hap-r2</li>
@@ -430,8 +422,12 @@ this option. The resulting output file has the suffix '.snpden'.<br>
 </li>
 <li>--TsTv &lt;int&gt;<br>
 <br>
-Calculates the Transition / Transversion ratio in bins of size defined by
-this option. Only uses bi-allelic SNPs. The resulting output file has the suffix '.TsTv'. A summary is also supplied in a file with the suffix '.TsTv.summary'.<br>
+Calculates the Transition / Transversion ratio in bins of size defined by this option. Only uses bi-allelic SNPs. The resulting output file has the suffix '.TsTv'.<br>
+<br>
+<li>--TsTv-summary<br>
+<br>
+Calculates a simple summary of all Transitions and Transversions. The output file has the suffix '.TsTv.summary'.
+<br>
 <br>
 </li>
 <li>--TsTv-by-count<br>
@@ -452,11 +448,14 @@ Generates a summary of the number of SNPs and Ts/Tv ratio for each FILTER catego
 has the suffix '.FILTER.summary. <br>
 <br>
 </li>
-<li>--filtered-sites<br>
+<li>--kept-sites<br>
 <br>
-Creates two files listing sites that have been kept or removed after filtering. The first file, with
-suffix '.kept.sites', lists sites kept by vcftools after filters have been applied. The second file,
-with the suffix '.removed.sites', list sites removed by the applied filters.<br>
+Creates a file listing all sites that have been kept after filtering. The file has the suffix '.kept.sites'.<br>
+<br>
+</li>
+<li>--removed-sites<br>
+<br>
+Creates a file listing all sites that have been removed after filtering. The file has the suffix '.removed.sites'.<br>
 <br>
 </li>
 <li>--singletons<br>
@@ -605,23 +604,6 @@ the suffix '.recode.bcf'.
 Similar to the --recode option, the INFO fields are removed from the output file but can be restored in the same manner.
 <br><br>
 </li>
-<li>--recode-to-stream<br>
-<br>
-The --recode-to-stream option works in the same manner as the --recode option, but 
-the resulting VCF file printed directly to the screen, rather than to file. Logging information normally
-displayed on the screen is supressed (but still written to the log file). The advantage 
-of this option is that the resulting VCF file can be piped to other programs for processing.
-For example, to gzip the VCF file, one could use:<br><br>
-<p class="codebox">vcftools --vcf file1.vcf --recode-to-stream | gzip -c - > output_file.vcf.gz</p>
-<br><br>
-</li>
-<li>--recode-bcf-to-stream<br>
-<br>
-The --recode-bcf-to-stream option works in the same matter as the --recode-to-stream option,
-printing the output BCF file to the screen. By default, all output BCF files are compressed in BGZF. 
-This stream can be piped through gzip or bgzip to decompress.  
-<br><br>
-</li>
 </ul>
 </div>
 <div class="item">
@@ -646,14 +628,6 @@ example, to extract the NS and DB flags, one would use the command:
 <br>
 <p class="codebox">vcftools --vcf file1.vcf --get-INFO NS --get-INFO DB </p>
 <br>
-<li>--force-index-write<br>
-<br>
-When vcftools first reads a VCF file, it creates an index of the file for faster access next time. 
-In some cases, the index file can get out of sync with the VCF file. This option can be used to force 
-vcftools to regenerate the index file.
-<br>
-<br>
-</li>
 </ul>
 </div>
 
