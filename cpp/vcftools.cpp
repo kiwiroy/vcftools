@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	params.print_help();
 	params.read_parameters();
 
-	LOG.open(params.output_prefix);
+	LOG.open(params.stream_err, params.output_prefix);
 
 	LOG.printLOG("\nVCFtools - " + VCFTOOLS_VERSION + "\n");
 	LOG.printLOG("(C) Adam Auton 2009\n\n");

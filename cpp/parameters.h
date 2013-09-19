@@ -156,6 +156,7 @@ public:
 	string snps_to_keep_file;
 	set<string> snps_to_keep;
 	int start_pos;
+	bool stream_err;
 	bool stream_out;
 	bool suppress_allele_output;
 	string vcf_filename;

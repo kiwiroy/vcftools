@@ -16,6 +16,11 @@ parameters::parameters(int argc, char *argv[])
 	else
 		stream_in = true;
 
+	if (isatty(STDERR_FILENO))
+		stream_err = false;
+	else
+		stream_err = true;
+
 	string tmp;
 	for (int i=0; i<argc; i++)
 	{
@@ -166,6 +171,7 @@ void parameters::read_parameters()
 		else if (in_str == "--BEAGLE-GL") { output_BEAGLE_genotype_likelihoods_GL = true; min_alleles=2; max_alleles=2; num_outputs++;}	// Output as BEAGLE Genotype Likelihood format
 		else if (in_str == "--BEAGLE-PL") { output_BEAGLE_genotype_likelihoods_PL = true; min_alleles=2; max_alleles=2; num_outputs++;}	// Output as BEAGLE Genotype Likelihood format
 		else if (in_str == "--bed") { BED_file = get_arg(i+1); i++; BED_exclude=false; }
+		else if (in_str == "-c") {stream_out = true;}						// Write output to stream
 		else if (in_str == "--chr") { chrs_to_keep.insert(get_arg(i+1)); i++; }					// Chromosome to process
 		else if (in_str == "--counts") {output_counts = true; num_outputs++;}								// Output per-site allele count statistics
 		else if (in_str == "--counts2") {output_counts = true; suppress_allele_output = true; num_outputs++;}								// Output per-site allele count statistics
@@ -287,7 +293,7 @@ void parameters::read_parameters()
 		else if (in_str == "--snp") { snps_to_keep.insert(get_arg(i+1)); i++; }						// SNP to keep
 		else if (in_str == "--SNPdensity") { output_SNP_density_bin_size = atoi(get_arg(i+1).c_str()); num_outputs++; i++; }	// Output SNP density using Bin Size
 		else if (in_str == "--snps") { snps_to_keep_file = get_arg(i+1); i++; }						// List of SNPs to keep
-		else if (in_str == "--stdout") {stream_out = true; LOG.set_screen_output(false);}						// Write output to stream
+		else if (in_str == "--stdout") {stream_out = true; }						// Write output to stream
 		else if (in_str == "--TajimaD") { output_Tajima_D_bin_size = atoi(get_arg(i+1).c_str()); i++; num_outputs++;} //Output Tajima D
 		else if (in_str == "--to-bp") { end_pos = atoi(get_arg(i+1).c_str()); i++; }						// End position
 		else if (in_str == "--thin") { min_interSNP_distance = atoi(get_arg(i+1).c_str()); i++; }	// Set minimum distance between SNPs

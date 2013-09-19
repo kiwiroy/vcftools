@@ -8,14 +8,16 @@
 
 #include "output_log.h"
 
-output_log::output_log() : output_to_screen(true)
+output_log::output_log()
 {
-
+	stream_err = false;
 }
 
-void output_log::open(const string &filename_prefix )
+void output_log::open(bool sterr, const string &filename_prefix )
 {
-	LOG.open((filename_prefix + ".log").c_str());
+	stream_err = sterr;
+	if (!stream_err)
+		LOG.open((filename_prefix + ".log").c_str(), ios::out);
 }
 
 void output_log::close()
@@ -23,31 +25,26 @@ void output_log::close()
 	LOG.close();
 }
 
-void output_log::set_screen_output(bool do_screen_output)
-{
-	output_to_screen = do_screen_output;
-}
-
 void output_log::printLOG(string s)
 {
-	LOG << s; LOG.flush();
-	if (output_to_screen)
-	{
-		cout << s; cout.flush();
-	}
+	if (!stream_err)
+		LOG << s; LOG.flush();
+	cerr << s; cerr.flush();
 }
 
 void output_log::error(string err_msg, int error_code)
 {
-	cerr << "Error:" << err_msg << "\n";
+	printLOG("Error: " + err_msg + "\n");
 	exit(error_code);
 }
 
 
 void output_log::error(string err_msg, double value1, double value2, int error_code)
 {
-	cerr << "Error:" << err_msg << "\n";
-	cerr << "Value1=" << value1 << " Value2=" << value2 << endl;
+	printLOG("Error: " + err_msg + "\n");
+	stringstream ss;
+	ss << "Value1=" << value1 << " Value2=" << value2 << endl;
+	printLOG(ss.str());
 	exit(error_code);
 }
 
