@@ -10,13 +10,25 @@
 
 output_log::output_log()
 {
-	stream_err = false;
+	output_to_screen = true;
+	output_to_file = true;
 }
 
-void output_log::open(bool sterr, const string &filename_prefix )
+void output_log::open(bool stdout, bool stderr, const string &filename_prefix )
 {
-	stream_err = sterr;
-	if (!stream_err)
+	if (stdout && isatty(STDOUT_FILENO))
+	{
+		output_to_screen = false;
+		output_to_file = true;
+	}
+
+	if (stderr)
+	{
+		output_to_screen = true;
+		output_to_file = false;
+	}
+
+	if (output_to_file)
 		LOG.open((filename_prefix + ".log").c_str(), ios::out);
 }
 
@@ -27,8 +39,9 @@ void output_log::close()
 
 void output_log::printLOG(string s)
 {
-	if (!stream_err)
+	if (output_to_file)
 		LOG << s; LOG.flush();
+	if (output_to_screen)
 	cerr << s; cerr.flush();
 }
 

@@ -1290,7 +1290,7 @@ void variant_file::output_genotype_r2(const parameters &params)
 		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << e2->get_POS() << "\t" << indv_count << "\t" << r2 << endl;
 	}
 	if (N_kept_entries <= 1)
-			LOG.error("Insufficient sites remained after filtering");
+		LOG.error("Insufficient sites remained after filtering");
 
 	unsigned int uj;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
