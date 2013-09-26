@@ -216,7 +216,7 @@ void parameters::read_parameters()
 		}
 		else if (in_str == "--hap-r2") { output_hap_rsq = true; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--hap-r2-positions") { hap_rsq_position_list = get_arg(i+1); i++; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
-		else if (in_str == "--hapmap-fst-pop") { hapmap_fst_populations.push_back(get_arg(i+1)); i++; num_outputs++;}
+		else if (in_str == "--hapmap-fst-pop") { hapmap_fst_populations.push_back(get_arg(i+1)); i++; }
 		else if (in_str == "--hardy") {output_HWE = true; num_outputs++;}									// Output HWE statistics
 		else if (in_str == "--het") {output_het = true; num_outputs++;}									// Output heterozygosity statistics
 		else if (in_str == "--hist-indel-len") {output_indel_hist = true; num_outputs++;}
@@ -599,6 +599,9 @@ void parameters::print_help()
 void parameters::check_parameters()
 {
 	parameters defaults(0, 0);
+	if (!weir_fst_populations.empty()) num_outputs++;
+	if (!hapmap_fst_populations.empty()) num_outputs++;
+
 	if (num_outputs > 1) error("Only one output function may be called.",0);
 	if (vcf_filename == "" && !stream_in) error("Input file required.", 0);
 	if (vcf_format == false && bcf_format == false) error("Must specify input file type",0);
