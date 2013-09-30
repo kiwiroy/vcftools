@@ -98,6 +98,7 @@ public:
 	void get_allele_counts(vector<int> &out, unsigned int &N_non_missing_chr_out, const vector<bool> &include_indv, const vector<bool> &include_genotype) const;
 	void get_genotype_counts(unsigned int &out_N_hom1, unsigned int &out_N_het, unsigned int &out_N_hom2) const;
 	void get_genotype_counts(const vector<bool> &include_indv, const vector<bool> &include_genotype, unsigned int &out_N_hom1, unsigned int &out_N_het, unsigned int &out_N_hom2) const;
+	void get_multiple_genotype_counts(const vector<bool> &include_indv, const vector<bool> &include_genotype, vector<unsigned int> &out_N_hom, vector<unsigned int> &out_N_het) const;
 	unsigned int get_N_alleles() const;
 	unsigned int get_N_chr() const;
 

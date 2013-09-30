@@ -429,6 +429,30 @@ void entry::get_genotype_counts(const vector<bool> &include_indv, const vector<b
 	}
 }
 
+void entry::get_multiple_genotype_counts(const vector<bool> &include_indv, const vector<bool> &include_genotype, vector<unsigned int> &out_N_hom, vector<unsigned int> &out_N_het) const
+{
+	out_N_hom.assign(ALT.size()+1, 0);
+	out_N_het.assign(ALT.size()+1, 0);
+	pair<int, int> genotype;
+
+	for (unsigned int ui=0; ui<N_indv; ui++)
+	{
+		if ((include_indv[ui] == true) && (include_genotype[ui] == true))
+		{
+			assert(parsed_GT[ui] == true);
+			get_indv_GENOTYPE_ids(ui, genotype);
+
+			for (unsigned int uj=0; uj<=ALT.size(); uj++)
+			{
+				if (genotype.first == uj && genotype.second == uj)
+					out_N_hom[uj]++;
+				else if (genotype.first == uj || genotype.second == uj)
+					out_N_het[uj]++;
+			}
+		}
+	}
+}
+
 // Return the counts of homozygote1, heterozygotes, and homozygote2
 void entry::get_genotype_counts(unsigned int &out_N_hom1, unsigned int &out_N_het, unsigned int &out_N_hom2) const
 {

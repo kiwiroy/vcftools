@@ -1318,7 +1318,7 @@ void variant_file::output_genotype_r2(const parameters &params)
 			if (e->get_CHROM() != e2->get_CHROM())
 				continue;
 			if ((e2->get_POS() - e->get_POS()) < bp_window_min)
-					continue;
+				continue;
 			if ((e2->get_POS() - e->get_POS()) > bp_window_size)
 			{
 				uj = tmp_files.size();
@@ -3027,7 +3027,6 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 	entry *e = get_entry_object();
 	vector<char> variant_line;
 
-	double snp_Fst;
 	double sum1=0.0, sum2 = 0.0;
 	double sum3=0.0, count = 0.0;
 
@@ -3043,15 +3042,10 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 		N_kept_entries++;
 
 		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
-		{
-			LOG.one_off_warning("\tFst: Only using biallelic sites.");
-			continue;
-		}
-
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
+
+		unsigned int N_alleles = e->get_N_alleles();
 
 		if (e->is_diploid() == false)
 		{
@@ -3059,61 +3053,83 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 			continue;
 		}
 
-		vector<unsigned int> n;
-		n.resize(N_pops, 0);
-		vector<double> p;
-		p.resize(N_pops, 0);
-		double nbar = 0.0, pbar=0.0, hbar=0.0;
-		double ssqr=0.0;
+		vector<unsigned int> N_hom, N_het;
+		vector<double> n(N_pops, 0.0);
+		vector<vector<double> > p(N_pops, vector<double>(N_alleles,0.0));
+
+		double nbar = 0.0;
+		vector<double> pbar(N_alleles, 0.0);
+		vector<double> hbar(N_alleles, 0.0);
+		vector<double> ssqr(N_alleles, 0.0);
 		double sum_nsqr = 0.0;
 		double n_sum = 0.0;
-		unsigned int N_hom1, N_het, N_hom2;
 
-		for (unsigned int j=0; j<N_pops; j++)
+		for (unsigned int i=0; i<N_pops; i++)
 		{
-			e->get_genotype_counts(indvs_in_pops[j], e->include_genotype, N_hom1, N_het, N_hom2);
-			n[j] = N_hom1 + N_het + N_hom2;
-			hbar += N_het;
-			p[j] = N_het + 2*N_hom2;
-			nbar += n[j];
-			pbar += p[j];
-			sum_nsqr += (n[j] * n[j]);
+			e->get_multiple_genotype_counts(indvs_in_pops[i], e->include_genotype, N_hom, N_het);
 
-			p[j] /= (2.0*n[j]);	// diploid
+			for (unsigned int j=0; j<N_alleles; j++)
+			{
+				n[i] += N_hom[j] + 0.5*N_het[j];
+				p[i][j] = N_het[j] + 2*N_hom[j];
+
+				nbar += n[i];
+				pbar[j] += p[i][j];
+				hbar[j] += N_het[j];
+			}
+			for (unsigned int j=0; j<N_alleles; j++)
+				p[i][j] /= (2.0*n[i]);	// diploid
+
+			sum_nsqr += (n[i] * n[i]);
+		}
+		n_sum = accumulate(n.begin(),n.end(),0);
+		nbar = n_sum / N_pops;
+
+		for (unsigned int j=0; j<N_alleles; j++)
+		{
+			pbar[j] /= (n_sum*2.0); //diploid
+			hbar[j] /= n_sum;
 		}
 
-		n_sum = nbar;
-		nbar /= double(N_pops);
-		hbar /= n_sum;
-		pbar /= (n_sum*2.0);	// diploid
-
-		for (unsigned int j=0; j<N_pops; j++)
-			ssqr += (n[j]*(p[j] - pbar)*(p[j] - pbar));
-		ssqr /= ((N_pops-1.0)*nbar);
+		for (unsigned int j=0; j<N_alleles; j++)
+		{
+			for (unsigned int i=0; i<N_pops; i++)
+				ssqr[j] += (n[i]*(p[i][j] - pbar[j])*(p[i][j] - pbar[j]));
+			ssqr[j] /= ((N_pops-1.0)*nbar);
+		}
 		double nc = (n_sum - (sum_nsqr / n_sum)) / (N_pops - 1.0);
 		double C2 = N_pops * (1.0 - (nc / nbar));
-		double S1 = ssqr - ((pbar * (1.0 - pbar) - ((N_pops-1.0) * ssqr / N_pops) - (hbar/4.0)) / (nbar - 1.0));
-		double S2 = pbar * (1.0-pbar) * (1.0 - (nbar*C2/(N_pops*(nbar-1.0))));
-		S2 += ((ssqr/N_pops)*(1.0 + ((N_pops-1.0)*nbar*C2/(N_pops*(nbar-1.0)))));
-		S2 += (C2/(N_pops*(nbar-1.0)))*hbar/4.0;
 
-		snp_Fst = S1 / S2;
-		/*
-		// Calculate Fit and Fis
-		double S3 = nc * hbar / nbar;
-		double FIT = 1.0 - (S3 / (2*S2));	// FIT
-		double FIS = (FIT - snp_Fst) / (1 - snp_Fst);
-		cout << FIT << " " << FIS << endl;
-		*/
+		vector<double> snp_Fst(N_alleles, 0.0);
+		vector<double> a(N_alleles, 0.0);
+		vector<double> b(N_alleles, 0.0);
+		vector<double> c(N_alleles, 0.0);
+		double r = double(N_pops);
+		double sum_a = 0.0;
+		double sum_all = 0.0;
 
-		if ((S2 != 0) && (!isnan(S1)) && (!isnan(S2)) && (!isnan(snp_Fst)))
+		for(unsigned int j=0; j<N_alleles; j++)
 		{
-			sum1 += S1;
-			sum2 += S2;
-			sum3 += snp_Fst;
+			a[j] = (ssqr[j] - ( pbar[j]*(1.0-pbar[j]) - (((r-1.0)*ssqr[j])/r) - (hbar[j]/4.0) )/(nbar-1.0))*nbar/nc;
+			b[j] = (pbar[j]*(1.0-pbar[j]) - (ssqr[j]*(r-1.0)/r) - hbar[j]*( ((2.0*nbar)-1.0) / (4.0*nbar) ))*nbar / (nbar-1.0) ;
+			c[j] = hbar[j] / 2.0;
+			snp_Fst[j] = a[j]/(a[j]+b[j]+c[j]);
+
+			if ((!isnan(a[j])) && (!isnan(b[j])) && (!isnan(c[j])))
+			{
+				sum_a += a[j];
+				sum_all += (a[j]+b[j]+c[j]);
+			}
+		}
+		double fst = sum_a/sum_all;
+		if (!isnan(fst))
+		{
+			sum1 += sum_a;
+			sum2 += sum_all;
+			sum3 += fst;
 			count++;
 		}
-		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << snp_Fst << endl;
+		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << fst << endl;
 	}
 
 	double weighted_Fst = sum1 / sum2;
@@ -3205,15 +3221,10 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 		N_kept_entries++;
 
 		e->parse_basic_entry(true);
-
-		if (e->get_N_alleles() != 2)
-		{
-			LOG.one_off_warning("\tFst: Only using biallelic sites.");
-			continue;
-		}
-
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
+
+		unsigned int N_alleles = e->get_N_alleles();
 
 		if (e->is_diploid() == false)
 		{
@@ -3221,52 +3232,77 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 			continue;
 		}
 
-		vector<unsigned int> n;
-		n.resize(N_pops, 0);
-		vector<double> p;
-		p.resize(N_pops, 0);
-		double nbar = 0.0, pbar=0.0, hbar=0.0;
-		double ssqr=0.0;
+		vector<unsigned int> N_hom, N_het;
+		vector<double> n(N_pops, 0.0);
+		vector<vector<double> > p(N_pops, vector<double>(N_alleles,0.0));
+
+		double nbar = 0.0;
+		vector<double> pbar(N_alleles, 0.0);
+		vector<double> hbar(N_alleles, 0.0);
+		vector<double> ssqr(N_alleles, 0.0);
 		double sum_nsqr = 0.0;
 		double n_sum = 0.0;
-		unsigned int N_hom1, N_het, N_hom2;
 
-		for (unsigned int j=0; j<N_pops; j++)
+		for (unsigned int i=0; i<N_pops; i++)
 		{
-			e->get_genotype_counts(indvs_in_pops[j], e->include_genotype, N_hom1, N_het, N_hom2);
+			e->get_multiple_genotype_counts(indvs_in_pops[i], e->include_genotype, N_hom, N_het);
 
-			n[j] = N_hom1 + N_het + N_hom2;
-			hbar += N_het;
-			p[j] = N_het + 2*N_hom2;
-			nbar += n[j];
-			pbar += p[j];
-			sum_nsqr += (n[j] * n[j]);
+			for (unsigned int j=0; j<N_alleles; j++)
+			{
+				n[i] += N_hom[j] + 0.5*N_het[j];
+				p[i][j] = N_het[j] + 2*N_hom[j];
 
-			p[j] /= (2.0*n[j]);	// diploid
+				nbar += n[i];
+				pbar[j] += p[i][j];
+				hbar[j] += N_het[j];
+			}
+			for (unsigned int j=0; j<N_alleles; j++)
+				p[i][j] /= (2.0*n[i]);	// diploid
+
+			sum_nsqr += (n[i] * n[i]);
+		}
+		n_sum = accumulate(n.begin(),n.end(),0);
+		nbar = n_sum / N_pops;
+
+		for (unsigned int j=0; j<N_alleles; j++)
+		{
+			pbar[j] /= (n_sum*2.0); //diploid
+			hbar[j] /= n_sum;
 		}
 
-		n_sum = nbar;
-		nbar /= double(N_pops);
-		hbar /= n_sum;
-		pbar /= (n_sum*2.0);	// diploid
-
-		for (unsigned int j=0; j<N_pops; j++)
-			ssqr += (n[j]*(p[j] - pbar)*(p[j] - pbar));
-		ssqr /= ((N_pops-1.0)*nbar);
-
+		for (unsigned int j=0; j<N_alleles; j++)
+		{
+			for (unsigned int i=0; i<N_pops; i++)
+				ssqr[j] += (n[i]*(p[i][j] - pbar[j])*(p[i][j] - pbar[j]));
+			ssqr[j] /= ((N_pops-1.0)*nbar);
+		}
 		double nc = (n_sum - (sum_nsqr / n_sum)) / (N_pops - 1.0);
 		double C2 = N_pops * (1.0 - (nc / nbar));
 
-		// diploid
-		double S1 = ssqr - ((pbar * (1.0 - pbar) - ((N_pops-1.0) * ssqr / N_pops) - (hbar/4.0)) / (nbar - 1.0));
-		double S2 = pbar * (1.0-pbar) * (1.0 - (nbar*C2/(N_pops*(nbar-1.0))));
-		S2 += ((ssqr/N_pops)*(1.0 + ((N_pops-1.0)*nbar*C2/(N_pops*(nbar-1.0)))));
-		S2 += (C2/(N_pops*(nbar-1.0)))*hbar/4.0;
+		vector<double> snp_Fst(N_alleles, 0.0);
+		vector<double> a(N_alleles, 0.0);
+		vector<double> b(N_alleles, 0.0);
+		vector<double> c(N_alleles, 0.0);
+		double r = double(N_pops);
+		double sum_a = 0.0;
+		double sum_all = 0.0;
 
-		snp_Fst = S1 / S2;
-		if ((S2 != 0) && (!isnan(S1)) && (!isnan(S2)) && (!isnan(snp_Fst)))
+		for(unsigned int j=0; j<N_alleles; j++)
 		{
-			// Place the results into bins
+			a[j] = (ssqr[j] - ( pbar[j]*(1.0-pbar[j]) - (((r-1.0)*ssqr[j])/r) - (hbar[j]/4.0) )/(nbar-1.0))*nbar/nc;
+			b[j] = (pbar[j]*(1.0-pbar[j]) - (ssqr[j]*(r-1.0)/r) - hbar[j]*( ((2.0*nbar)-1.0) / (4.0*nbar) ))*nbar / (nbar-1.0) ;
+			c[j] = hbar[j] / 2.0;
+			snp_Fst[j] = a[j]/(a[j]+b[j]+c[j]);
+
+			if ((!isnan(a[j])) && (!isnan(b[j])) && (!isnan(c[j])))
+			{
+				sum_a += a[j];
+				sum_all += (a[j]+b[j]+c[j]);
+			}
+		}
+		double fst = sum_a/sum_all;
+		if (!isnan(fst))
+		{
 			int pos = (int)e->get_POS();
 			CHROM = e->get_CHROM();
 			if (CHROM != last_chr)
@@ -3281,14 +3317,15 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 				if (idx >= bins[CHROM].size())
 					bins[CHROM].resize(idx+1, empty_vector);
 
-				bins[CHROM][idx][0] += S1;
-				bins[CHROM][idx][1] += S2;
-				bins[CHROM][idx][2] += snp_Fst;
+				bins[CHROM][idx][0] += sum_a;
+				bins[CHROM][idx][1] += sum_all;
+				bins[CHROM][idx][2] += fst;
 				bins[CHROM][idx][3]++;
 			}
-			sum1 += S1;
-			sum2 += S2;
-			sum3 += snp_Fst;
+
+			sum1 += sum_a;
+			sum2 += sum_all;
+			sum3 += fst;
 			count++;
 		}
 	}
