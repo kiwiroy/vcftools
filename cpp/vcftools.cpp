@@ -105,16 +105,9 @@ int main(int argc, char *argv[])
 	if (params.output_PCA == true) vf->output_PCA(params);
 	if (params.output_N_PCA_SNP_loadings > 0) vf->output_PCA_SNP_loadings(params);
 
-	if (params.fst_window_size <= 0)
-	{
-		if (params.hapmap_fst_populations.size() > 0) vf->output_hapmap_fst(params);
-		if (params.weir_fst_populations.size() > 0) vf->output_weir_and_cockerham_fst(params);
-	}
-	else
-	{
-		if (params.hapmap_fst_populations.size() > 0) vf->output_windowed_hapmap_fst(params);
-		if (params.weir_fst_populations.size() > 0) vf->output_windowed_weir_and_cockerham_fst(params);
-	}
+	if (params.fst_window_size <= 0 && params.weir_fst_populations.size() > 0) vf->output_weir_and_cockerham_fst(params);
+	else if (params.weir_fst_populations.size() > 0) vf->output_windowed_weir_and_cockerham_fst(params);
+
 	if (params.output_indel_hist == true) vf->output_indel_hist(params);
 
 	LOG.printLOG("After filtering, kept " + header::int2str(vf->N_kept_sites()) + " out of a possible " + header::int2str(vf->N_total_sites()) + " Sites\n");
