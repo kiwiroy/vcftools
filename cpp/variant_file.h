@@ -121,10 +121,8 @@ public:
 	void output_as_LDhat_unphased(const parameters &params);
 	void output_FORMAT_information(const parameters &params);
 
-	void output_hapmap_fst(const parameters &params);
 	void output_weir_and_cockerham_fst(const parameters &params);
 	void output_windowed_weir_and_cockerham_fst(const parameters &params);
-	void output_windowed_hapmap_fst(const parameters &params);
 
 	void output_sites_in_files(const parameters &params, variant_file &diff_vcf_file);
 	void output_sites_in_files(const parameters &params, variant_file &diff_vcf_file, map<pair<string, int>, pair<string,string> > &CHROMPOS_to_filename_pair);

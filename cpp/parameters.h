@@ -54,7 +54,6 @@ public:
 	set<string> geno_filter_flags_to_exclude;
 	string geno_rsq_position_list;
 	string hap_rsq_position_list;
-	vector<string> hapmap_fst_populations;
 	vector<string> weir_fst_populations;
 	int fst_window_size;
 	int fst_window_step;

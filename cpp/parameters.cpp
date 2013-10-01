@@ -216,7 +216,6 @@ void parameters::read_parameters()
 		}
 		else if (in_str == "--hap-r2") { output_hap_rsq = true; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--hap-r2-positions") { hap_rsq_position_list = get_arg(i+1); i++; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
-		else if (in_str == "--hapmap-fst-pop") { hapmap_fst_populations.push_back(get_arg(i+1)); i++; }
 		else if (in_str == "--hardy") {output_HWE = true; num_outputs++;}									// Output HWE statistics
 		else if (in_str == "--het") {output_het = true; num_outputs++;}									// Output heterozygosity statistics
 		else if (in_str == "--hist-indel-len") {output_indel_hist = true; num_outputs++;}
@@ -356,11 +355,7 @@ void parameters::print_params()
 	if (gatk != defaults.gatk) LOG.printLOG("\t--gatk\n");
 	if (geno_rsq_position_list != defaults.geno_rsq_position_list) LOG.printLOG("\t--geno-r2-positions " + geno_rsq_position_list + "\n");
 	if (hap_rsq_position_list != defaults.hap_rsq_position_list) LOG.printLOG("\t--hap-r2-positions " + hap_rsq_position_list + "\n");
-	if (hapmap_fst_populations.size() != 0)
-	{
-		for (unsigned int ui=0; ui<hapmap_fst_populations.size(); ui++)
-			LOG.printLOG("\t--hapmap-fst-pop " + hapmap_fst_populations[ui] + "\n");
-	}
+
 	if (weir_fst_populations.size() != 0)
 	{
 		for (unsigned int ui=0; ui<weir_fst_populations.size(); ui++)
@@ -600,7 +595,6 @@ void parameters::check_parameters()
 {
 	parameters defaults(0, 0);
 	if (!weir_fst_populations.empty()) num_outputs++;
-	if (!hapmap_fst_populations.empty()) num_outputs++;
 
 	if (num_outputs > 1) error("Only one output function may be called.",0);
 	if (vcf_filename == "" && !stream_in) error("Input file required.", 0);
