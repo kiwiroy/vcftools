@@ -194,7 +194,8 @@ void parameters::read_parameters()
 		else if (in_str == "--from-bp") { start_pos = atoi(get_arg(i+1).c_str()); i++; }					// Start position
 		else if (in_str == "--fst-window-size") { fst_window_size = atoi(get_arg(i+1).c_str()); i++; }                  // Window size for Fst calculation
 		else if (in_str == "--fst-window-step") { fst_window_step = atoi(get_arg(i+1).c_str()); i++; }                  // Window step for Fst calculation
-		else if (in_str == "--gatk") gatk = true;								//Denote BCF file came from GATK
+		else if (in_str == "--gatk") gatk = true;											//Denote BCF file came from GATK
+		else if (in_str == "--geno") { min_site_call_rate = atof(get_arg(i+1).c_str()); i++; }
 		else if (in_str == "--geno-depth") {output_geno_depth = true; num_outputs++;}						// Output Depth for each genoptype
 		else if (in_str == "--geno-r2") { output_geno_rsq = true; min_alleles = 2; max_alleles = 2; num_outputs++;} // Output pairwise LD (r^2)
 		else if (in_str == "--geno-chisq") { output_geno_chisq = true; num_outputs++;} // Output pairwise LD (r^2)
