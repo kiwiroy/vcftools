@@ -49,6 +49,7 @@ void bcf_entry::reset(const vector<char> &data_line)
 	fill(parsed_GQ.begin(), parsed_GQ.end(), false);
 	fill(parsed_DP.begin(), parsed_DP.end(), false);
 	fill(parsed_FT.begin(), parsed_FT.end(), false);
+	fill(include_genotype.begin(), include_genotype.end(), true);
 
 	INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
 	FORMAT_positions.clear(); FORMAT_types.clear(); FORMAT_sizes.clear(); FORMAT_skip.clear(); FORMAT_keys.clear();

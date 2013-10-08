@@ -20,9 +20,8 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;

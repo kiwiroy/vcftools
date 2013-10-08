@@ -18,7 +18,7 @@ bcf_file::bcf_file(const parameters &p, bool diff)
 
 	big_endian = is_big_endian();
 	is_GATK = p.gatk; is_BGZF = false;
-	N_entries = -1; N_kept_entries = 0;
+	N_entries = 0; N_kept_entries = 0;
 	meta_data = header();
 
 	if (p.stream_in)
@@ -210,9 +210,10 @@ void bcf_file::print(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 		if(!e->passed_filters)
 			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true, true, true);
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);
@@ -273,9 +274,10 @@ void bcf_file::print_bcf(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 		if(!e->passed_filters)
 			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true, true, true);
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true);

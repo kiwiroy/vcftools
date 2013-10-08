@@ -50,7 +50,6 @@ void bcf_entry::set_INFO()
 		get_type(&i, line, type, size);
 
 		pair<string, string> INFO_entry(entry_header.INFO_map[key].ID, ".");
-	cout << key << "\t" << type << "\t" << entry_header.INFO_map[key].ID << endl;
 		data_type = entry_header.INFO_map[key].Type_str;
 		ostringstream ss(ostringstream::out);
 

@@ -66,9 +66,8 @@ void variant_file::output_as_plink(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -205,9 +204,8 @@ void variant_file::output_as_plink_tped(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -328,9 +326,8 @@ void variant_file::output_as_012_matrix(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -441,9 +438,8 @@ void variant_file::output_as_IMPUTE(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -575,9 +571,8 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -717,9 +712,8 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -847,8 +841,8 @@ void variant_file::output_INFO_for_each_site(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
-		N_entries++;
+		N_entries += e->apply_filters(params);
+
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -899,9 +893,8 @@ void variant_file::output_FORMAT_information(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -974,9 +967,8 @@ void variant_file::output_BEAGLE_genotype_likelihoods(const parameters &params, 
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;

@@ -214,20 +214,15 @@ void vcf_entry::set_indv_GFILTER(unsigned int indv, const string &in)
 void vcf_entry::set_FILTER(const string &FILTER_str)
 {
 	FILTER.resize(0);
-	passed_filters = false;
-	if (FILTER_str == "PASS")
-		passed_filters = true;
-	else
+
+	if (FILTER_str != ".")
 	{
-		if (FILTER_str != ".")
+		istringstream ss(FILTER_str);
+		string ith_FILTER;
+		while (!ss.eof())
 		{
-			istringstream ss(FILTER_str);
-			string ith_FILTER;
-			while (!ss.eof())
-			{
-				getline(ss, ith_FILTER, ';');
-				FILTER.push_back(ith_FILTER);
-			}
+			getline(ss, ith_FILTER, ';');
+			FILTER.push_back(ith_FILTER);
 		}
 	}
 	sort(FILTER.begin(), FILTER.end());

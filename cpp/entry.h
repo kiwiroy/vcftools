@@ -36,7 +36,7 @@ public:
 	virtual void parse_genotype_entries(bool GT=false, bool GQ=false, bool DP=false, bool FT=false) = 0;
 
 	virtual void reset(const vector<char> &data_line) = 0;
-	void apply_filters(const parameters &params);
+	int apply_filters(const parameters &params);
 
 	void filter_sites(const set<string> &snps_to_keep, const string &snps_to_keep_file, const string &snps_to_exclude_file, bool keep_then_exclude = false);
 	void filter_sites_to_keep(const set<string> &snps_to_keep, const string &snps_to_keep_file);

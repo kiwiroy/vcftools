@@ -151,17 +151,13 @@ string entry::get_FILTER() const
 	assert(parsed_FILTER == true);
 
 	ostringstream out;
-	if ((passed_filters == false) && (FILTER.empty()))
+	if (FILTER.empty())
 		out << ".";
-	else if (passed_filters == true)
-		out << "PASS";
 	else
 	{
 		out << FILTER[0];
 		for (unsigned int ui=1; ui<FILTER.size(); ui++)
-		{
 			out << ";" << FILTER[ui];
-		}
 	}
 	return out.str();
 }

@@ -58,9 +58,8 @@ void variant_file::output_frequency(const parameters &params, bool output_counts
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -174,19 +173,8 @@ void variant_file::output_het(const parameters &params)
 	LOG.printLOG("Outputting Individual Heterozygosity\n");
 
 	string output_file = params.output_prefix + ".het";
-	streambuf * buf;
-	ofstream temp_out;
-	if (!params.stream_out)
-	{
-		temp_out.open(output_file.c_str(), ios::out);
-		if (!temp_out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
-		buf = temp_out.rdbuf();
-	}
-	else
-		buf = cout.rdbuf();
-
-	ostream out(buf);
-
+	ofstream out(output_file.c_str());
+	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
 	out << "INDV\tO(HOM)\tE(HOM)\tN_SITES\tF" << endl;
 
 	// P(Homo) = F + (1-F)P(Homo by chance)
@@ -199,32 +187,27 @@ void variant_file::output_het(const parameters &params)
 	// Which rearranges to give
 	//    F = (O-E)/(N-E)
 
-	// First, calc frequency of each site (should really move this to a subroutine)
-	vector<double> freq;
+	double freq;
 	vector<int> allele_counts;
-	vector<unsigned int> N_non_missing_chr;
-	unsigned int N_non_missing_tmp;
-	vector<char> variant_line;
-	vector<int> N_sites_included(meta_data.N_indv,0);
-	vector<int> N_obs_hom(meta_data.N_indv,0);
-	vector<double> N_expected_hom(meta_data.N_indv,0);
+	unsigned int N_non_missing_chr;
+	vector<int> N_sites_included(meta_data.N_indv, 0);
+	vector<int> N_obs_hom(meta_data.N_indv, 0);
+	vector<double> N_expected_hom(meta_data.N_indv, 0.0);
 	pair<int, int> alleles;
+
+	vector<char> variant_line;
 	entry *e = get_entry_object();
 
-	unsigned int s = -1;
-	while(!eof())
+	while (!eof())
 	{
-		s++;
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
+		e->parse_basic_entry(true);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
-
-		e->parse_basic_entry(true);
 
 		if (e->get_N_alleles() != 2)
 		{
@@ -241,21 +224,18 @@ void variant_file::output_het(const parameters &params)
 		}
 
 		// Frequency of non-reference allele
-		e->get_allele_counts(allele_counts, N_non_missing_tmp);
-		N_non_missing_chr.push_back(N_non_missing_tmp);
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
 
-		if (N_non_missing_tmp > 0)
-			freq.push_back(allele_counts[1] / double(N_non_missing_tmp) );
+		if (N_non_missing_chr > 0)
+			freq = allele_counts[1] / double(N_non_missing_chr);
 		else
-			freq.push_back(-1);
+			freq = -1;
 
-		if ((freq[s] <= numeric_limits<double>::epsilon())  || (1.0 - freq[s] <= numeric_limits<double>::epsilon()))
+		if ((freq <= numeric_limits<double>::epsilon())  || (1.0 - freq <= numeric_limits<double>::epsilon()))
 			continue;
 
-		for (unsigned int ui=0; ui<e->N_indv; ui++)
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
-			N_sites_included.push_back(0);
-
 			if (include_indv[ui] == false)
 				continue;
 
@@ -268,11 +248,7 @@ void variant_file::output_het(const parameters &params)
 					if (alleles.first == alleles.second)
 						N_obs_hom[ui]++;
 
-					/////////////////////////
-					// Expected homozygosity
-					// E = 1 - (2pq . 2N/(2N-1))
-					// (Using Nei's unbiased estimator)
-					N_expected_hom[ui] += 1.0 - (2.0 * freq[s] * (1.0 - freq[s]) * (N_non_missing_chr[s] / (N_non_missing_chr[s] - 1.0)));
+					N_expected_hom[ui] += 1.0 - (2.0 * freq * (1.0 - freq) * (N_non_missing_chr / (N_non_missing_chr - 1.0)));
 				}
 			}
 		}
@@ -350,9 +326,8 @@ void variant_file::output_hwe(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -427,9 +402,8 @@ void variant_file::output_individuals_by_mean_depth(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -501,9 +475,8 @@ void variant_file::output_SNP_density(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -585,9 +558,8 @@ void variant_file::output_indv_missingness(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -659,9 +631,8 @@ void variant_file::output_site_missingness(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -1061,8 +1032,7 @@ void variant_file::output_haplotype_r2(const parameters &params)
 		{
 			get_entry(variant_line);
 			e->reset(variant_line);
-			e->apply_filters(params);
-			N_entries++;
+			N_entries += e->apply_filters(params);
 			if(!e->passed_filters)
 				continue;
 			N_kept_entries++;
@@ -1082,8 +1052,7 @@ void variant_file::output_haplotype_r2(const parameters &params)
 		count++;
 		get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
-		N_entries++;
+		N_entries += e2->apply_filters(params);
 
 		if(!e2->passed_filters)
 		{
@@ -1223,8 +1192,8 @@ void variant_file::output_genotype_r2(const parameters &params)
 		{
 			get_entry(variant_line);
 			e->reset(variant_line);
-			e->apply_filters(params);
-			N_entries++;
+			N_entries += e->apply_filters(params);
+
 			if(!e->passed_filters)
 				continue;
 			N_kept_entries++;
@@ -1384,8 +1353,8 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 		{
 			get_entry(variant_line);
 			e->reset(variant_line);
-			e->apply_filters(params);
-			N_entries++;
+			N_entries += e->apply_filters(params);
+
 			if(!e->passed_filters)
 				continue;
 			N_kept_entries++;
@@ -1399,8 +1368,8 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 		count++;
 		get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
-		N_entries++;
+		N_entries += e2->apply_filters(params);
+
 		if(!e2->passed_filters)
 		{
 			tmp_files.push_back("");
@@ -1525,8 +1494,8 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 		{
 			get_entry(variant_line);
 			e->reset(variant_line);
-			e->apply_filters(params);
-			N_entries++;
+			N_entries += e->apply_filters(params);
+
 			if(!e->passed_filters)
 				continue;
 			N_kept_entries++;
@@ -1543,8 +1512,8 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 		}
 		get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
-		N_entries++;
+		N_entries += e2->apply_filters(params);
+
 		if(!e2->passed_filters)
 		{
 			tmp_files.push_back("");
@@ -1663,8 +1632,8 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 		{
 			get_entry(variant_line);
 			e->reset(variant_line);
-			e->apply_filters(params);
-			N_entries++;
+			N_entries += e->apply_filters(params);
+
 			if(!e->passed_filters)
 				continue;
 			N_kept_entries++;
@@ -1681,8 +1650,8 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 		}
 		get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
-		N_entries++;
+		N_entries += e2->apply_filters(params);
+
 		if(!e2->passed_filters)
 		{
 			tmp_files.push_back("");
@@ -1833,8 +1802,8 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
-		N_entries++;
+		N_entries += e->apply_filters(params);
+
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -1976,8 +1945,8 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
-		N_entries++;
+		N_entries += e->apply_filters(params);
+
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2086,9 +2055,8 @@ void variant_file::output_singletons(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2176,9 +2144,8 @@ void variant_file::output_genotype_depth(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2229,8 +2196,8 @@ void variant_file::output_FILTER_summary(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
-		N_entries++;
+		N_entries += e->apply_filters(params);
+
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2331,9 +2298,8 @@ void variant_file::output_TsTv(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2438,9 +2404,8 @@ void variant_file::output_TsTv_summary(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2522,9 +2487,8 @@ void variant_file::output_TsTv_by_count(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2607,9 +2571,8 @@ void variant_file::output_TsTv_by_quality(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2732,9 +2695,8 @@ void variant_file::output_site_quality(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2781,9 +2743,8 @@ void variant_file::output_site_depth(const parameters &params, bool output_mean)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -2894,9 +2855,8 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3073,9 +3033,8 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3264,9 +3223,8 @@ void variant_file::output_per_site_nucleotide_diversity(const parameters &params
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3350,9 +3308,8 @@ void variant_file::output_Tajima_D(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3477,9 +3434,8 @@ void variant_file::output_windowed_nucleotide_diversity(const parameters &params
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3611,9 +3567,8 @@ void variant_file::output_kept_sites(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3655,9 +3610,8 @@ void variant_file::output_removed_sites(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3715,8 +3669,8 @@ void variant_file::output_LROH(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
-		N_entries++;
+		N_entries += e->apply_filters(params);
+
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -3981,9 +3935,8 @@ void variant_file::output_indv_relatedness(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -4112,9 +4065,8 @@ void variant_file::output_PCA(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -4290,9 +4242,8 @@ void variant_file::output_PCA_SNP_loadings(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -4435,9 +4386,8 @@ void variant_file::output_indel_hist(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;
@@ -4493,9 +4443,8 @@ void variant_file::write_stats(const parameters &params)
 
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 
-		N_entries++;
 		if(!e->passed_filters)
 			continue;
 		N_kept_entries++;

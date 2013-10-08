@@ -54,6 +54,7 @@ void vcf_entry::reset(const vector<char> &data_line)
 	fill(parsed_GQ.begin(), parsed_GQ.end(), false);
 	fill(parsed_DP.begin(), parsed_DP.end(), false);
 	fill(parsed_FT.begin(), parsed_FT.end(), false);
+	fill(include_genotype.begin(), include_genotype.end(), true);
 
 	N_INFO_removed = 0; N_FORMAT_removed = 0;
 	FORMAT_positions.clear(); FORMAT_types.clear(); FORMAT_sizes.clear(); FORMAT_skip.clear(); FORMAT_keys.clear();
@@ -275,6 +276,7 @@ void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 
 	out << '\t' << header::double2str(QUAL);
 	out << '\t' << get_FILTER();
+
 	if (keep_all_INFO == false)
 		out << '\t' << get_INFO(INFO_to_keep);
 	else

@@ -21,8 +21,9 @@ vcf_file::vcf_file(const parameters &p, bool diff)
 		compressed = p.diff_file_compressed;
 		stream = false;
 	}
+
 	gzMAX_LINE_LEN = 0;
-	N_entries = -1; N_kept_entries = 0;
+	N_entries = 0; N_kept_entries = 0;
 	meta_data = header();
 
 	if (stream)
@@ -96,9 +97,10 @@ void vcf_file::print(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 		if(!e->passed_filters)
 			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true, true, true);
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true,true,true,true);
@@ -173,9 +175,10 @@ void vcf_file::print_bcf(const parameters &params)
 	{
 		get_entry(variant_line);
 		e->reset(variant_line);
-		e->apply_filters(params);
+		N_entries += e->apply_filters(params);
 		if(!e->passed_filters)
 			continue;
+		N_kept_entries++;
 		e->parse_basic_entry(true, true, true);
 		e->parse_full_entry(true);
 		e->parse_genotype_entries(true,true,true,true);
@@ -251,6 +254,7 @@ bool vcf_file::eof()
 
 void vcf_file::get_entry(vector<char> &out)
 {
+	out.resize(0);
 	read_line(out);
 }
 
@@ -261,18 +265,23 @@ entry* vcf_file::get_entry_object()
 
 void vcf_file::read_line(string &out)
 {
+	char * tmp;
 	out = "";
 	if (stream || !compressed)
 	{
 		getline(*file_in, out);
 		out.erase( out.find_last_not_of(" \t\n\r") + 1);	// Trim whitespace at end of line
+
 	}
 	else
 	{
 		bool again = true;
 		while (again == true)
 		{
-			gzgets(gzfile_in, gz_readbuffer, gzMAX_LINE_LEN);
+			tmp = gzgets(gzfile_in, gz_readbuffer, gzMAX_LINE_LEN);
+			if (tmp == NULL)
+				return;
+
 			out.append(gz_readbuffer);
 			if (strlen(gz_readbuffer) != gzMAX_LINE_LEN-1)
 				again = false;
@@ -284,9 +293,8 @@ void vcf_file::read_line(string &out)
 void vcf_file::read_line(vector<char> &out)
 {
 	static string tmp;
-	tmp.resize(0);
+	tmp="";
 	out.resize(0);
-
 	read_line(tmp);
 	vector<char> tmp_char(tmp.begin(),tmp.end());
 	out = tmp_char;

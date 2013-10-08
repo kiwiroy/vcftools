@@ -19,12 +19,12 @@ string entry::mask_line;
 string entry::thin_chrom;
 int entry::thin_pos;
 
-void entry::apply_filters(const parameters &params)
+int entry::apply_filters(const parameters &params)
 {
 	if (line.empty())
 	{
 		passed_filters = false;
-		return;
+		return 0;
 	}
 
 // 	Apply all filters in turn.
@@ -52,6 +52,8 @@ void entry::apply_filters(const parameters &params)
 	filter_sites_by_allele_count(params.min_mac, params.max_mac, params.min_non_ref_ac, params.max_non_ref_ac, params.max_missing_call_count);
 	filter_sites_by_HWE_pvalue(params.min_HWE_pvalue);
 	filter_sites_by_thinning(params.min_interSNP_distance);
+
+	return 1;
 }
 
 void entry::filter_genotypes_by_quality_value(double min_genotype_quality)
@@ -146,12 +148,9 @@ void entry::filter_sites_to_keep(const set<string> &snps_to_keep, const string &
 
 		in.close();
 	}
-	else
-		local_snps_to_keep = snps_to_keep;
-
 	parse_basic_entry();
 
-	if (local_snps_to_keep.find(ID) == local_snps_to_keep.end())
+	if ( (local_snps_to_keep.find(ID) == local_snps_to_keep.end()) && (snps_to_keep.find(ID) == snps_to_keep.end()) )
 		passed_filters = false;
 }
 
