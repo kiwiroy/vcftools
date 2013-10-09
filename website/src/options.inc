@@ -152,11 +152,16 @@ NOTE: The PASS tag does not count as a filter, it is just the absence of a filte
 <li>--remove-INFO &lt;string&gt;<br>
 <li>--keep-INFO &lt;string&gt;<br>
 <br>
-These options are used to filter sites on the basis of INFO field flags. 
+<li>--keep-INFO-min &lt;float&gt;<br>
+<li>--keep-INFO-max &lt;float&gt;<br>
+<li>--keep-INFO-string &lt;string&gt;<br>
+<br>
+These options are used to filter sites on the basis of INFO fields. 
 The first option can be used to exclude sites with a specific INFO flag. 
 The second option can be used to select sites on the basis of specific INFO flags. These options can be used multiple times to specify multiple INFO flags. 
-The --keep-INFO option is applied before the --remove-INFO option. Note that <b>only INFO flags</b> can currently be used as filters 
-(i.e. there is currently no support for filtering by INFO field values). <br>
+The --keep-INFO option is applied before the --remove-INFO option. 
+The final three arguments can only be used if the --keep-INFO is only used once. It allows you to specify a range of numbers or a single string to filter that INFO tag's values on.
+Note: if that INFO tag has multiple values separated by a comma, all of them will be checked.<br>
 <br>
 </li>
 <li>--minQ &lt;float&gt;<br>

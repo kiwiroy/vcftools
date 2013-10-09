@@ -237,6 +237,17 @@ string entry::get_INFO_value(const string &key) const
 	return "?";
 }
 
+vector<string> entry::get_INFO_values(const string &key) const
+{
+	vector<string> out;
+	string tmp;
+
+	tmp = get_INFO_value(key);
+	if (tmp != "?")	header::tokenize(tmp, ',', out);
+
+	return out;
+}
+
 string entry::get_FORMAT() const
 {
 	assert(parsed_FORMAT == true);

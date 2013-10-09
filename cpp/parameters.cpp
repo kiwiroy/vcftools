@@ -130,6 +130,9 @@ parameters::parameters(int argc, char *argv[])
 	remove_all_filtered_genotypes = false;
 	remove_all_filtered_sites = false;
 	remove_indels = false;
+	site_INFO_max = numeric_limits<double>::max();
+	site_INFO_min = numeric_limits<double>::min();
+	site_INFO_string = "";
 	snps_to_exclude_file = "";
 	snps_to_keep_file = "";
 	start_pos = -1;
@@ -230,6 +233,9 @@ void parameters::read_parameters()
 		else if (in_str == "--keep") { indv_keep_file = get_arg(i+1); i++; }						// List of individuals to keep
 		else if (in_str == "--keep-only-indels") { keep_only_indels = true; }
 		else if (in_str == "--keep-INFO") { site_INFO_flags_to_keep.insert(get_arg(i+1)); i++; }	// Filter sites by INFO flags
+		else if (in_str == "--keep-INFO-max") { site_INFO_max = atof(get_arg(i+1).c_str()); i++; }	// Filter sites by INFO value
+		else if (in_str == "--keep-INFO-min") { site_INFO_min = atof(get_arg(i+1).c_str()); i++; }	// Filter sites by INFO value
+		else if (in_str == "--keep-INFO-string") { site_INFO_string = get_arg(i+1); i++; }	// Filter sites by INFO value
 		else if (in_str == "--keep-INFO-all") { recode_all_INFO=true; }	// Old command (soon to be depreciated)
 		else if (in_str == "--kept-sites") {output_kept_sites = true; num_outputs++;}			//Output sites that pass filters
 		else if (in_str == "--ld-window-bp") { ld_bp_window_size = atoi(get_arg(i+1).c_str()); i++; }	// Max bp distance for LD output
@@ -450,6 +456,9 @@ void parameters::print_params()
 	if (remove_all_filtered_genotypes) LOG.printLOG("\t--remove-filtered-geno-all\n");
 	if (remove_all_filtered_sites) LOG.printLOG("\t--remove-filtered-all\n");
 	if (remove_indels != defaults.remove_indels) LOG.printLOG("\t--remove-indels\n");
+	if (site_INFO_max != defaults.site_INFO_max) LOG.printLOG("\t--keep-INFO-max " + output_log::int2str(site_INFO_max) + "\n");
+	if (site_INFO_min != defaults.site_INFO_min) LOG.printLOG("\t--keep-INFO-min " + output_log::int2str(site_INFO_min) + "\n");
+	if (site_INFO_string != defaults.site_INFO_string) LOG.printLOG("\t--keep-INFO-string " + site_INFO_string + "\n");
 	if (snps_to_exclude_file != defaults.snps_to_exclude_file) LOG.printLOG("\t--exclude " + snps_to_exclude_file + "\n");
 	if (snps_to_keep_file != defaults.snps_to_keep_file) LOG.printLOG("\t--snps " + snps_to_keep_file + "\n");
 	if (start_pos != defaults.start_pos) LOG.printLOG("\t--from-bp " + output_log::int2str(start_pos) + "\n");
@@ -517,7 +526,7 @@ void parameters::print_params()
 		for (set<string>::iterator it=site_INFO_flags_to_keep.begin(); it != site_INFO_flags_to_keep.end(); ++it)
 		{
 			string tmp = *it;
-			LOG.printLOG("\t--keep-INFO " + tmp + "\n*** Note: --keep-INFO has changed. Are you sure you don't want --recode-INFO? ***\n");
+			LOG.printLOG("\t--keep-INFO " + tmp + "\n");
 		}
 
 	if (BED_file != defaults.BED_file)
@@ -619,7 +628,7 @@ void parameters::check_parameters()
 	}
 	if (max_non_ref_af < min_non_ref_af) error("Maximum Non-Ref Allele Frequency must not be less that Minimum Non-Ref AF.", 4);
 	if (max_non_ref_ac < min_non_ref_ac) error("Maximum Non-Ref Allele Count must not be less that Minimum Non-Ref AC.", 4);
-	if ((min_site_call_rate > 1) /*|| (min_indv_call_rate > 1)*/) error("Minimum Call rates cannot be greater than 1.", 5);
+	if (min_site_call_rate > 1) error("Minimum Call rate cannot be greater than 1.", 5);
 	if (max_alleles < min_alleles) error("Max Number of Alleles must be greater than Min Number of Alleles.", 6);
 	if (max_mean_depth < min_mean_depth) error("Max Mean Depth must be greater the Min Mean Depth.", 7);
 	if (max_genotype_depth < min_genotype_depth) error("Max Genotype Depth must be greater than Min Genotype Depth.", 9);
@@ -644,6 +653,15 @@ void parameters::check_parameters()
 			error("Cannot output IMPUTE files to stream",19);
 		if (diff_file != "")
 			error("Cannot output diff files to stream",19);
+	}
+	if (site_INFO_min!=defaults.site_INFO_min || site_INFO_max!=defaults.site_INFO_max || site_INFO_string != defaults.site_INFO_string)
+	{
+		if (site_INFO_flags_to_keep.size() != 1)
+			error("INFO value constraints only work in conjunction with exactly one --keep-INFO tag",20);
+		if (site_INFO_max!=defaults.site_INFO_max && site_INFO_min != defaults.site_INFO_min && site_INFO_max < site_INFO_min)
+			error("INFO max must be greater than INFO min",20);
+		if ( (site_INFO_max!=defaults.site_INFO_max || site_INFO_min != defaults.site_INFO_min) && site_INFO_string != defaults.site_INFO_string)
+			error("Cannot supply an INFO range and an INFO string",20);
 	}
 }
 

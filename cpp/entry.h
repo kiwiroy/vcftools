@@ -56,7 +56,7 @@ public:
 	void filter_sites_by_filter_status(const set<string> &filter_flags_to_remove, const set<string> &filter_flags_to_keep, bool remove_all = false);
 	void filter_sites_by_phase();
 	void filter_sites_by_thinning(int min_SNP_distance);
-	void filter_sites_by_INFO_flags(const set<string> &flags_to_remove, const set<string> &flags_to_keep);
+	void filter_sites_by_INFO(const set<string> &flags_to_remove, const set<string> &flags_to_keep, const string &INFO_string, const double INFO_min, const double INFO_max);
 
 	void filter_genotypes_by_quality_value(double min_genotype_quality);
 	void filter_genotypes_by_depth_range(int min_depth, int max_depth);
@@ -77,6 +77,7 @@ public:
 	double get_QUAL() const;
 	string get_INFO(const set<string> &INFO_to_keep, bool keep_all_INFO=false) const;
 	string get_INFO_value(const string &key) const;
+	vector<string> get_INFO_values(const string &key) const;
 	string get_FORMAT() const;
 
 	void get_indv_GENOTYPE_ids(unsigned int indv, pair<int, int> &out) const;

@@ -151,6 +151,9 @@ public:
 	set<string> site_filter_flags_to_keep;
 	set<string> site_INFO_flags_to_keep;
 	set<string> site_INFO_flags_to_remove;
+	double site_INFO_max;
+	double site_INFO_min;
+	string site_INFO_string;
 	string snps_to_exclude_file;
 	string snps_to_keep_file;
 	set<string> snps_to_keep;
