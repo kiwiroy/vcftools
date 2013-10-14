@@ -1,7 +1,4 @@
-Using column name 'A' for merge-test-a.vcf.gz:A
-Using column name 'B' for merge-test-b.vcf.gz:B
-Using column name 'C' for merge-test-c.vcf.gz:C
-##fileformat=VCFv4.1
+##fileformat=VCFv4.2
 ##FILTER=<ID=q10,Description="Quality below 10">
 ##FORMAT=<ID=GL,Number=G,Type=Float,Description="Genotype Likelihood">
 ##FILTER=<ID=q20,Description="Mapping quality below 20">

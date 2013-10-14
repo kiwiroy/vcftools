@@ -11,7 +11,7 @@
 <div class="item">
     <h3>Supported VCF versions</h3>
     <p>VCFtools supports the <a href="specs.html">VCF format v4.0</a>. The 
-    vcf-validator, Perl API and scripts now support also <a href="specs.html">VCF format v4.1</a> and 
+    vcf-validator, Perl API and scripts now support also <a href="specs.html">VCF format v4.2</a> and 
     maintain backward compatibility with older versions.
     <br>
     For details, please go to the <a href="docs.html">Documentation</a> page.</p>

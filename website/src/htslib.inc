@@ -7,12 +7,16 @@ high-throughput sequencing data formats. It is designed for speed and works with
 </p>
 
 <h3>Download and installation</h3>
-The library is hosted on github. It can be downloaded and compiled the usual way:
+<p>
+The library is hosted on github. It can be downloaded and compiled the usual way.
+The <span class="cmd">clone</span> command is run only once, the <span class="cmd">pull</span>
+command is run whenever the latest snapshots from github is needed.
+Please see the <a href="https://github.com/samtools/bcftools">bcftools github
+page</a> for the up-to-date version of the clone command. The software is under heavy
+development and the option <span class="cmd">--branch</span> may be required.
+</p>
 <p class="codebox">
-     # Download HTSlib and bcftools. The "clone" command is run only once. 
-<br> # The "pull" command is run whenever the latest snapshots from github
-<br> # is needed.
-<br> git clone --branch=bcftools+calling git://github.com/samtools/htslib.git htslib
+     git clone [<i>--branch=name</i>] git://github.com/samtools/htslib.git htslib
 <br> git clone git://github.com/samtools/bcftools.git bcftools 
 <br> cd htslib; git pull; cd ..
 <br> cd bcftools; git pull; cd ..
