@@ -332,13 +332,14 @@ Exclude all genotypes with a sequencing depth (DP) outside the range defined by 
 <li>--freq</li>
 <li>--counts</li>
 <li>--freq2</li>
-<li>--counts2<br>
+<li>--counts2</li>
+<li>--derived<br>
 <br>
 Output per-site frequency information. The --freq outputs the allele frequency in a 
 file with the suffix '.frq'. The --counts option outputs a similar file with the suffix '.frq.count', 
 that contains the raw allele counts at each site.<br>
 The --freq2 and --count2 options are used to suppress allele information in the output file. In this case, 
-the order of the freqs/counts depends on the numbering in the VCF file.<br>
+the order of the freqs/counts depends on the numbering in the VCF file.<br><br>
 With any of these options, adding the --derived command will re-order the output file columns so that the ancestral allele 
 appears first. The --derived option relies on the ancestral allele being specified in the VCF file using the AA tag in the INFO field.<br>
 <br>
