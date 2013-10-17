@@ -80,7 +80,7 @@ If this option is omitted, all output files will have the prefix 'out.'.<br>
 <li>--not-chr &lt;chromosome&gt;<br>
 <br>
 Include or exclude chromosomes with identifiers matching
-&lt;chromosome&gt;<br>. These options can be used more than once to include or exclude multiple chromosomes.
+&lt;chromosome&gt;. These options can be used more than once to include or exclude multiple chromosomes.
 <br>
 </li>
 <li>--from-bp &lt;integer&gt;</li>
