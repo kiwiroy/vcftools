@@ -1,25 +1,19 @@
 
 <div class="item">
 
-<h3>Documentation</h3>
+<h3>The Perl Module</h3>
 <p>
-The VCFtools package is broadly split into two sections:
-<ul class="faq">
-<li> The <span class="cmd">vcftools</span> binary program, generally used to analyse VCF files.
-<li> The <span class="cmd">Vcf.pm</span> perl module, which is a general Perl API containing a core of
-the utilities <span class="cmd">vcf-convert</span>, <span class="cmd">vcf-merge</span>, 
-<span class="cmd">vcf-compare</span>, <span class="cmd">vcf-isec</span>, and others.
-</ul>
+The VCFtools <span class="cmd">Vcf.pm</span> perl module is a general Perl API containing a core of
+the utilities such as <span class="cmd">vcf-convert</span>, <span class="cmd">vcf-merge</span>, 
+<span class="cmd">vcf-compare</span>, <span class="cmd">vcf-isec</span>, and others. 
 </p>
 
 <h3>Documentation</h3>
 <ul class="faq">
-<li> <a href="options.html">Documentation for the binary executable <span class="cmd">vcftools</span></a>
-<li> <a href="perl_module.html">The Perl API and scripts</a>
-<li> <a href="htslib.html">Fast htslib C tools</a> <span style="font-size:70%;font-style:italic;color:#ff5500;">(new)</span>
+<li> <a href="perl_module.html">The Perl API and scripts</a>: A complete list of scripts include in the perl module.
 </ul>
 
-<h3>Examples of usage by topic</h3>
+<h3>Examples of perl module usage by topic</h3>
 <ul class="faq">
 <li> <a href="#install">Installation</a>
 <li> <a href="#annotate">Annotating</a>

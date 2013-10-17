@@ -1,7 +1,7 @@
 
 <div class="item">
 <h1>vcftools: Usage and Options</h1>
-<p>The vcftools program is intended for analysis of <b>diploid SNP data</b> in VCF format. 
+<p>The vcftools executable program is intended for analysis of <b>diploid SNP data</b> in VCF format. 
 The program is run from the command line, and the interface is
 inspired by <a href="http://pngu.mgh.harvard.edu/%7Epurcell/plink/">PLINK</a>,
 and so should be largely familiar to users of that package. Commands
