@@ -37,7 +37,10 @@ void entry::add_ALT_allele(const string &in)
 			ALT.push_back(in);
 		}
 		else
-			LOG.error(" Duplicate alternate alleles found at " + CHROM + LOG.int2str(POS));
+		{
+			LOG.warning(" Duplicate alternate alleles found at " + CHROM + ":" + LOG.int2str(POS));
+			ALT.push_back(in);
+		}
 	}
 	parsed_ALT = true;
 }
