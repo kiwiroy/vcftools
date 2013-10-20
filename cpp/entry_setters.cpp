@@ -17,7 +17,7 @@ void entry::add_ALT_allele(const string &in)
 			ALT.push_back(in);
 		}
 		else
-			LOG.error(" Duplicate alternate alleles found");
+			LOG.error(" Duplicate alternate alleles found at " + CHROM + LOG.int2str(POS));
 	}
 	parsed_ALT = true;
 }
