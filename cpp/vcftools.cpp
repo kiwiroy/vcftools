@@ -111,8 +111,10 @@ int main(int argc, char *argv[])
 	if (params.output_indel_hist == true) vf->output_indel_hist(params);
 
 	LOG.printLOG("After filtering, kept " + header::int2str(vf->N_kept_sites()) + " out of a possible " + header::int2str(vf->N_total_sites()) + " Sites\n");
-	if (vf->N_kept_sites() <= 0)
-		LOG.error("No data left for analysis!");
+	if (vf->N_total_sites() <= 0)
+		LOG.warning("File does not contain any sites");
+	else if (vf->N_kept_sites() <= 0)
+		LOG.warning("No data left for analysis!");
 
 	time(&end);
 	double running_time = difftime(end,start);
