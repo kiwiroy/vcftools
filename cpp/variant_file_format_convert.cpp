@@ -51,10 +51,12 @@ void variant_file::output_as_plink(const parameters &params)
 	CHROM_to_PLINK["chrY"] = "Y";
 	CHROM_to_PLINK["chrXY"] = "XY";
 	CHROM_to_PLINK["chrMT"] = "MT";
+	CHROM_to_PLINK["chrM"] = "M";
 	CHROM_to_PLINK["X"] = "X";
 	CHROM_to_PLINK["Y"] = "Y";
 	CHROM_to_PLINK["XY"] = "XY";
 	CHROM_to_PLINK["MT"] = "MT";
+	CHROM_to_PLINK["M"] = "M";
 
 	vector<string> alleles;
 	char phase;
@@ -62,6 +64,7 @@ void variant_file::output_as_plink(const parameters &params)
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	ofstream *tmp_file;
+
 	while(!eof())
 	{
 		get_entry(variant_line);
@@ -85,8 +88,23 @@ void variant_file::output_as_plink(const parameters &params)
 
 		if (CHROM_to_PLINK.find(CHROM) == CHROM_to_PLINK.end())
 		{
-			LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
-			CHROM_to_PLINK[CHROM] = "0";
+			string tmp = "";
+			if (CHROM.compare(0,3,"chr") == 0)
+				tmp = CHROM.substr(3, string::npos);
+			else
+				tmp = CHROM;
+
+			bool isNumber = true;
+			for(unsigned int ui=0; ui<tmp.size(); ui++)
+			    isNumber = isNumber && isdigit(tmp[ui]);
+
+			if (isNumber)
+				CHROM_to_PLINK[CHROM] = tmp;
+			else
+			{
+				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
+				CHROM_to_PLINK[CHROM] = "0";
+			}
 		}
 
 		CHROM2 = CHROM_to_PLINK[CHROM];
@@ -131,6 +149,7 @@ void variant_file::output_as_plink(const parameters &params)
 				(*tmp_file) << "\t" << alleles[genotype.second];
 		}
 	}
+	MAP.close();
 
 	ofstream PED(ped_file.c_str());
 	if (!PED.is_open()) LOG.error("Could not open output file: " + ped_file, 12);
@@ -159,7 +178,6 @@ void variant_file::output_as_plink(const parameters &params)
 	PED.close();
 
 	delete e;
-	MAP.close();
 	LOG.printLOG("Done.\n");
 }
 
