@@ -7,8 +7,6 @@
 
 #include "entry.h"
 
-entry::~entry()
-{}
 /*
 // This function implements an exact SNP test of Hardy-Weinberg
 // Equilibrium as described in Wigginton, JE, Cutler, DJ, and

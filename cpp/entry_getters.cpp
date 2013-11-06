@@ -449,7 +449,7 @@ void entry::get_multiple_genotype_counts(const vector<bool> &include_indv, const
 			assert(parsed_GT[ui] == true);
 			get_indv_GENOTYPE_ids(ui, genotype);
 
-			for (unsigned int uj=0; uj<=ALT.size(); uj++)
+			for (int uj=0; uj<=(int)ALT.size(); uj++)
 			{
 				if (genotype.first == uj && genotype.second == uj)
 					out_N_hom[uj]++;

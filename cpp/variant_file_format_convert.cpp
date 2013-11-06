@@ -424,7 +424,7 @@ void variant_file::output_as_IMPUTE(const parameters &params)
 		LOG.error("Require Genotypes in VCF file in order to output IMPUTE format.");
 
 	LOG.printLOG("Outputting in IMPUTE format (bi-allelic, completely phased SNPs only)\n");
-	unsigned int s, ui;
+	unsigned int ui;
 	string legend_file = params.output_prefix + ".impute.legend";
 	string haplotype_file = params.output_prefix + ".impute.hap";
 	string indv_file = params.output_prefix + ".impute.hap.indv";

@@ -124,7 +124,7 @@ int bcf_file::read(void *buffer, unsigned int len, size_t size)
 	if (is_BGZF)
 	{
 		ret = gzread(gzfile_in, buffer, size*len);
-		ret = (ret == len*size);
+		ret = (ret == (int)(len*size) );
 	}
 	else
 	{
@@ -161,10 +161,12 @@ void bcf_file::read_header()
 	while (getline(iss, line))
 	{
 		if (line[0] == '#')
+		{
 			if (line[1] == '#')
 				meta_data.parse_meta(line, line_index, is_GATK);
 			else
 				meta_data.parse_header(line);
+		}
 	}
 }
 

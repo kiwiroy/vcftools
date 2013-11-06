@@ -23,7 +23,7 @@ extern output_log LOG;
 class entry
 {
 public:
-	virtual ~entry();
+	virtual ~entry() {};
 	unsigned int N_indv;
 	bool passed_filters;
 	header entry_header;

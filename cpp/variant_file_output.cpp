@@ -1100,7 +1100,7 @@ void variant_file::output_haplotype_r2(const parameters &params)
 	if (N_kept_entries <= 1)
 		LOG.error("Insufficient sites remained after filtering");
 
-	unsigned int uj;
+	unsigned int uj = 0;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
 	{
 		if (tmp_files[ui] == "")
@@ -1261,7 +1261,7 @@ void variant_file::output_genotype_r2(const parameters &params)
 	if (N_kept_entries <= 1)
 		LOG.error("Insufficient sites remained after filtering");
 
-	unsigned int uj;
+	unsigned int uj = 0;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
 	{
 		if (tmp_files[ui] == "")
@@ -1408,7 +1408,7 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 	if (N_kept_entries <= 1)
 		LOG.error("Insufficient sites remained after filtering");
 
-	unsigned int uj;
+	unsigned int uj = 0;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
 	{
 		if (tmp_files[ui] == "")
@@ -1553,7 +1553,7 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 	if (N_kept_entries <= 1)
 		LOG.error("Insufficient sites remained after filtering");
 
-	unsigned int uj;
+	unsigned int uj=0;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
 	{
 		if (tmp_files[ui] == "")
@@ -1691,7 +1691,7 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 	if (N_kept_entries <= 1)
 		LOG.error("Insufficient sites remained after filtering");
 
-	unsigned int uj;
+	unsigned int uj = 0;
 	for(unsigned int ui=0; ui<tmp_files.size()-1; ui++)
 	{
 		if (tmp_files[ui] == "")
@@ -2918,7 +2918,6 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 			ssqr[j] /= ((N_pops-1.0)*nbar);
 		}
 		double nc = (n_sum - (sum_nsqr / n_sum)) / (N_pops - 1.0);
-		double C2 = N_pops * (1.0 - (nc / nbar));
 
 		vector<double> snp_Fst(N_alleles, 0.0);
 		vector<double> a(N_alleles, 0.0);
@@ -3025,7 +3024,6 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 	// N_polymorphic_sites: number of sites within a window where there is at least 1 sample that is polymorphic with respect to the reference allele
 	const vector< double > empty_vector(4, 0);	// sum1, sum2, sum3, count
 	map<string, vector< vector< double > > > bins;
-	double snp_Fst;
 	double sum1=0.0, sum2 = 0.0;
 	double sum3=0.0, count = 0.0;
 
@@ -3096,7 +3094,6 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 			ssqr[j] /= ((N_pops-1.0)*nbar);
 		}
 		double nc = (n_sum - (sum_nsqr / n_sum)) / (N_pops - 1.0);
-		double C2 = N_pops * (1.0 - (nc / nbar));
 
 		vector<double> snp_Fst(N_alleles, 0.0);
 		vector<double> a(N_alleles, 0.0);
@@ -3133,7 +3130,7 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 			int last = (int) ceil(pos/double(fst_window_step));
 			for(int idx = first; idx < last; idx++)
 			{
-				if (idx >= bins[CHROM].size())
+				if (idx >= (int)bins[CHROM].size())
 					bins[CHROM].resize(idx+1, empty_vector);
 
 				bins[CHROM][idx][0] += sum_a;
@@ -3475,7 +3472,7 @@ void variant_file::output_windowed_nucleotide_diversity(const parameters &params
 			prev_chr = CHROM;
 			bins[CHROM].resize(1,empty_vector);
 		}
-		if(last>=bins[CHROM].size())
+		if(last>= (int)bins[CHROM].size())
 			bins[CHROM].resize(last+1,empty_vector);
 
 		for(int idx = first; idx < last; idx++)

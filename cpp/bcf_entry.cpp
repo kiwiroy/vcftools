@@ -274,6 +274,7 @@ void bcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 				LOG.error("Error: Only expect single value for DEPTH.\n");
 
 			int tmp = -1;
+
 			if (type==1)
 			{
 				if ( !check_missing(l_pos, 1, line) )
@@ -297,7 +298,7 @@ void bcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 				tmp = (int)tmp2;
 			}
 			else
-				LOG.error("Error: Only expect single value for DEPTH.\n");
+				LOG.error("Error: Invalid type for DEPTH.\n");
 
 			set_indv_DEPTH(indv, tmp);
 		}
