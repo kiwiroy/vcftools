@@ -1024,7 +1024,7 @@ void variant_file::output_haplotype_r2(const parameters &params)
 	entry *e2 = get_entry_object();
 	bool first = true;
 	vector<string> tmp_files;
-	int count = -1;
+	int count = -1, fd = -1;
 
 	while(!eof())
 	{
@@ -1071,16 +1071,14 @@ void variant_file::output_haplotype_r2(const parameters &params)
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e2->parse_genotype_entries(true);
 
@@ -1188,7 +1186,7 @@ void variant_file::output_genotype_r2(const parameters &params)
 	entry *e2 = get_entry_object();
 	bool first = true;
 	vector<string> tmp_files;
-	int count = -1;
+	int count = -1, fd = -1;
 
 	while(!eof())
 	{
@@ -1236,16 +1234,14 @@ void variant_file::output_genotype_r2(const parameters &params)
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e2->parse_genotype_entries(true);
 
@@ -1353,7 +1349,7 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 	entry *e2 = get_entry_object();
 	bool first = true;
 	vector<string> tmp_files;
-	int count = -1;
+	int count = -1, fd = -1;
 
 	while(!eof())
 	{
@@ -1387,16 +1383,14 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 		e2->parse_basic_entry(true);
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e2->parse_genotype_entries(true);
 
@@ -1498,6 +1492,7 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 	entry *e2 = get_entry_object();
 	bool first = true;
 	vector<string> tmp_files;
+	int fd = -1;
 
 	while(!eof())
 	{
@@ -1541,16 +1536,14 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e2->parse_genotype_entries(true);
 
@@ -1640,6 +1633,7 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 	e2 = get_entry_object();
 	bool first = true;
 	vector<string> tmp_files;
+	int fd = -1;
 
 	while(!eof())
 	{
@@ -1683,16 +1677,14 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e2->parse_genotype_entries(true);
 
@@ -1816,6 +1808,7 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	entry *e2 = get_entry_object();
+	int fd = -1;
 
 	while (!eof())
 	{
@@ -1835,16 +1828,14 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		all_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 
 		e->get_CHROM(chr);
 		if (chr_to_idx.find(chr) == chr_to_idx.end())
@@ -1962,6 +1953,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	entry *e2 = get_entry_object();
+	int fd = -1;
 
 	while(!eof())
 	{
@@ -1981,17 +1973,14 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 		}
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		all_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
-
 		e->get_CHROM(chr);
 		if (chr_to_idx.find(chr) == chr_to_idx.end())
 			continue;
@@ -3672,6 +3661,7 @@ void variant_file::output_LROH(const parameters &params)
 	vector<pair<double, double> > p_emission;
 	vector<vector<double> > p_trans;
 	vector<string> tmp_files;
+	int fd = -1;
 
 	streambuf * buf;
 	ofstream temp_out;
@@ -3698,16 +3688,14 @@ void variant_file::output_LROH(const parameters &params)
 		N_kept_entries++;
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
 
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n");
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 		tmp_files.push_back(tmpname);
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
 	}
 	// TODO - refactor this so that file loop is on the outside.
 	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)

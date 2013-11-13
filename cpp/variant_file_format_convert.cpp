@@ -16,6 +16,7 @@ void variant_file::output_as_plink(const parameters &params)
 	LOG.printLOG("Writing PLINK PED and MAP files ... \n");
 	string ped_file = params.output_prefix + ".ped";
 	string map_file = params.output_prefix + ".map";
+	int fd = -1;
 
 	vector<ofstream *> tmp_files(meta_data.N_indv);
 	vector<string> tmp_filenames(meta_data.N_indv);
@@ -25,8 +26,11 @@ void variant_file::output_as_plink(const parameters &params)
 			continue;
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
+		::close(fd);
+
 		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n"
@@ -313,6 +317,7 @@ void variant_file::output_as_012_matrix(const parameters &params)
 	string ped_file = params.output_prefix + ".012";
 	string map_file = params.output_prefix + ".012.pos";
 	string fam_file = params.output_prefix + ".012.indv";
+	int fd = -1;
 
 	ofstream FAM(fam_file.c_str());
 	if (!FAM.is_open()) LOG.error("Could not open output file: " + fam_file, 12);
@@ -328,8 +333,11 @@ void variant_file::output_as_012_matrix(const parameters &params)
 		FAM << meta_data.indv[ui] << endl;
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
+		::close(fd);
+
 		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n"
@@ -544,10 +552,13 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 
 	unsigned int n_sites = 0;
 	int max_pos = -1;
+	int fd = -1;
 
 	char tmpname[] = "/tmp/vcftools.XXXXXX";
-	if (mkstemp(tmpname) == -1)
+	fd = mkstemp(tmpname);
+	if (fd == -1)
 		LOG.error(" Could not open temporary file.\n", 12);
+	::close(fd);
 
 	string locs_tmp_filename(tmpname);
 	ofstream *locs_tmp_file = new ofstream(tmpname);
@@ -573,27 +584,32 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 	{
 		if (include_indv[ui] == false)
 			continue;
+
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
-			LOG.error("\nCould not open temporary file.\n", 12);
-		string filename(tmpname);
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		fd = mkstemp(tmpname);
+		if (fd == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		::close(fd);
+
+		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
 			LOG.error("Could not open temp file #" + output_log::int2str(ui) + ".\n", 12);
 		tmp_files[2*ui] = tmp_file;
-		tmp_filenames[2*ui] = filename;
+		tmp_filenames[2*ui] = tmpname;
 
 		char tmpname2[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname2) == -1)
+		fd = mkstemp(tmpname2);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
-		string filename2(tmpname2);
-		ofstream *tmp_file2 = new ofstream(filename2.c_str());
+		::close(fd);
+
+		ofstream *tmp_file2 = new ofstream(tmpname2);
 		if (!tmp_file2->good())
 			LOG.error("\n\nCould not open temporary file.\n\n"
 				"Most likely this is because the system is not allowing me to open enough temporary files.\n"
 				"Try using ulimit -n <int> to increase the number of allowed open files.\n", 12);
 		tmp_files[2*ui+1] = tmp_file2;
-		tmp_filenames[2*ui+1] = filename2;
+		tmp_filenames[2*ui+1] = tmpname2;
 	}
 
 	vector<char> variant_line;
@@ -688,6 +704,7 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 	}
 	delete e;
 	delete locs_tmp_file;
+	remove(locs_tmp_filename.c_str());
 	sites.close();
 }
 
@@ -700,10 +717,14 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 
 	unsigned int n_sites = 0;
 	int max_pos = -1;
+	int fd = -1;
 
 	char tmpname[] = "/tmp/vcftools.XXXXXX";
-	if (mkstemp(tmpname) == -1)
+	fd = mkstemp(tmpname);
+	if (fd == -1)
 		LOG.error(" Could not open temporary file.\n", 12);
+	::close(fd);
+
 	string locs_tmp_filename(tmpname);
 	ofstream *locs_tmp_file = new ofstream(tmpname);
 	if (!locs_tmp_file->good())
@@ -729,8 +750,11 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 		if (include_indv[ui] == false)
 			continue;
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
+		::close(fd);
+
 		string filename(tmpname);
 		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
@@ -849,6 +873,7 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 	}
 	delete e;
 	delete locs_tmp_file;
+	remove(locs_tmp_filename.c_str());
 	sites.close();
 }
 
