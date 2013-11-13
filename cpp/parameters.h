@@ -19,6 +19,7 @@
 #include <vector>
 #include <set>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "output_log.h"
 

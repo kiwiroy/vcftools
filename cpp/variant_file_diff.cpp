@@ -30,8 +30,10 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n"
 					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
@@ -40,15 +42,14 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
-		CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>(filename, "");
+		CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>(tmpname, "");
 	}
 	while (!file2.eof())
 	{
 		file2.get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
+		file2.N_entries += e2->apply_filters(params);
 
-		file2.N_entries++;
 		if(!e2->passed_filters)
 			continue;
 		e2->parse_basic_entry();
@@ -57,8 +58,11 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		CHROM = e2->get_CHROM();
 		POS = e2->get_POS();
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+
+		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n"
 					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
@@ -70,11 +74,11 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 
 		if (CHROMPOS_to_filename_pair.find(make_pair<string,int>(CHROM, POS)) != CHROMPOS_to_filename_pair.end())
 		{
-			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)].second = filename;
+			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)].second = tmpname;
 		}
 		else
 		{
-			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>("", filename);
+			CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>("", tmpname);
 		}
 	}
 	delete e;

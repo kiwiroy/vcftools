@@ -1069,11 +1069,15 @@ void variant_file::output_haplotype_r2(const parameters &params)
 			LOG.one_off_warning("\tLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1213,8 +1217,8 @@ void variant_file::output_genotype_r2(const parameters &params)
 		count++;
 		get_entry(variant_line);
 		e2->reset(variant_line);
-		e2->apply_filters(params);
-		N_entries++;
+		N_entries += e2->apply_filters(params);
+
 		if(!e2->passed_filters)
 		{
 			tmp_files.push_back("");
@@ -1230,11 +1234,15 @@ void variant_file::output_genotype_r2(const parameters &params)
 			LOG.one_off_warning("\tgenoLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1378,11 +1386,14 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 		N_kept_entries++;
 		e2->parse_basic_entry(true);
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1528,11 +1539,15 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1666,11 +1681,15 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1815,11 +1834,14 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			continue;	// Isn't biallelic
 		}
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		all_files.push_back(filename);
+		all_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1834,7 +1856,7 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		if (keep_positions[idx].find(pos1) == keep_positions[idx].end())
 			continue;
 
-		list_files.push_back(filename);
+		list_files.push_back(tmpname);
 	}
 
 	for (unsigned int ui=0; ui<list_files.size(); ui++)
@@ -1958,11 +1980,14 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 			continue;	// Isn't biallelic
 		}
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		all_files.push_back(filename);
+		all_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
@@ -1977,7 +2002,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 		if (keep_positions[idx].find(pos1) == keep_positions[idx].end())
 			continue;
 
-		list_files.push_back(filename);
+		list_files.push_back(tmpname);
 	}
 
 	for (unsigned int ui=0; ui<list_files.size(); ui++)
@@ -3672,11 +3697,14 @@ void variant_file::output_LROH(const parameters &params)
 			continue;
 		N_kept_entries++;
 
-		string filename(tmpnam(NULL));
-		ofstream *tmp_file = new ofstream(filename.c_str());
+		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		if (mkstemp(tmpname) == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+		ofstream *tmp_file = new ofstream(tmpname);
+
 		if (!tmp_file->good())
 			LOG.error("\n\nCould not open temporary file.\n\n");
-		tmp_files.push_back(filename);
+		tmp_files.push_back(tmpname);
 		tmp_file->write((const char*)&variant_line[0], variant_line.size());
 		tmp_file->close();
 		delete tmp_file;
