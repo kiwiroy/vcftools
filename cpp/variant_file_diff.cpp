@@ -15,6 +15,7 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	entry *e2 = file2.get_entry_object();
+	int fd = -1;
 
 	while(!eof())
 	{
@@ -31,17 +32,15 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		POS = e->get_POS();
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
-			LOG.error(" Could not open temporary file.\n", 12);
-		ofstream *tmp_file = new ofstream(tmpname);
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n"
-					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
-					"Try using ulimit -n <int> to increase the number of allowed open files.\n", 12);
+		fd = mkstemp(tmpname);
 
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
+		if (fd == -1)
+			LOG.error(" Could not open temporary file.\n", 12);
+
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
+
 		CHROMPOS_to_filename_pair[make_pair<string,int>(CHROM, POS)] = make_pair<string,string>(tmpname, "");
 	}
 	while (!file2.eof())
@@ -59,18 +58,13 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		POS = e2->get_POS();
 
 		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		if (mkstemp(tmpname) == -1)
+		fd = mkstemp(tmpname);
+		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
 
-		ofstream *tmp_file = new ofstream(tmpname);
-		if (!tmp_file->good())
-			LOG.error("\n\nCould not open temporary file.\n\n"
-					"Most likely this is because the system is not allowing me to open enough temporary files.\n"
-					"Try using ulimit -n <int> to increase the number of allowed open files.\n", 12);
-
-		tmp_file->write((const char*)&variant_line[0], variant_line.size());
-		tmp_file->close();
-		delete tmp_file;
+		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
+			LOG.error(" Could not write to temporary file.\n");
+		::close(fd);
 
 		if (CHROMPOS_to_filename_pair.find(make_pair<string,int>(CHROM, POS)) != CHROMPOS_to_filename_pair.end())
 		{
@@ -181,16 +175,16 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 		{
 			ifstream read_file(f1.c_str(), ios::binary);
 			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-			get_entry(variant_line);
 			e1->reset(variant_line);
+			read_file.close();
 		}
 
 		if (f2 != "")
 		{
 			ifstream read_file(f2.c_str(), ios::binary);
 			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-			diff_variant_file.get_entry(variant_line);
 			e2->reset(variant_line);
+			read_file.close();
 		}
 
 		e1->parse_basic_entry(true);
@@ -307,24 +301,29 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 	int indv1, indv2;
 	string f1, f2;
 
-	entry * e1 = get_entry_object();
-	entry * e2 = diff_variant_file.get_entry_object();
 	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it != CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
 		f1 = CHROMPOS_to_filename_pair_it->second.first;
 		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
+		entry * e1 = get_entry_object();
+		entry * e2 = diff_variant_file.get_entry_object();
+
 		// Read entries from file (if available)
 		if (f1 != "")
 		{
-			get_entry(variant_line);
+			ifstream read_file(f1.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e1->reset(variant_line);
+			read_file.close();
 		}
 
 		if (f2 != "")
 		{
-			diff_variant_file.get_entry(variant_line);
+			ifstream read_file(f2.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line);
+			read_file.close();
 		}
 
 		e1->parse_basic_entry(true);
@@ -436,6 +435,8 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 					LOG.error("Unknown condition");
 			}
 		}
+		delete e1;
+		delete e2;
 	}
 
 	string output_file = params.output_prefix + ".diff.indv";
@@ -459,8 +460,6 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
 		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
 	}
-	delete e1;
-	delete e2;
 	out.close();
 }
 
@@ -484,9 +483,6 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 	int indv1, indv2;
 	string f1, f2;
 
-	entry * e1 = get_entry_object();
-	entry * e2 = diff_variant_file.get_entry_object();
-
 	string output_file = params.output_prefix + ".diff.sites";
 	ofstream diffsites(output_file.c_str());
 	if (!diffsites.is_open())
@@ -503,20 +499,27 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 		f1 = CHROMPOS_to_filename_pair_it->second.first;
 		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
+		entry * e1 = get_entry_object();
+		entry * e2 = diff_variant_file.get_entry_object();
+
 		bool data_in_both = true;
 		// Read entries from file (if available)
 		if (f1 != "")
 		{
-			get_entry(variant_line);
+			ifstream read_file(f1.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e1->reset(variant_line);
+			read_file.close();
 		}
 		else
 			data_in_both = false;
 
 		if (f2 != "")
 		{
-			diff_variant_file.get_entry(variant_line);
+			ifstream read_file(f2.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line);
+			read_file.close();
 		}
 		else
 			data_in_both = false;
@@ -536,16 +539,20 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 		// Set the reference to the non-missing entry (if available)
 		string REF = e1->get_REF();
 		string REF2 = e2->get_REF();
-		if (REF == "N")
+		if (REF == "N" || REF == ".")
 			REF = REF2;
-		if (REF2 == "N")
+		if (REF2 == "N" || REF2 == ".")
 			REF2 = REF;
 
-		if ((REF.size() != REF2.size()) || ((REF != REF2) && (REF2 != "N") && (REF != "N")))
+		if (REF.size() != REF2.size())
 		{
 			LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
+			cout << REF << "\t" << REF2 << endl;
 			continue;
 		}
+
+		//if((REF != REF2) && (REF2 != "N") && (REF != "N"))
+			//LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
 
 		// Do the alternative alleles match?
 		string ALT, ALT2;
@@ -649,14 +656,16 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 		double discordance = N_discord / double(N_common_called);
 		diffsites << "\t" << N_common_called << "\t" << N_discord << "\t" << discordance;
 		diffsites << endl;
+
+		delete e1;
+		delete e2;
 	}
+
 	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
 	{
 		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
 		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
 	}
-	delete e1;
-	delete e2;
 	diffsites.close();
 }
 
@@ -676,8 +685,6 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	vector<char> variant_line;
 	int indv1, indv2;
 	string f1, f2;
-	entry * e1 = get_entry_object();
-	entry * e2 = diff_variant_file.get_entry_object();
 
 	vector<vector<int> > discordance_matrix(4, vector<int>(4, 0));
 
@@ -686,17 +693,24 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 		f1 = CHROMPOS_to_filename_pair_it->second.first;
 		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
+		entry * e1 = get_entry_object();
+		entry * e2 = diff_variant_file.get_entry_object();
+
 		// Read entries from file (if available)
 		if (f1 != "")
 		{
-			get_entry(variant_line);
+			ifstream read_file(f1.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e1->reset(variant_line);
+			read_file.close();
 		}
 
 		if (f2 != "")
 		{
-			diff_variant_file.get_entry(variant_line);
+			ifstream read_file(f2.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line);
+			read_file.close();
 		}
 
 		e1->parse_basic_entry(true);
@@ -713,11 +727,11 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 		if (REF2 == "N")
 			REF2 = REF;
 
-		if (REF.size() != REF2.size())
-			continue;
+		if (REF.size() != REF2.size()){//i++;
+			continue;}
 
-		if ((REF != REF2) && (REF2 != "N") && (REF != "N"))
-			continue;
+		if ((REF != REF2) && (REF2 != "N") && (REF != "N")){//i++;
+			continue;}
 
 		// Do the alternative alleles match?
 		string ALT, ALT2;
@@ -725,8 +739,8 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 		ALT2 = e2->get_ALT();
 
 		bool alleles_match = (ALT == ALT2) && (REF == REF2);
-		if (alleles_match == false)
-			continue;
+		if (alleles_match == false){//i++;
+			continue;}
 
 		e1->parse_full_entry(true);
 		e1->parse_genotype_entries(true);
@@ -772,6 +786,8 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 
 			discordance_matrix[N1][N2]++;
 		}
+		delete e1;
+		delete e2;
 	}
 
 	string output_file = params.output_prefix + ".diff.discordance_matrix";
@@ -785,14 +801,12 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	out << "N_1/1_file2\t" << discordance_matrix[0][2] << "\t" << discordance_matrix[1][2] << "\t" << discordance_matrix[2][2] << "\t" << discordance_matrix[3][2] << endl;
 	out << "N_./._file2\t" << discordance_matrix[0][3] << "\t" << discordance_matrix[1][3] << "\t" << discordance_matrix[2][3] << "\t" << discordance_matrix[3][3] << endl;
 
-for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
-{
-	remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
-	remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
-}
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+	{
+		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+	}
 	out.close();
-	delete e1;
-	delete e2;
 }
 
 void variant_file::output_switch_error(const parameters &params, variant_file &diff_variant_file)
@@ -813,9 +827,6 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	int POS;
 	int indv1, indv2;
 	string f1, f2;
-
-	entry * e1 = get_entry_object();
-	entry * e2 = diff_variant_file.get_entry_object();
 
 	string output_file = params.output_prefix + ".diff.switch";
 	ofstream switcherror(output_file.c_str());
@@ -840,17 +851,23 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 		f1 = CHROMPOS_to_filename_pair_it->second.first;
 		f2 = CHROMPOS_to_filename_pair_it->second.second;
 
+		entry * e1 = get_entry_object();
+		entry * e2 = diff_variant_file.get_entry_object();
 		// Read entries from file (if available)
 		if (f1 != "")
 		{
-			get_entry(variant_line);
+			ifstream read_file(f1.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e1->reset(variant_line);
+			read_file.close();
 		}
 
 		if (f2 != "")
 		{
-			diff_variant_file.get_entry(variant_line);
+			ifstream read_file(f2.c_str(), ios::binary);
+			vector<char> variant_line((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
 			e2->reset(variant_line);
+			read_file.close();
 		}
 
 		e1->parse_basic_entry(true);
@@ -916,6 +933,8 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 				}
 			}
 		}
+		delete e1;
+		delete e2;
 	}
 	switcherror.close();
 
@@ -946,13 +965,11 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 
 		indv_count++;
 	}
-for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
-{
-	remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
-	remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
-}
-	delete e1;
-	delete e2;
+	for (CHROMPOS_to_filename_pair_it=CHROMPOS_to_filename_pair.begin(); CHROMPOS_to_filename_pair_it!=CHROMPOS_to_filename_pair.end(); ++CHROMPOS_to_filename_pair_it)
+	{
+		remove(CHROMPOS_to_filename_pair_it->second.first.c_str());
+		remove(CHROMPOS_to_filename_pair_it->second.second.c_str());
+	}
 	idiscord.close();
 }
 

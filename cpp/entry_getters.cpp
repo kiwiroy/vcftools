@@ -34,7 +34,10 @@ string entry::get_ID() const
 
 string entry::get_REF() const
 {
-	return REF;
+	if (REF == "")
+		return ".";
+	else
+		return REF;
 }
 
 string entry::get_ALT() const
@@ -43,6 +46,8 @@ string entry::get_ALT() const
 
 	string out;
 	if (ALT.empty())
+		out = ".";
+	else if (ALT.size() == 1 && ALT[0] == "")
 		out = ".";
 	else
 	{
