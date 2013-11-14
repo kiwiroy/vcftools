@@ -562,9 +562,11 @@ sub flush_buffer
             if ( index($$gts1[$i],'|')==-1 or index($$gts2[$i],'|')==-1 )
             {
                 push @phased, 0;
-                next;
             }
-            push @phased, 1;
+            else
+            {
+                push @phased, 1;
+            }
             my ($a1,$a2) = $vcf->split_gt($$gts1[$i]);
             my ($b1,$b2) = $vcf->split_gt($$gts2[$i]);
             if ( !defined $a2 ) { $a2 = $a1; }  # haploid genotypes
@@ -590,7 +592,6 @@ sub flush_buffer
             my $b1 = $als2[2*$i];
             my $b2 = $als2[2*$i+1];
 
-            if ( !defined $a1 or !defined $a2 or !defined $b1 or !defined $b2 ) { error("really? [$a1] [$a2] [$b1] [$b2], {$$site[0][1], $i}\n"); }
             if ( $a1 eq $a2 or $b1 eq $b2 ) { next; }   # homozygous GT
 
             if ( $a1 eq $b1 && $a2 eq $b2 ) 
