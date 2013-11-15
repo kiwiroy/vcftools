@@ -107,7 +107,8 @@ public:
 	void output_kept_sites(const parameters &params);
 	void output_removed_sites(const parameters &params);
 	void output_LROH(const parameters &params);
-	void output_indv_relatedness(const parameters &params);
+	void output_indv_relatedness_Yang(const parameters &params);
+	void output_indv_relatedness_Manichaikul(const parameters &params);
 	void output_PCA(const parameters &params);
 	void output_PCA_SNP_loadings(const parameters &params);
 	void output_indel_hist(const parameters &params);

@@ -101,7 +101,8 @@ int main(int argc, char *argv[])
 	if (params.output_removed_sites == true) vf->output_removed_sites(params);
 
 	if (params.output_LROH == true) vf->output_LROH(params);
-	if (params.output_relatedness == true) vf->output_indv_relatedness(params);
+	if (params.output_relatedness_Yang == true) vf->output_indv_relatedness_Yang(params);
+	if (params.output_relatedness_Manichaikul == true) vf->output_indv_relatedness_Manichaikul(params);
 	if (params.output_PCA == true) vf->output_PCA(params);
 	if (params.output_N_PCA_SNP_loadings > 0) vf->output_PCA_SNP_loadings(params);
 

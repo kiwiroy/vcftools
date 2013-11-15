@@ -3909,7 +3909,123 @@ void variant_file::output_LROH(const parameters &params)
 	delete e;
 }
 
-void variant_file::output_indv_relatedness(const parameters &params)
+void variant_file::output_indv_relatedness_Manichaikul(const parameters &params)
+{
+	// Calculate and output a relatedness statistic based on the method of
+	// Manichaikul et al., BIOINFORMATICS 2010
+	// doi:10.1093/bioinformatics/btq559
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to output Individual Relatedness.");
+
+	LOG.printLOG("Outputting Individual Relatedness\n");
+	string output_file = params.output_prefix + ".relatedness2";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Individual Relatedness Output file: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	out << "INDV1\tINDV2\tN_AaAa\tN_AAaa\tN1_Aa\tN2_Aa\tRELATEDNESS_PHI" << endl;
+
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	vector<int> allele_counts;
+	unsigned int N_alleles, N_non_missing_chr;
+	double freq;
+	pair<int, int> geno_id;
+	pair<int, int> geno_id2;
+	vector<vector<double> > phi(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));
+	vector<vector<double> > N_AaAa(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));
+	vector<vector<double> > N_AAaa(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));
+	vector<double > N_Aa(meta_data.N_indv, 0.0);
+
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		N_entries += e->apply_filters(params);
+
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+		e->parse_basic_entry(true);
+		N_alleles = e->get_N_alleles();
+
+		if (N_alleles != 2)
+		{
+			LOG.one_off_warning("\tRelatedness: Only using biallelic sites.");
+			continue;	// Only use biallelic loci
+		}
+
+		e->parse_genotype_entries(true);
+		if (e->is_diploid() == false)
+		{
+			LOG.one_off_warning("\tRelatedness: Only using fully diploid sites.");
+			continue;
+		}
+
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if (include_indv[ui] == false)
+				continue;
+
+			e->get_indv_GENOTYPE_ids(ui, geno_id);
+			if ((geno_id.first != geno_id.second) && (geno_id.first >= 0) && (geno_id.second >= 0))
+			{
+				N_Aa[ui]++;
+			}
+
+			for (unsigned int uj=0; uj<meta_data.N_indv; uj++)
+			{
+				if (include_indv[uj] == false)
+					continue;
+
+				e->get_indv_GENOTYPE_ids(uj, geno_id2);
+				if ((geno_id.first != geno_id.second) && (geno_id.first >= 0) && (geno_id.second >= 0))
+				{
+					if ((geno_id2.first != geno_id2.second) && (geno_id2.first >= 0) && (geno_id2.second >= 0))
+					{
+						N_AaAa[ui][uj]++;
+					}
+				}
+				if ((geno_id.first == geno_id.second) && (geno_id.first >= 0) && (geno_id.second >= 0))
+				{
+					if ((geno_id2.first == geno_id2.second) && (geno_id2.first >= 0) && (geno_id2.second >= 0))
+					{
+						if (geno_id.first != geno_id2.first)
+						{
+							N_AAaa[ui][uj]++;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		for (unsigned int uj=0; uj<meta_data.N_indv; uj++)
+		{
+			if (include_indv[uj] == false)
+				continue;
+			phi[ui][uj] = (N_AaAa[ui][uj] - 2.0*N_AAaa[ui][uj]) / (N_Aa[ui] + N_Aa[uj]);
+			out << meta_data.indv[ui] << "\t" << meta_data.indv[uj];
+			out << "\t" << N_AaAa[ui][uj] << "\t" << N_AAaa[ui][uj] << "\t" << N_Aa[ui] << "\t" << N_Aa[uj];
+			out << "\t" << phi[ui][uj] << endl;
+		}
+	}
+	delete e;
+}
+
+void variant_file::output_indv_relatedness_Yang(const parameters &params)
 {
 	// Calculate and output a relatedness statistic based on the method of
 	// Yang et al, 2010 (doi:10.1038/ng.608). Specifically, calculate the
@@ -3933,7 +4049,7 @@ void variant_file::output_indv_relatedness(const parameters &params)
 		buf = cout.rdbuf();
 
 	ostream out(buf);
-	out << "INDV1\tINDV2\tRELATEDNESS" << endl;
+	out << "INDV1\tINDV2\tRELATEDNESS_AJK" << endl;
 
 	vector<char> variant_line;
 	entry *e = get_entry_object();

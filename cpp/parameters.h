@@ -120,7 +120,8 @@ public:
 	int output_N_PCA_SNP_loadings;
 	bool output_PCA;
 	string output_prefix;
-	bool output_relatedness;
+	bool output_relatedness_Yang;
+	bool output_relatedness_Manichaikul;
 	bool output_removed_sites;
 	bool output_singletons;
 	bool output_site_depth;

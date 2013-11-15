@@ -104,7 +104,8 @@ parameters::parameters(int argc, char *argv[])
 	output_N_PCA_SNP_loadings = -1;
 	output_PCA = false;
 	output_prefix="out";
-	output_relatedness = false;
+	output_relatedness_Yang = false;
+	output_relatedness_Manichaikul = false;
 	output_removed_sites = false;
 	output_singletons = false;
 	output_site_depth = false;
@@ -281,7 +282,8 @@ void parameters::read_parameters()
 		else if (in_str == "--recode-bcf") {recode_bcf = true; num_outputs++;}			// Output BCF file
 		else if (in_str == "--recode-INFO-all") { recode_all_INFO=true; }		// Specify INFO to keep when recoding
 		else if (in_str == "--recode-INFO") { recode_INFO_to_keep.insert(get_arg(i+1)); i++; }		// Specify INFO to keep when recoding
-		else if (in_str == "--relatedness") { output_relatedness = true; num_outputs++;}	// Estimate relatedness between individuals
+		else if (in_str == "--relatedness") { output_relatedness_Yang = true; num_outputs++;}	// Estimate relatedness between individuals
+		else if (in_str == "--relatedness2") { output_relatedness_Manichaikul = true; num_outputs++;}	// Estimate relatedness between individuals
 		else if (in_str == "--remove-filtered-all") remove_all_filtered_sites = true;							// Remove sites flagged as filtered
 		else if (in_str == "--remove-filtered-geno-all") remove_all_filtered_genotypes = true;			// Remove genotypes flagged as filtered
 		else if (in_str == "--remove-filtered-geno") { geno_filter_flags_to_exclude.insert(get_arg(i+1)); i++; }		// Remove genotypes flagged as filtered
@@ -432,7 +434,8 @@ void parameters::print_params()
 			LOG.printLOG("\t--pca-snp-loadings " + output_log::int2str(output_N_PCA_SNP_loadings) + "\n");
 	}
 	if (output_prefix != defaults.output_prefix) LOG.printLOG("\t--out " + output_prefix + "\n");
-	if (output_relatedness) LOG.printLOG("\t--relatedness\n");
+	if (output_relatedness_Yang) LOG.printLOG("\t--relatedness\n");
+	if (output_relatedness_Manichaikul) LOG.printLOG("\t--relatedness2\n");
 	if (output_removed_sites != defaults.output_removed_sites) LOG.printLOG("\t--removed-sites\n");
 	if (output_singletons) LOG.printLOG("\t--singletons\n");
 	if (output_site_depth) LOG.printLOG("\t--site-depth\n");
