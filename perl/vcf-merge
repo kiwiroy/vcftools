@@ -61,7 +61,7 @@ sub parse_params
         if ( $arg eq '-H' || $arg eq '--vcf-header' ) { $$opts{vcf_header}=shift(@ARGV); next; }
         if ( $arg eq '-c' || $arg eq '--collapse' ) 
         {
-            $$opts{collapse_any} = 1;
+            $$opts{collapse_any} = 0;
             my $c = shift(@ARGV);
             if ( $c eq 'snps' ) { $$opts{collapse_snps}=1; }
             elsif ( $c eq 'indels' ) { $$opts{collapse_indels}=1; }
