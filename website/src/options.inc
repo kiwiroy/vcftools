@@ -703,7 +703,9 @@ Identify Long Runs of Homozygosity. This option is currently <b>very</b> slow.
 </li>
 <li>--relatedness <br>
 <br>
-Output Individual Relatedness Statistics.
+Output Individual Relatedness Statistics. The relatedness statistic is based on the method of Yang et al, 2010 (doi:10.1038/ng.608). 
+Specifically, this funnction calculates the unadjusted Ajk statistic (equation 6 of paper). Expectation of Ajk is zero for individuals within a populations, and one for an individual with themselves.
+Note that this function is designed to work on population samples.
 <br>
 <br>
 </li>
