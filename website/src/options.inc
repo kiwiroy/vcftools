@@ -152,17 +152,6 @@ NOTE: The PASS tag does not count as a filter, it is just the absence of a filte
 <li>--remove-INFO &lt;string&gt;<br>
 <li>--keep-INFO &lt;string&gt;<br>
 <br>
-<li>--keep-INFO-min &lt;float&gt;<br>
-<li>--keep-INFO-max &lt;float&gt;<br>
-<li>--keep-INFO-string &lt;string&gt;<br>
-<br>
-These options are used to filter sites on the basis of INFO fields. 
-The first option can be used to exclude sites with a specific INFO flag. 
-The second option can be used to select sites on the basis of specific INFO flags. These options can be used multiple times to specify multiple INFO flags. 
-The --keep-INFO option is applied before the --remove-INFO option. 
-The final three arguments can only be used if the --keep-INFO is only used once. It allows you to specify a range of numbers or a single string to filter that INFO tag's values on.
-Note: if that INFO tag has multiple values separated by a comma, all of them will be checked.<br>
-<br>
 </li>
 <li>--minQ &lt;float&gt;<br>
 <br>
@@ -493,26 +482,11 @@ Output Tajima's D statistic in bins of size &lt;int&gt;.
 <br>
 <br>
 </li>
-<!--
-<li>--hapmap-fst-file &lt;filename&gt;<br>
-<li>--hapmap-fst-gzfile &lt;filename&gt;<br>
-<br>
-Calculate F<sub>ST</sub> for a pair of VCF files, with the second file being specified by this option. 
-F<sub>ST</sub> is currently calculated using the formula described in the supplementary material of the <a href="http://www.ncbi.nlm.nih.gov/pubmed/16255080">Phase I HapMap paper</a>.
-Currently, only pairwise F<sub>ST</sub> calculations are supported, although this will likely change in the future. 
-The --gzfst option can be used to read compressed VCF files. 
-<u>This option is likely to be depreciated in future releases</u>, and it is recommended that you use the --hapmap-fst-pop or --weir-fst-pop options instead.
-<br>
-<br>
-</li>
-//-->
-<li>--hapmap-fst-pop &lt;filename&gt;<br>
 <li>--weir-fst-pop &lt;filename&gt;<br>
 <li>--fst-window-size &lt;int&gt;<br>
 <li>--fst-window-step &lt;int&gt;<br>
 <br>
-These options are used to calculate two estimates of F<sub>ST</sub>. The --hapmap-fst-pop option is used to calculate the estimator described in the
-<a href="http://www.ncbi.nlm.nih.gov/pubmed/16255080">Phase I HapMap paper</a>. The second (preferred) estimator is from <a href="http://www.jstor.org/stable/2408641">Weir and Cockerham's 1984 paper</a>. These options are used to provide a file which lists the individuals in a given population (one individual per line), and is used multiple times to specific multiple populations. These options can be used to calculate F<sub>ST</sub> for more than two populations. <br><br>
+These options are used to calculate an estimate of F<sub>ST</sub>. This estimator is from <a href="http://www.jstor.org/stable/2408641">Weir and Cockerham's 1984 paper</a>. These options are used to provide a file which lists the individuals in a given population (one individual per line), and is used multiple times to specific multiple populations. These options can be used to calculate F<sub>ST</sub> for more than two populations. <br><br>
 The --fst-window-size and --fst-window-step options are optional and can be used to calculate F<sub>ST</sub> in windows. If they are not specified, F<sub>ST</sub> is calculated on a per-site basis.
 <br>
 <br>

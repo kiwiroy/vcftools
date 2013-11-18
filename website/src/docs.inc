@@ -15,6 +15,7 @@ the utilities <span class="cmd">vcf-convert</span>, <span class="cmd">vcf-merge<
 <h3>Documentation</h3>
 <ul class="faq">
 <li> <a href="options.html">Documentation for the binary executable <span class="cmd">vcftools</span></a>
+<li> <a href="vcftools.1.html">Man page documentation for the binary executable <span class="cmd">vcftools</span></a>
 <li> <a href="perl_module.html">The Perl API and scripts</a>
 <li> <a href="htslib.html">Fast htslib C tools</a> <span style="font-size:70%;font-style:italic;color:#ff5500;">(new)</span>
 </ul>

@@ -11,7 +11,7 @@
 <div class="item">
     <h3>Supported VCF versions</h3>
     <p>VCFtools supports the <a href="specs.html">VCF format v4.0</a>. The 
-    vcf-validator, Perl API and scripts now support also <a href="specs.html">VCF format v4.1</a> and 
+    vcf-validator, Perl API and scripts now support also <a href="specs.html">VCF format v4.2</a> and 
     maintain backward compatibility with older versions.
     <br>
     For details, please go to the <a href="docs.html">Documentation</a> page.</p>
@@ -31,7 +31,7 @@
     The <b>latest development version</b> can be retrieved by running the following command:
     </p>
     <!--<p class="codebox" style="text-align: center;"> svn checkout https://vcftools.svn.sourceforge.net/svnroot/vcftools vcftools </p>-->
-    <p class="codebox" style="text-align: center;"> svn checkout https://svn.code.sf.net/p/vcftools/code vcftools </p>
+    <p class="codebox" style="text-align: center;"> svn checkout https://svn.code.sf.net/p/vcftools/code/trunk vcftools </p>
     <p>
     The above command is required to be run only once, for any subsequent updates run this command from the vcftools directory: 
     </p>
