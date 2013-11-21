@@ -3,8 +3,9 @@ License:
     License version 3.0 (LGPLv3).
 
 Credits:
-    Adam Auton   (cpp executable)
-    Petr Danecek (perl)
+    Adam Auton        (cpp executable)
+    Petr Danecek      (perl)
+    Anthony Marcketta (cpp executable)
     
 Compiling:
     To compile and install VCFtools, you should type 'make' in the 

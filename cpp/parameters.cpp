@@ -199,7 +199,6 @@ void parameters::read_parameters()
 		else if (in_str == "--fst-window-size") { fst_window_size = atoi(get_arg(i+1).c_str()); i++; }                  // Window size for Fst calculation
 		else if (in_str == "--fst-window-step") { fst_window_step = atoi(get_arg(i+1).c_str()); i++; }                  // Window step for Fst calculation
 		else if (in_str == "--gatk") gatk = true;											//Denote BCF file came from GATK
-		else if (in_str == "--geno") { min_site_call_rate = atof(get_arg(i+1).c_str()); i++; }
 		else if (in_str == "--geno-depth") {output_geno_depth = true; num_outputs++;}						// Output Depth for each genoptype
 		else if (in_str == "--geno-r2") { output_geno_rsq = true; min_alleles = 2; max_alleles = 2; num_outputs++;} // Output pairwise LD (r^2)
 		else if (in_str == "--geno-chisq") { output_geno_chisq = true; num_outputs++;} // Output pairwise LD (r^2)
@@ -254,6 +253,7 @@ void parameters::read_parameters()
 		else if (in_str == "--max-mac") { max_mac = atoi(get_arg(i+1).c_str()); i++; }						// Maximum site MAC
 		else if (in_str == "--max-maf") { max_maf = atof(get_arg(i+1).c_str()); i++; }						// Maximum Site MAF
 		else if (in_str == "--max-meanDP") { max_mean_depth = atof(get_arg(i+1).c_str()); i++; }			// Site Maximum mean depth across individuals
+		else if (in_str == "--max-missing") { min_site_call_rate = atof(get_arg(i+1).c_str()); i++; }
 		else if (in_str == "--max-missing-count") { max_missing_call_count = atoi(get_arg(i+1).c_str()); i++; } // Site maximum missing genotypes
 		else if (in_str == "--max-non-ref-ac") { max_non_ref_ac = atoi(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AC
 		else if (in_str == "--max-non-ref-af") { max_non_ref_af = atof(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AF
@@ -398,7 +398,7 @@ void parameters::print_params()
 	if (min_mean_depth != defaults.min_mean_depth) LOG.printLOG("\t--min-meanDP " + output_log::dbl2str(min_mean_depth, 3) + "\n");
 	if (min_quality != defaults.min_quality) LOG.printLOG("\t--minQ " + output_log::dbl2str(min_quality, 3) + "\n");
 	if (min_r2 != defaults.min_r2) LOG.printLOG("\t--min-r2 " + output_log::dbl2str(min_r2, 3) + "\n");
-	if (min_site_call_rate != defaults.min_site_call_rate) LOG.printLOG("\t--geno " + output_log::dbl2str(min_site_call_rate, 3) + "\n");
+	if (min_site_call_rate != defaults.min_site_call_rate) LOG.printLOG("\t--max-missing " + output_log::dbl2str(min_site_call_rate, 3) + "\n");
 	if (min_non_ref_ac != defaults.min_non_ref_ac) LOG.printLOG("\t--non-ref-ac " + output_log::dbl2str(min_non_ref_ac, 3) + "\n");
 	if (min_non_ref_af != defaults.min_non_ref_af) LOG.printLOG("\t--non-ref-af " + output_log::dbl2str(min_non_ref_af, 3) + "\n");
 	if (output_012_matrix) LOG.printLOG("\t--012\n");
@@ -593,7 +593,7 @@ void parameters::print_help()
 			cout << "Process Variant Call Format files" << endl;
 			cout << endl;
 			cout << "For a list of options, please go to:" << endl;
-			cout << "\thttp://vcftools.sourceforge.net/options.html" << endl;
+			cout << "\thttp://vcftools.sourceforge.net/docs.html" << endl;
 			cout << endl;
 			cout << "Questions, comments, and suggestions should be emailed to:" << endl;
 			cout << "\tvcftools-help@lists.sourceforge.net" << endl;
