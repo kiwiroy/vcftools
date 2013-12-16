@@ -44,7 +44,6 @@ parameters::parameters(int argc, char *argv[])
 	exclude_positions_file = "";
 	fst_window_size = -1;
 	fst_window_step = -1;
-	gatk = false;
 	indv_exclude_file = "";
 	indv_keep_file = "";
 	invert_mask = false;
@@ -131,9 +130,6 @@ parameters::parameters(int argc, char *argv[])
 	remove_all_filtered_genotypes = false;
 	remove_all_filtered_sites = false;
 	remove_indels = false;
-	site_INFO_max = numeric_limits<double>::max();
-	site_INFO_min = numeric_limits<double>::min();
-	site_INFO_string = "";
 	snps_to_exclude_file = "";
 	snps_to_keep_file = "";
 	start_pos = -1;
@@ -198,7 +194,6 @@ void parameters::read_parameters()
 		else if (in_str == "--from-bp") { start_pos = atoi(get_arg(i+1).c_str()); i++; }					// Start position
 		else if (in_str == "--fst-window-size") { fst_window_size = atoi(get_arg(i+1).c_str()); i++; }                  // Window size for Fst calculation
 		else if (in_str == "--fst-window-step") { fst_window_step = atoi(get_arg(i+1).c_str()); i++; }                  // Window step for Fst calculation
-		else if (in_str == "--gatk") gatk = true;											//Denote BCF file came from GATK
 		else if (in_str == "--geno-depth") {output_geno_depth = true; num_outputs++;}						// Output Depth for each genoptype
 		else if (in_str == "--geno-r2") { output_geno_rsq = true; min_alleles = 2; max_alleles = 2; num_outputs++;} // Output pairwise LD (r^2)
 		else if (in_str == "--geno-chisq") { output_geno_chisq = true; num_outputs++;} // Output pairwise LD (r^2)
@@ -233,9 +228,6 @@ void parameters::read_parameters()
 		else if (in_str == "--keep") { indv_keep_file = get_arg(i+1); i++; }						// List of individuals to keep
 		else if (in_str == "--keep-only-indels") { keep_only_indels = true; }
 		else if (in_str == "--keep-INFO") { site_INFO_flags_to_keep.insert(get_arg(i+1)); i++; }	// Filter sites by INFO flags
-		else if (in_str == "--keep-INFO-max") { site_INFO_max = atof(get_arg(i+1).c_str()); i++; }	// Filter sites by INFO value
-		else if (in_str == "--keep-INFO-min") { site_INFO_min = atof(get_arg(i+1).c_str()); i++; }	// Filter sites by INFO value
-		else if (in_str == "--keep-INFO-string") { site_INFO_string = get_arg(i+1); i++; }	// Filter sites by INFO value
 		else if (in_str == "--keep-INFO-all") { recode_all_INFO=true; }	// Old command (soon to be depreciated)
 		else if (in_str == "--kept-sites") {output_kept_sites = true; num_outputs++;}			//Output sites that pass filters
 		else if (in_str == "--ld-window-bp") { ld_bp_window_size = atoi(get_arg(i+1).c_str()); i++; }	// Max bp distance for LD output
@@ -361,7 +353,6 @@ void parameters::print_params()
 	if (end_pos != defaults.end_pos) LOG.printLOG("\t--to-bp " + output_log::int2str(end_pos) + "\n");
 	if (exclude_positions_file != defaults.exclude_positions_file) LOG.printLOG("\t--exclude-positions " + exclude_positions_file + "\n");
 	if (FORMAT_id_to_extract != defaults.FORMAT_id_to_extract) LOG.printLOG("\t--extract-FORMAT-info " + FORMAT_id_to_extract + "\n");
-	if (gatk != defaults.gatk) LOG.printLOG("\t--gatk\n");
 	if (geno_rsq_position_list != defaults.geno_rsq_position_list) LOG.printLOG("\t--geno-r2-positions " + geno_rsq_position_list + "\n");
 	if (hap_rsq_position_list != defaults.hap_rsq_position_list) LOG.printLOG("\t--hap-r2-positions " + hap_rsq_position_list + "\n");
 
@@ -459,9 +450,6 @@ void parameters::print_params()
 	if (remove_all_filtered_genotypes) LOG.printLOG("\t--remove-filtered-geno-all\n");
 	if (remove_all_filtered_sites) LOG.printLOG("\t--remove-filtered-all\n");
 	if (remove_indels != defaults.remove_indels) LOG.printLOG("\t--remove-indels\n");
-	if (site_INFO_max != defaults.site_INFO_max) LOG.printLOG("\t--keep-INFO-max " + output_log::int2str(site_INFO_max) + "\n");
-	if (site_INFO_min != defaults.site_INFO_min) LOG.printLOG("\t--keep-INFO-min " + output_log::int2str(site_INFO_min) + "\n");
-	if (site_INFO_string != defaults.site_INFO_string) LOG.printLOG("\t--keep-INFO-string " + site_INFO_string + "\n");
 	if (snps_to_exclude_file != defaults.snps_to_exclude_file) LOG.printLOG("\t--exclude " + snps_to_exclude_file + "\n");
 	if (snps_to_keep_file != defaults.snps_to_keep_file) LOG.printLOG("\t--snps " + snps_to_keep_file + "\n");
 	if (start_pos != defaults.start_pos) LOG.printLOG("\t--from-bp " + output_log::int2str(start_pos) + "\n");
@@ -656,15 +644,6 @@ void parameters::check_parameters()
 			error("Cannot output IMPUTE files to stream",19);
 		if (diff_file != "")
 			error("Cannot output diff files to stream",19);
-	}
-	if (site_INFO_min!=defaults.site_INFO_min || site_INFO_max!=defaults.site_INFO_max || site_INFO_string != defaults.site_INFO_string)
-	{
-		if (site_INFO_flags_to_keep.size() != 1)
-			error("INFO value constraints only work in conjunction with exactly one --keep-INFO tag",20);
-		if (site_INFO_max!=defaults.site_INFO_max && site_INFO_min != defaults.site_INFO_min && site_INFO_max < site_INFO_min)
-			error("INFO max must be greater than INFO min",20);
-		if ( (site_INFO_max!=defaults.site_INFO_max || site_INFO_min != defaults.site_INFO_min) && site_INFO_string != defaults.site_INFO_string)
-			error("Cannot supply an INFO range and an INFO string",20);
 	}
 }
 

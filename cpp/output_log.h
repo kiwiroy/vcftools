@@ -26,7 +26,7 @@ class output_log
 public:
 	output_log();
 	~output_log() {};
-	void open(bool stdout, bool stderr, const string &filename);
+	void open(bool stout, bool sterr, const string &filename);
 	void close();
 	void printLOG(string s);
 	void error(string err_msg, int error_code=1);

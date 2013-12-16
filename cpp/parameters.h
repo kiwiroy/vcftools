@@ -58,7 +58,6 @@ public:
 	vector<string> weir_fst_populations;
 	int fst_window_size;
 	int fst_window_step;
-	bool gatk;
 	string indv_exclude_file;
 	string indv_keep_file;
 	set<string> indv_to_exclude;
@@ -153,9 +152,6 @@ public:
 	set<string> site_filter_flags_to_keep;
 	set<string> site_INFO_flags_to_keep;
 	set<string> site_INFO_flags_to_remove;
-	double site_INFO_max;
-	double site_INFO_min;
-	string site_INFO_string;
 	string snps_to_exclude_file;
 	string snps_to_keep_file;
 	set<string> snps_to_keep;

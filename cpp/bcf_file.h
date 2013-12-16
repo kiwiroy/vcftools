@@ -32,7 +32,6 @@ protected:
 
 private:
 	bool is_BGZF;
-	bool is_GATK;
 	bool big_endian;
 
 	int read(void *buffer, unsigned int len, size_t size);

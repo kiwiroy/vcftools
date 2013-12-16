@@ -115,10 +115,6 @@ void vcf_entry::parse_full_entry(bool parse_FORMAT)
 	for (unsigned int ui=0; ui<N_indv; ui++)
 		getline(data_stream, GENOTYPE_str[ui], '\t');
 
-	// The following line copies the GENOTYPE fields from the stringstream into the GENOTYPE_str vector.
-	// Is actually slower than the above code.
-	//copy(istream_iterator<string>(data_stream), istream_iterator<string>(), GENOTYPE_str.begin());
-
 	fully_parsed = true;
 }
 
@@ -141,22 +137,22 @@ void vcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 	int i=0;
 	while (getline(ss, tmpstr, ':'))
 	{
-		if (GT && (i == GT_idx)) // (FORMAT[ui] == "GT")
+		if (GT && (i == GT_idx))
 		{
 			set_indv_GENOTYPE_and_PHASE(indv, tmpstr);
 			N_got++;
 		}
-		else if (GQ && (i == GQ_idx)) // (FORMAT[ui] == "GQ")
+		else if (GQ && (i == GQ_idx))
 		{
 			set_indv_GQUALITY(indv, header::str2double(tmpstr));
 			N_got++;
 		}
-		else if (DP && (i == DP_idx)) // (FORMAT[ui] == "DP")
+		else if (DP && (i == DP_idx))
 		{
 			set_indv_DEPTH(indv, header::str2int(tmpstr));
 			N_got++;
 		}
-		else if (FT && (i == FT_idx)) // (FORMAT[ui] == "FT")
+		else if (FT && (i == FT_idx))
 		{
 			set_indv_GFILTER(indv, tmpstr);
 			N_got++;
@@ -338,7 +334,7 @@ void vcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 			}
 		}
 	}
-	out << '\n';	// endl flushes the buffer, which is slow. This (should be) quicker.
+	out << '\n';
 }
 
 // Output VCF entry to output stream in binary
@@ -393,9 +389,7 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 	tmp_vector.resize(0);
 
 	get_FILTER_vector(filter_vector);
-	if (passed_filters == true)
-		make_typed_int(tmp_vector, 0, true);
-	else if (filter_vector.empty())
+	if (filter_vector.empty())
 		make_typed_int_vector(tmp_vector, filter_vector);
 	else
 	{

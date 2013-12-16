@@ -65,7 +65,7 @@ void vcf_file::read_header()
 
 void vcf_file::print(const parameters &params)
 {
-	LOG.printLOG("Outputting VCF file... ");
+	LOG.printLOG("Outputting VCF file...\n");
 
 	string output_file = params.output_prefix + ".recode.vcf";
 	streambuf * buf;
@@ -106,13 +106,12 @@ void vcf_file::print(const parameters &params)
 		e->parse_genotype_entries(true,true,true,true);
 		e->print(out, params.recode_INFO_to_keep, params.recode_all_INFO);
 	}
-	LOG.printLOG("Done.\n");
 	delete e;
 }
 
 void vcf_file::print_bcf(const parameters &params)
 {
-	LOG.printLOG("Outputting BCF file... ");
+	LOG.printLOG("Outputting BCF file...\n");
 	BGZF * out;
 	if(!params.stream_out)
 	{
@@ -129,6 +128,12 @@ void vcf_file::print_bcf(const parameters &params)
 	char magic[5] = {'B','C','F','\2', '\1'};
 	bgzf_write(out, magic, 5);
 
+	if (meta_data.has_idx)
+	{
+		LOG.warning("VCF file contains IDX values in header. These are being removed for conversion to BCF.");
+		meta_data.reprint();
+		meta_data.reparse();
+	}
 	for (unsigned int ui=0; ui<meta_data.lines.size(); ui++)
 	{
 		for (unsigned int uj=0; uj<meta_data.lines[ui].length(); uj++)
@@ -184,7 +189,6 @@ void vcf_file::print_bcf(const parameters &params)
 		e->parse_genotype_entries(true,true,true,true);
 		e->print_bcf(out, params.recode_INFO_to_keep, params.recode_all_INFO);
 	}
-	LOG.printLOG("Done.\n");
 	delete e;
 	bgzf_close(out);
 }

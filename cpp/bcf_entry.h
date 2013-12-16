@@ -17,7 +17,6 @@ public:
 	bcf_entry(header &header_obj, vector<bool> &include_individual);
 	~bcf_entry();
 
-//	unsigned int N_samples;
 	unsigned int N_info;
 	unsigned int N_format;
 	unsigned int N_allele;

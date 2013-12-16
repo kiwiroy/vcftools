@@ -547,12 +547,14 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 		if (REF.size() != REF2.size())
 		{
 			LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
-			cout << REF << "\t" << REF2 << endl;
 			continue;
 		}
 
-		//if((REF != REF2) && (REF2 != "N") && (REF != "N"))
-			//LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
+		if((REF != REF2) && (REF2 != "N") && (REF != "N"))
+		{
+			LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
+			continue;
+		}
 
 		// Do the alternative alleles match?
 		string ALT, ALT2;
@@ -727,20 +729,28 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 		if (REF2 == "N")
 			REF2 = REF;
 
-		if (REF.size() != REF2.size()){//i++;
-			continue;}
+		if (REF.size() != REF2.size())
+		{
+			LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
+			continue;
+		}
 
-		if ((REF != REF2) && (REF2 != "N") && (REF != "N")){//i++;
-			continue;}
+		if ((REF != REF2) && (REF2 != "N") && (REF != "N"))
+		{
+			LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
+			continue;
+		}
 
 		// Do the alternative alleles match?
 		string ALT, ALT2;
 		ALT = e1->get_ALT();
 		ALT2 = e2->get_ALT();
 
-		bool alleles_match = (ALT == ALT2) && (REF == REF2);
-		if (alleles_match == false){//i++;
-			continue;}
+		if (ALT != ALT2)
+		{
+			LOG.one_off_warning("Non-matching ALT. Skipping all such sites.");
+			continue;
+		}
 
 		e1->parse_full_entry(true);
 		e1->parse_genotype_entries(true);

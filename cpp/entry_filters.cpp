@@ -39,7 +39,7 @@ int entry::apply_filters(const parameters &params)
 	filter_sites_by_chromosome(params.chrs_to_keep, params.chrs_to_exclude);
 	filter_sites_by_BED_file(params.BED_file, params.BED_exclude);
 	filter_sites_by_number_of_alleles(params.min_alleles, params.max_alleles);
-	filter_sites_by_INFO(params.site_INFO_flags_to_remove, params.site_INFO_flags_to_keep, params.site_INFO_string, params.site_INFO_min, params.site_INFO_max);
+	filter_sites_by_INFO(params.site_INFO_flags_to_remove, params.site_INFO_flags_to_keep);
 	filter_sites_by_quality(params.min_quality);
 	filter_sites_by_mean_depth(params.min_mean_depth, params.max_mean_depth);
 	filter_sites_by_mask(params.mask_file, params.invert_mask, params.min_kept_mask_value);
@@ -852,7 +852,7 @@ void entry::filter_sites_by_thinning(int min_SNP_distance)
 	thin_chrom = CHROM;
 }
 
-void entry::filter_sites_by_INFO(const set<string> &flags_to_remove, const set<string> &flags_to_keep, const string &INFO_string, const double INFO_min, const double INFO_max)
+void entry::filter_sites_by_INFO(const set<string> &flags_to_remove, const set<string> &flags_to_keep)
 {
 	// Filter sites by entries in the INFO field.
 	if (passed_filters == false)
@@ -867,75 +867,30 @@ void entry::filter_sites_by_INFO(const set<string> &flags_to_remove, const set<s
 
 	parse_basic_entry(false, false, true);
 
-	if (INFO_max < numeric_limits<double>::max() || INFO_min > numeric_limits<double>::min())
+	if (N_to_keep > 0)
 	{
-		if (flags_to_keep.size() != 1)
-			return;
-
-		vector<string> values = get_INFO_values(*flags_to_keep.begin());
-		if (values.empty())
+		bool keep = false;
+		for (set<string>::iterator it=flags_to_keep.begin(); it != flags_to_keep.end(); ++it)
 		{
-			passed_filters = false;
-			return;
+			value = get_INFO_value(*it);
+			if (value == "1")
+				keep = true;
 		}
+		passed_filters = keep;
+	}
 
-		for (unsigned int ui=0; ui<values.size(); ui++)
+	if (passed_filters==false)
+		return;
+
+	if (N_to_remove > 0)
+	{
+		for (set<string>::iterator it=flags_to_remove.begin(); it != flags_to_remove.end(); ++it)
 		{
-			double value = header::str2double(values[ui]);
-			if (value < INFO_min || value > INFO_max)
+			value = get_INFO_value(*it);
+			if (value == "1")
 			{
 				passed_filters = false;
-				return;
-			}
-		}
-	}
-	else if (INFO_string != "")
-	{
-		if (flags_to_keep.size() != 1)
-			return;
-
-		vector<string> values = get_INFO_values(*flags_to_keep.begin());
-		if (values.empty())
-		{
-			passed_filters = false;
-			return;
-		}
-
-		for (unsigned int ui=0; ui<values.size(); ui++)
-			if (values[ui] != INFO_string)
-			{
-				passed_filters = false;
-				return;
-			}
-	}
-	else
-	{
-		if (N_to_keep > 0)
-		{
-			bool keep = false;
-			for (set<string>::iterator it=flags_to_keep.begin(); it != flags_to_keep.end(); ++it)
-			{
-				value = get_INFO_value(*it);
-				if (value == "1")
-					keep = true;
-			}
-
-			passed_filters = keep;
-		}
-
-		if (passed_filters==false)
-			return;
-
-		if (N_to_remove > 0)
-		{
-			for (set<string>::iterator it=flags_to_remove.begin(); it != flags_to_remove.end(); ++it)
-			{
-				value = get_INFO_value(*it);
-				if (value == "1")
-				{
-					passed_filters = false;
-					continue;
-				}
+				continue;
 			}
 		}
 	}

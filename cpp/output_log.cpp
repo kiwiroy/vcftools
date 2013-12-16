@@ -14,15 +14,15 @@ output_log::output_log()
 	output_to_file = true;
 }
 
-void output_log::open(bool stdout, bool stderr, const string &filename_prefix )
+void output_log::open(bool stout, bool sterr, const string &filename_prefix )
 {
-	if (stdout && isatty(STDOUT_FILENO))
+	if (stout)
 	{
 		output_to_screen = false;
 		output_to_file = true;
 	}
 
-	if (stderr)
+	if (sterr)
 	{
 		output_to_screen = true;
 		output_to_file = false;

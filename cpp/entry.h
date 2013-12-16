@@ -10,8 +10,8 @@
 #include <set>
 #include <deque>
 #include <vector>
-
 #include <cassert>
+
 #include "header.h"
 #include "bgzf.h"
 #include "output_log.h"
@@ -56,7 +56,7 @@ public:
 	void filter_sites_by_filter_status(const set<string> &filter_flags_to_remove, const set<string> &filter_flags_to_keep, bool remove_all = false);
 	void filter_sites_by_phase();
 	void filter_sites_by_thinning(int min_SNP_distance);
-	void filter_sites_by_INFO(const set<string> &flags_to_remove, const set<string> &flags_to_keep, const string &INFO_string, const double INFO_min, const double INFO_max);
+	void filter_sites_by_INFO(const set<string> &flags_to_remove, const set<string> &flags_to_keep);
 
 	void filter_genotypes_by_quality_value(double min_genotype_quality);
 	void filter_genotypes_by_depth_range(int min_depth, int max_depth);

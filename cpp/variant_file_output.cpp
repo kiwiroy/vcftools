@@ -3936,8 +3936,7 @@ void variant_file::output_indv_relatedness_Manichaikul(const parameters &params)
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	vector<int> allele_counts;
-	unsigned int N_alleles, N_non_missing_chr;
-	double freq;
+	unsigned int N_alleles;
 	pair<int, int> geno_id;
 	pair<int, int> geno_id2;
 	vector<vector<double> > phi(meta_data.N_indv, vector<double>(meta_data.N_indv, 0.0));

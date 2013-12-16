@@ -22,7 +22,9 @@ enum Type_enum {Integer=0, Float=1, Character=2, String=3, Flag=4};
 class Field_description
 {
 public:
+	string Field;
 	string ID;
+	int idx;
 	int N_entries;
 	string N_entries_str;
 	string Type_str;
@@ -30,8 +32,11 @@ public:
 	string Description;
 	string Length;
 	string Assembly;
+	string Source;
+	string Version;
+	string Other;
 
-	Field_description() : ID(""), N_entries(0), Type(Integer), Description("") {};
+	Field_description() : Field(""), ID(""), idx(-1), N_entries(0), N_entries_str(""), Type_str(""), Type(Integer), Description(""), Length(""), Assembly(""), Source(""), Version(""), Other("") {};
 	~Field_description() {};
 };
 
@@ -43,8 +48,10 @@ public:
 	bool has_genotypes;
 	bool has_header;
 	bool has_file_format;
+	bool has_idx;
 	vector<string> indv;
 	vector<string> lines;
+	vector<Field_description> parsed_lines;
 	unsigned int N_indv;
 
 	map<int, Field_description> INFO_map;
@@ -59,7 +66,9 @@ public:
 	header();
 	~header() {};
 
-	void parse_meta(const string &line, unsigned int &line_index, bool gatk=false);
+	void reprint();
+	void reparse();
+	void parse_meta(const string &line, unsigned int &line_index);
 	void parse_header(const string &line);
 
 	int add_INFO_descriptor(const string &in, int index);

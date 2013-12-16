@@ -17,7 +17,7 @@ bcf_file::bcf_file(const parameters &p, bool diff)
 		filename = p.diff_file;
 
 	big_endian = is_big_endian();
-	is_GATK = p.gatk; is_BGZF = false;
+	is_BGZF = false;
 	N_entries = 0; N_kept_entries = 0;
 	meta_data = header();
 
@@ -163,7 +163,7 @@ void bcf_file::read_header()
 		if (line[0] == '#')
 		{
 			if (line[1] == '#')
-				meta_data.parse_meta(line, line_index, is_GATK);
+				meta_data.parse_meta(line, line_index);
 			else
 				meta_data.parse_header(line);
 		}
@@ -180,7 +180,7 @@ bool bcf_file::eof()
 
 void bcf_file::print(const parameters &params)
 {
-	LOG.printLOG("Outputting VCF file... ");
+	LOG.printLOG("Outputting VCF file...\n");
 
 	string output_file = params.output_prefix + ".recode.vcf";
 	streambuf * buf;
@@ -195,6 +195,11 @@ void bcf_file::print(const parameters &params)
 		buf = cout.rdbuf();
 
 	ostream out(buf);
+	if (meta_data.has_idx)
+	{
+		LOG.warning("BCF file contains IDX values in header. These are being removed for conversion to VCF.");
+		meta_data.reprint();
+	}
 	for (unsigned int ui=0; ui<meta_data.lines.size(); ui++)
 		out << meta_data.lines[ui] << endl;
 
@@ -221,13 +226,12 @@ void bcf_file::print(const parameters &params)
 		e->parse_genotype_entries(true);
 		e->print(out, params.recode_INFO_to_keep, params.recode_all_INFO);
 	}
-	LOG.printLOG("Done.\n");
 	delete e;
 }
 
 void bcf_file::print_bcf(const parameters &params)
 {
-	LOG.printLOG("Outputting BCF file... ");
+	LOG.printLOG("Outputting BCF file...\n");
 	BGZF * out;
 	if(!params.stream_out)
 	{
@@ -285,7 +289,6 @@ void bcf_file::print_bcf(const parameters &params)
 		e->parse_genotype_entries(true);
 		e->print_bcf(out, params.recode_INFO_to_keep, params.recode_all_INFO);
 	}
-	LOG.printLOG("Done.\n");
 	delete e;
 	bgzf_close(out);
 }
