@@ -113,7 +113,7 @@ void bcf_entry::set_INFO()
 		if (miss)
 			INFO_entry.second = ".";
 		else if (data_type == "Flag")
-			INFO_entry.second = "";
+			INFO_entry.second = "1";
 		else if (value != "")
 			INFO_entry.second = ss.str();
 		else

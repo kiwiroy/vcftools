@@ -2607,9 +2607,7 @@ void variant_file::output_TsTv_by_quality(const parameters &params)
 		{
 			idx = model_to_Ts_or_Tv[model];
 			if (idx == 0) // Ts
-			{
 				TsTv_counts[QUAL].first++;
-			}
 			else if (idx == 1) // Tv;
 				TsTv_counts[QUAL].second++;
 			else

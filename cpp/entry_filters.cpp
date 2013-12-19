@@ -872,9 +872,14 @@ void entry::filter_sites_by_INFO(const set<string> &flags_to_remove, const set<s
 		bool keep = false;
 		for (set<string>::iterator it=flags_to_keep.begin(); it != flags_to_keep.end(); ++it)
 		{
-			value = get_INFO_value(*it);
-			if (value == "1")
-				keep = true;
+			if (entry_header.INFO_map[ entry_header.INFO_reverse_map[*it] ].Type != Flag)
+				LOG.error("Using INFO flag filtering on non flag type "+*it+" will not work correctly.");
+			else
+			{
+				value = get_INFO_value(*it);
+				if (value == "1")
+					keep = true;
+			}
 		}
 		passed_filters = keep;
 	}
@@ -886,11 +891,16 @@ void entry::filter_sites_by_INFO(const set<string> &flags_to_remove, const set<s
 	{
 		for (set<string>::iterator it=flags_to_remove.begin(); it != flags_to_remove.end(); ++it)
 		{
-			value = get_INFO_value(*it);
-			if (value == "1")
+			if (entry_header.INFO_map[ entry_header.INFO_reverse_map[*it] ].Type != Flag)
+				LOG.error("Using INFO flag filtering on non flag type "+*it+" will not work correctly.");
+			else
 			{
-				passed_filters = false;
-				continue;
+				value = get_INFO_value(*it);
+				if (value == "1")
+				{
+					passed_filters = false;
+					continue;
+				}
 			}
 		}
 	}
