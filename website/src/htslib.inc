@@ -3,7 +3,7 @@
 <h1>The bcftools/htslib VCF commands</h1>
 <p> <a href="https://github.com/samtools/htslib">HTSlib</a> is a C library for
 high-throughput sequencing data formats. It is designed for speed and works with both VCF and 
-<A href="http://www.1000genomes.org/wiki/analysis/variant-call-format/bcf-binary-vcf-version-2">BCFv2</A>.
+<A href="http://samtools.github.io/hts-specs/">BCFv2</A>.
 </p>
 
 <h3>Download and installation</h3>
@@ -31,6 +31,7 @@ development and the option <span class="cmd">--branch</span> may be required.
 
 <h3>The tools</h3>
 <ul class="faq">
+<li> <a href="#annotate">bcftools annotate</a>
 <li> <a href="#call">bcftools call</a>
 <li> <a href="#filter">bcftools filter</a>
 <li> <a href="#gtcheck">bcftools gtcheck</a>
@@ -39,7 +40,6 @@ development and the option <span class="cmd">--branch</span> may be required.
 <li> <a href="#norm">bcftools norm</a>
 <li> <a href="#query">bcftools query</a>
 <li> <a href="#stats">bcftools stats</a>
-<li> <a href="#subset">bcftools subset</a>
 <li> <a href="#view">bcftools view</a>
 </ul>
 
@@ -54,6 +54,14 @@ jQuery(document).ready(function() {
 </script>
 
 <div class="item">
+<a name="annotate" class="Q">bcftools annotate</a>
+<p> Adds or removes annotations, support for user-written plugins.
+</p>
+<p> Fast alternative to <A href="perl_module.html#vcf-annotate">vcf-annotate</A>
+<div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools annotate 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
+</div>
+
+<div class="item">
 <a name="call" class="Q">bcftools call</a>
 <p> Formerly known as <span class="cmd">bcftools view</span>, this is the successor of the popular caller from the <span class="cmd">samtools</span> package with extended capabilities. 
 </p>
@@ -64,14 +72,14 @@ jQuery(document).ready(function() {
 <a name="filter" class="Q">bcftools filter</a>
 <p> Powerful fixed-threshold filtering, accepts boolean and arithmetic expressions.
 <br>
-See also the <A href="subset">bcftools subset</A> below.
+See also the <A href="view">bcftools view</A> below.
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools filter 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
 
 <div class="item">
 <a name="gtcheck" class="Q">bcftools gtcheck</a>
-<p> A tool for detecting sample swaps and contaminations
+<p> A tool for detecting sample swaps and contamination
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools gtcheck 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
@@ -116,10 +124,10 @@ bcftools stats file.vcf.gz &gt; file.vchk
 </div>
 
 <div class="item">
-<a name="subset" class="Q">bcftools subset</a>
+<a name="view" class="Q">bcftools view</a>
 <p> This versatile tool can be used for subsetting by sample, position and even flexible fixed-threshold filtering.
 </p>
-<div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools subset 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
+<div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools view 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
 
 

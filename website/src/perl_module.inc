@@ -146,6 +146,7 @@ ones follow:</p>
         .. Tests if variant bases tend to occur with a quality bias (T-test). This filter is by default 
         effectively disabled as it is set to 0.
     </div>
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#annotate">htslib</a> C version of this tool is now available (see <a href="htslib.html#annotate">bcftools annotate</a>).
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-annotate --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 <div class="usageBox"><span class="usageToggle">(Read even more)</span><pre class="usageText"><?php unset($out);exec("cat ../examples/filters.txt",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
@@ -218,9 +219,9 @@ vcf-annotate -f MinMQ=30 file.vcf | vcf-contrast -n +Child -Mother,Father -d 10 
 
 <div class="item">
 <a name="vcf-filter" class="Q">vcf-filter</a>
-<p>Please take a look at <a href="#vcf-annotate">vcf-annotate</a> and <a href="htslib.html#subset">bcftools subset</a> which does what you are looking for. Apologies for the non-intuitive naming.
+<p>Please take a look at <a href="#vcf-annotate">vcf-annotate</a> and <a href="htslib.html#view">bcftools view</a> which does what you are looking for. Apologies for the non-intuitive naming.
 <br><b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of a filtering tool is now available (see <a href="htslib.html#filter">bcftools filter</a> and
-<a href=htslib.html#subset">bcftools subset</a>).
+<a href=htslib.html#view">bcftools view</a>).
 </p>
 </div>
 
@@ -342,7 +343,7 @@ vcf-query file.vcf -f '%CHROM:%POS %REF %ALT [ %DP]\n'
 </p>
 <p class="codebox">vcf-subset -c NA0001,NA0002 file.vcf.gz | bgzip -c &gt; out.vcf.gz</p>
 <p>
-<b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of this tool is now available (see <a href="htslib.html#subset">bcftools subset</a>).
+<b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of this tool is now available (see <a href="htslib.html#view">bcftools view</a>).
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-subset --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
