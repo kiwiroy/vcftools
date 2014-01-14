@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	LOG.open(params.stream_out, params.stream_err, params.output_prefix);
 
 	LOG.printLOG("\nVCFtools - " + VCFTOOLS_VERSION + "\n");
-	LOG.printLOG("(C) Adam Auton 2009\n\n");
+	LOG.printLOG("(C) Adam Auton and Anthony Marcketta 2009\n\n");
 
 	params.print_params();
 

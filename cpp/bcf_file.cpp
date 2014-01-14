@@ -7,7 +7,8 @@
 
 #include "bcf_file.h"
 
-char bcf_magic[5] = {'B','C','F',(int8_t)2,(int8_t)1};
+char bcf_21[5] = {'B','C','F',(int8_t)2,(int8_t)1};
+char bcf_22[5] = {'B','C','F',(int8_t)2,(int8_t)2};
 
 bcf_file::bcf_file(const parameters &p, bool diff)
 {
@@ -17,12 +18,15 @@ bcf_file::bcf_file(const parameters &p, bool diff)
 		filename = p.diff_file;
 
 	big_endian = is_big_endian();
-	is_BGZF = false;
+	is_BGZF = false; stream = p.stream_in;
 	N_entries = 0; N_kept_entries = 0;
 	meta_data = header();
 
-	if (p.stream_in)
-		file_in = &std::cin;
+	if (stream)
+	{
+		is_BGZF = true;
+		open_gz();
+	}
 	else
 		open();
 
@@ -44,7 +48,7 @@ void bcf_file::open()
 	if (filename.substr(filename.size()-4) == ".vcf")
 			LOG.error("Filename ends in '.vcf'. Shouldn't you be using --vcf?\n");
 
-	if (filename.substr(filename.size()-7) == ".bcf")
+	if (filename.substr(filename.size()-7) == ".vcf.gz")
 			LOG.error("Filename ends in '.vcf.gz'. Shouldn't you be using --gzvcf?\n");
 
 	ret = bgzf_is_bgzf(filename.c_str());
@@ -54,21 +58,8 @@ void bcf_file::open()
 	else
 		is_BGZF = false;
 
-	if (is_BGZF){
-		gzMAX_LINE_LEN = 1024*1024;
-		gzfile_in = gzopen(filename.c_str(), "rb");
-		if (gzfile_in == NULL)
-			LOG.error("Could not open BGZF BCF file: " + filename, 0);
-		#ifdef ZLIB_VERNUM
-			string tmp(ZLIB_VERSION);
-			LOG.printLOG("Using zlib version: " + tmp + "\n");
-			#if (ZLIB_VERNUM >= 0x1240)
-				ret = gzbuffer(gzfile_in, gzMAX_LINE_LEN); // Included in zlib v1.2.4 and makes things MUCH faster
-			#else
-				LOG.printLOG("Versions of zlib >= 1.2.4 will be *much* faster when reading compressed BCF files.\n");
-			#endif
-		#endif
-	}
+	if (is_BGZF)
+		open_gz();
 	else
 	{
 		file_tmp.open(filename.c_str(), ios::in);
@@ -78,19 +69,43 @@ void bcf_file::open()
 	}
 }
 
+void bcf_file::open_gz()
+{
+	int ret;
+	gzMAX_LINE_LEN = 1024*1024;
+
+	if (stream)
+		gzfile_in = gzdopen(fileno(stdin), "r");
+	else
+		gzfile_in = gzopen(filename.c_str(), "rb");
+
+	if (gzfile_in == NULL)
+		LOG.error("Could not open BGZF BCF file: " + filename, 0);
+	#ifdef ZLIB_VERNUM
+		string tmp(ZLIB_VERSION);
+		LOG.printLOG("Using zlib version: " + tmp + "\n");
+		#if (ZLIB_VERNUM >= 0x1240)
+			ret = gzbuffer(gzfile_in, gzMAX_LINE_LEN); // Included in zlib v1.2.4 and makes things MUCH faster
+			if (ret != 0)
+				LOG.warning("Unable to change zlib buffer size.");
+		#else
+			LOG.printLOG("Versions of zlib >= 1.2.4 will be *much* faster when reading compressed BCF files.\n");
+		#endif
+	#endif
+}
+
 void bcf_file::check_bcf()
 {
 	char magic[5];
 
 	read(magic, 5, 1);
-
-	if (strcmp(magic, bcf_magic) != 0)
+	if ((strcmp(magic, bcf_21) == 0) && (strcmp(magic, bcf_22) == 0))
 		LOG.error("Does not appear to be a BCF file\n");
 }
 
 void bcf_file::close()
 {
-	if (is_BGZF)
+	if (!stream && is_BGZF)
 		gzclose(gzfile_in);
 }
 

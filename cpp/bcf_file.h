@@ -33,11 +33,13 @@ protected:
 private:
 	bool is_BGZF;
 	bool big_endian;
+	bool stream;
 
 	int read(void *buffer, unsigned int len, size_t size);
 	void read_header();
 	void read_file();
 	void open();
+	void open_gz();
 	void close();
 	bool eof();
 	void check_bcf();

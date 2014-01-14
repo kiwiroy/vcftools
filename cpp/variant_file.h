@@ -64,6 +64,7 @@ public:
 	int N_total_sites() const;
 
 	virtual void open() = 0;
+	virtual void open_gz() = 0;
 	virtual void close() = 0;
 	virtual bool eof() = 0;
 

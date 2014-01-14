@@ -26,13 +26,20 @@ vcf_file::vcf_file(const parameters &p, bool diff)
 	N_entries = 0; N_kept_entries = 0;
 	meta_data = header();
 
-	if (stream)
+	if (stream && compressed)
+		open_gz();
+	else if (stream)
+	{
+		char first = cin.peek();
+		if (first == 0x1f)
+			LOG.error("File starts with gzip magic string. Shouldn't you be using --gzvcf?\n");
+
 		file_in = &std::cin;
+	}
 	else
 		open();
 
 	read_header();
-
 	include_indv = vector<bool>(meta_data.N_indv,true);
 }
 
@@ -216,25 +223,34 @@ void vcf_file::open()
 		file_tmp.open(filename.c_str(), ios::in);
 		if (!file_tmp.is_open())
 			LOG.error("Could not open VCF file: " + filename, 0);
+
 		file_in = &file_tmp;
 	}
 	else
-	{
-		gzMAX_LINE_LEN = 1024*1024;
-		gz_readbuffer = new char[gzMAX_LINE_LEN];
+		open_gz();
+}
+
+void vcf_file::open_gz()
+{
+	gzMAX_LINE_LEN = 1024*1024;
+	gz_readbuffer = new char[gzMAX_LINE_LEN];
+
+	if (stream)
+		gzfile_in = gzdopen(fileno(stdin), "r");
+	else
 		gzfile_in = gzopen(filename.c_str(), "rb");
-		if (gzfile_in == NULL)
-			LOG.error("Could not open GZVCF file: " + filename, 0);
-		#ifdef ZLIB_VERNUM
-			string tmp(ZLIB_VERSION);
-			LOG.printLOG("Using zlib version: " + tmp + "\n");
-			#if (ZLIB_VERNUM >= 0x1240)
-				gzbuffer(gzfile_in, gzMAX_LINE_LEN); // Included in zlib v1.2.4 and makes things MUCH faster
-			#else
-				LOG.printLOG("Versions of zlib >= 1.2.4 will be *much* faster when reading zipped VCF files.\n");
-			#endif
+
+	if (gzfile_in == NULL)
+		LOG.error("Could not open GZVCF file: " + filename, 0);
+	#ifdef ZLIB_VERNUM
+		string tmp(ZLIB_VERSION);
+		LOG.printLOG("Using zlib version: " + tmp + "\n");
+		#if (ZLIB_VERNUM >= 0x1240)
+			gzbuffer(gzfile_in, gzMAX_LINE_LEN); // Included in zlib v1.2.4 and makes things MUCH faster
+		#else
+			LOG.printLOG("Versions of zlib >= 1.2.4 will be *much* faster when reading zipped VCF files.\n");
 		#endif
-	}
+	#endif
 }
 
 void vcf_file::close()
@@ -249,7 +265,7 @@ void vcf_file::close()
 bool vcf_file::eof()
 {
 	bool out;
-	if (stream || !compressed)
+	if (!compressed)
 		out = file_in->eof();
 	else
 		out = gzeof(gzfile_in);	// Returns 1 when EOF has previously been detected reading the given input stream, otherwise zero.
@@ -271,11 +287,10 @@ void vcf_file::read_line(string &out)
 {
 	char * tmp;
 	out = "";
-	if (stream || !compressed)
+	if (!compressed)
 	{
 		getline(*file_in, out);
 		out.erase( out.find_last_not_of(" \t\n\r") + 1);	// Trim whitespace at end of line
-
 	}
 	else
 	{

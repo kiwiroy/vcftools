@@ -34,6 +34,7 @@ protected:
 private:
 	char *gz_readbuffer;
 	void open();
+	void open_gz();
 	void close();
 	bool eof();
 	inline void read_line(string &out);

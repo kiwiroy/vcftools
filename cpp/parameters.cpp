@@ -11,11 +11,6 @@
 
 parameters::parameters(int argc, char *argv[])
 {
-	if (isatty(STDIN_FILENO))
-		stream_in = false;
-	else
-		stream_in = true;
-
 	if (isatty(STDERR_FILENO))
 		stream_err = false;
 	else
@@ -133,6 +128,7 @@ parameters::parameters(int argc, char *argv[])
 	snps_to_exclude_file = "";
 	snps_to_keep_file = "";
 	start_pos = -1;
+	stream_in = false;
 	stream_out = false;
 	suppress_allele_output = false;
 	vcf_filename="";
@@ -323,13 +319,17 @@ void parameters::print_params()
 	parameters defaults(0, 0);
 
 	LOG.printLOG("Parameters as interpreted:\n");
-	if (bcf_format == true)
-		LOG.printLOG("\t--bcf " + vcf_filename + "\n");
-	else if (vcf_format == true && vcf_compressed == false)
-		LOG.printLOG("\t--vcf " + vcf_filename + "\n");
-	else if (vcf_format == true && vcf_compressed == true)
-		LOG.printLOG("\t--gzvcf " + vcf_filename + "\n");
 
+	string tmp_name = vcf_filename;
+	if (tmp_name == "-")
+		tmp_name = "[stdin]";
+
+	if (bcf_format == true)
+		LOG.printLOG("\t--bcf " + tmp_name + "\n");
+	else if (vcf_format == true && vcf_compressed == false)
+		LOG.printLOG("\t--vcf " + tmp_name + "\n");
+	else if (vcf_format == true && vcf_compressed == true)
+		LOG.printLOG("\t--gzvcf " + tmp_name + "\n");
 
 	if (chrs_to_keep.size() > 0)
 	{
@@ -577,7 +577,7 @@ void parameters::print_help()
 		if ((in_str == "-h") || (in_str == "-?") || (in_str == "-help") || (in_str == "--?") || (in_str == "--help") || (in_str == "--h"))
 		{
 			cout << endl << "VCFtools (" << VCFTOOLS_VERSION << ")" << endl;
-			cout << "\u00A9 Adam Auton 2009" << endl << endl;
+			cout << "\u00A9 Adam Auton and Anthony Marcketta 2009" << endl << endl;
 			cout << "Process Variant Call Format files" << endl;
 			cout << endl;
 			cout << "For a list of options, please go to:" << endl;
@@ -595,8 +595,13 @@ void parameters::print_help()
 void parameters::check_parameters()
 {
 	parameters defaults(0, 0);
-	if (!weir_fst_populations.empty()) num_outputs++;
+	if (vcf_filename == "-")
+		stream_in = true;
 
+	if (isatty(STDIN_FILENO) && stream_in)
+		LOG.error("No input detected via stream.");
+
+	if (!weir_fst_populations.empty()) num_outputs++;
 	if (num_outputs > 1) error("Only one output function may be called.",0);
 	if (vcf_filename == "" && !stream_in) error("Input file required.", 0);
 	if (vcf_format == false && bcf_format == false) error("Must specify input file type",0);
