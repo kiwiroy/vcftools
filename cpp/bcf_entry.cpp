@@ -22,7 +22,7 @@ bcf_entry::bcf_entry(header &header_obj, vector<bool> &include_individual)
 	parsed_GT = vector<bool>(N_indv, false); parsed_GQ = vector<bool>(N_indv, false);
 	parsed_DP = vector<bool>(N_indv, false); parsed_FT = vector<bool>(N_indv, false);
 	GT_idx = -1; GQ_idx = -1; DP_idx = -1; FT_idx = -1;
-	/*N_samples = 0;*/ N_info = 0; N_format = 0; L_shared = 0; L_indiv = 0; line_pos = 0;
+	N_info = 0; N_format = 0; L_shared = 0; L_indiv = 0; line_pos = 0;
 	N_allele = 0; INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
 	FORMAT_positions.resize(0); FORMAT_types.resize(0); FORMAT_sizes.resize(0); FORMAT_skip.resize(0); FORMAT_keys.resize(0);
 	line.clear();
@@ -379,10 +379,14 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 			get_indv_GENOTYPE_ids(indv, genotype);
 			phase = get_indv_PHASE(indv);
-			if ((genotype.first != -1) && (genotype.second != -1))
-				outstream << genotype.first << phase << genotype.second;
-			else if ((phase == '|') && (genotype.second == -1))
-				outstream << header::int2str(genotype.first);	// Handle haploid case
+			if ((genotype.first == -2) && (genotype.second == -2))
+				outstream << ".";
+			else if ((genotype.first == -1) && (genotype.second == -2))
+				outstream << ".";
+			else if ((genotype.first > -1) && (genotype.second == -2))
+				outstream << header::int2str(genotype.first);
+			else if ((genotype.first > -1) && (genotype.second > -1))
+				outstream << header::int2str(genotype.first) << phase << header::int2str(genotype.second);
 			else
 				outstream << header::int2str(genotype.first) << phase << header::int2str(genotype.second);
 
@@ -394,6 +398,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 			format_miss = true;
 			for (unsigned int uj=0; uj<size; uj++)
 			{
+				if (check_end(l_pos, type, line))
+					break;
+
 				miss = check_missing(l_pos, type, line);
 				if (uj != 0)
 					outstream << ",";
@@ -421,6 +428,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -447,6 +457,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -473,6 +486,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -676,7 +692,7 @@ void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 
 			if ( ((int)uj == GT_idx) and (include_genotype[uj] == false) )
 				for (unsigned int ploidy = 0; ploidy < FORMAT_skip[ui]; ploidy++)
-					tmp_vector[ploidy] = (int8_t)0x00;
+					tmp_vector[ploidy] = (int8_t)0x81;
 			else
 				memcpy(&tmp_vector[0], &line[l_pos], FORMAT_skip[ui]);
 

@@ -482,9 +482,9 @@ void vcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 				for (int p = 0; p < (int)skip_size; p++)
 				{
 					if (p < ploidy[uj])
-						out_vector[out_size] = (int8_t)0x00;
-					else
 						out_vector[out_size] = (int8_t)0x80;
+					else
+						out_vector[out_size] = (int8_t)0x81;
 					out_size++;
 				}
 			}

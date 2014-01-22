@@ -109,9 +109,11 @@ void entry::get_allele(int allele_num, string &out) const
 {
 	assert(parsed_ALT == true);
 
-	if (allele_num == 0)
+	if (allele_num == -2)
+		out = "";
+	else if (allele_num == 0)
 		out = REF;
-	else if ((allele_num < 0) || (unsigned(allele_num - 1) >=  ALT.size()))
+	else if ((allele_num == -1) || (unsigned(allele_num - 1) >=  ALT.size()))
 		out = ".";
 	else
 		out = ALT[allele_num-1];
@@ -121,7 +123,9 @@ string entry::get_allele(int allele_num) const
 {
 	assert(parsed_ALT == true);
 
-	if (allele_num == 0)
+	if (allele_num == -2)
+		return "";
+	else if (allele_num == 0)
 		return REF;
 	else if ((allele_num < 0) || (unsigned(allele_num - 1) >=  ALT.size()))
 		return ".";
@@ -133,7 +137,9 @@ string entry::get_ALT_allele(int allele_num) const
 {
 	assert(parsed_ALT == true);
 
-	if ((allele_num < 0) || (unsigned(allele_num) >=  ALT.size()))
+	if (allele_num == -2)
+		return "";
+	else if ((allele_num == -1) || (unsigned(allele_num) >=  ALT.size()))
 		return ".";
 	return ALT[allele_num];
 }
@@ -398,12 +404,12 @@ void entry::get_allele_counts(vector<int> &out, unsigned int &N_non_missing_chr_
 			assert(parsed_GT[ui] == true);
 			get_indv_GENOTYPE_ids(ui, genotype);
 
-			if (genotype.first != -1)
+			if (genotype.first > -1)
 			{
 				allele_counts[genotype.first]++;
 				N_non_missing_chr_out++;
 			}
-			if (genotype.second != -1)
+			if (genotype.second > -1)
 			{
 				allele_counts[genotype.second]++;
 				N_non_missing_chr_out++;
@@ -426,7 +432,7 @@ void entry::get_genotype_counts(const vector<bool> &include_indv, const vector<b
 		{
 			assert(parsed_GT[ui] == true);
 			get_indv_GENOTYPE_ids(ui, genotype);
-			if ((genotype.first != -1) && (genotype.second != -1))
+			if ((genotype.first > -1) && (genotype.second > -1))
 			{
 				if (genotype.first != genotype.second)
 					out_N_het++;

@@ -277,21 +277,20 @@ void entry::encode_genotype(vector<char> &out, string &in, int exp_size)
 			if(in[ui] != '.')
 			{
 				tmp_int = header::str2int( in.substr(ui,1) );
+				tmp_int++;
+				tmp_int = tmp_int << 1;
+				tmp_int = tmp_int | phased;
 			}
 			else
-			{
-				tmp_int = -1;
-			}
-			tmp_int++;
-			tmp_int = tmp_int << 1;
-			tmp_int = tmp_int | phased;
+				tmp_int = 0x80;
+
 			out.push_back( (int8_t)tmp_int );
 		}
 	}
 	int pad = out.size();
 	while (pad<exp_size)
 	{
-		out.push_back( (int8_t)0x80 );
+		out.push_back( (int8_t)0x81 );
 		pad+=1;
 	}
 }
@@ -336,7 +335,7 @@ void entry::make_typed_int_vector(vector<char> &out, const string &in, int numbe
 				max = abs(converted);
 		}
 		else
-			converted = 0x80000000;
+			converted = 0x80000001;
 
 		tmp_ints.push_back( converted );
 	}
@@ -414,7 +413,7 @@ void entry::make_typed_int_vector(vector<char> &out, const vector<string> &in, i
 					max = abs(converted);
 			}
 			else
-				converted = 0x80000000;
+				converted = 0x80000001;
 
 			tmp_ints.push_back( converted );
 		}
@@ -509,6 +508,8 @@ void entry::make_int(vector<char> &out, const int &in, int type)
 		int8_t tmp_int;
 		if (in == (int)0x80000000 || in >= 128)
 			tmp_int = (int8_t)0x80;
+		else if (in == (int)0x80000001)
+			tmp_int = (int8_t)0x81;
 		else
 			tmp_int = (int8_t)in;
 		out.push_back( (int8_t)tmp_int);
@@ -519,6 +520,8 @@ void entry::make_int(vector<char> &out, const int &in, int type)
 
 		if (in == (int)0x80000000 || in >= 32768)
 			tmp_int = 0x8000;
+		else if (in == (int)0x80000001)
+			tmp_int = (int8_t)0x8001;
 		else
 			tmp_int = (int16_t)in;
 
@@ -589,16 +592,22 @@ void entry::make_typed_float_vector(vector<char> &out, const string &in, int num
 
 	float value;
 	char missing[4] = {0x01, 0x00, 0x80, 0x7F};
+	char end[4] = {0x02, 0x00, 0x80, 0x7F};
+
 	for(unsigned int ui=0; (int)ui<max_val; ui++)
 	{
 		if (ui < split_string.size() )
 			value = (float)header::str2double(split_string[ui], 0x7F800001);
+		else
+			value = 0x7F800002;
 
 		char *p = (char *)&value;
 
 		for(unsigned int uj=0; uj<sizeof(value); uj++)
 			if (value == (float)0x7F800001)
 				out.push_back( missing[uj] );
+			else if (value == (float)0x7F800002)
+				out.push_back( end[uj] );
 			else
 				out.push_back( p[uj] );
 	}
@@ -646,6 +655,7 @@ void entry::make_typed_float_vector(vector<char> &out, const vector<string> &in,
 
 	float value;
 	char missing[4] = {0x01, 0x00, 0x80, 0x7F};
+	char end[4] = {0x02, 0x00, 0x80, 0x7F};
 	for (unsigned int ui=0; ui<in.size(); ui++)
 	{
 		header::tokenize(in[ui], ',', split_string);
@@ -654,7 +664,7 @@ void entry::make_typed_float_vector(vector<char> &out, const vector<string> &in,
 			if (uj < split_string.size() )
 				value = (float)header::str2double(split_string[uj], 0x7F800001);
 			else
-				value = (float)0x7F800001;
+				value = (float)0x7F800002;
 
 			char *p = (char *)&value;
 
@@ -662,6 +672,8 @@ void entry::make_typed_float_vector(vector<char> &out, const vector<string> &in,
 			{
 				if (value == float(0x7F800001))
 					out.push_back( missing[uk] );
+				else if (value == float(0x7F800002))
+					out.push_back( end[uk] );
 				else
 					out.push_back( p[uk] );
 			}
@@ -912,6 +924,65 @@ bool entry::check_missing(unsigned int line_position, const unsigned int type, c
 		missing = false;
 
 	return missing;
+}
+
+bool entry::check_end(unsigned int line_position, const unsigned int type, const vector<char> &line)
+{
+	static char end_float[4] = {0x02, 0x00, 0x80, 0x7F};
+	static char end_int1 = 0x81;
+	static char end_int2[2] = {0x01, 0x80};
+	static char end_int3[4] = {0x01, 0x00, 0x00, 0x80};
+
+	char test_char;
+	bool end = true;
+	if (type==1)
+	{
+		test_char = *reinterpret_cast<const char*>(&line[line_position]);
+		end = (test_char == end_int1);
+	}
+	else if (type==2)
+	{
+		for (unsigned int ui=0; ui<sizeof(int16_t); ui++)
+		{
+			test_char = *reinterpret_cast<const char*>(&line[line_position]);
+			if (test_char != end_int2[ui])
+			{
+				end = false;
+				break;
+			}
+			line_position += sizeof(char);
+		}
+	}
+	else if (type==3)
+	{
+		for (unsigned int ui=0; ui<sizeof(int32_t); ui++)
+		{
+			test_char = *reinterpret_cast<const char*>(&line[line_position]);
+			if (test_char != end_int3[ui])
+			{
+				end = false;
+				break;
+			}
+			line_position += sizeof(char);
+		}
+	}
+	else if (type==5)
+	{
+		for (unsigned int ui=0; ui<sizeof(float); ui++)
+		{
+			test_char = *reinterpret_cast<const char*>(&line[line_position]);
+			if (test_char != end_float[ui])
+			{
+				end = false;
+				break;
+			}
+			line_position += sizeof(char);
+		}
+	}
+	else if (type==7)
+		end = false;
+
+	return end;
 }
 
 void entry::get_number(uint32_t &out, unsigned int *line_position, const vector<char>& line)

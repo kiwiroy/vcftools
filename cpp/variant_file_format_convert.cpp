@@ -138,16 +138,16 @@ void variant_file::output_as_plink(const parameters &params)
 				phase = e->get_indv_PHASE(ui);
 			}
 
-			if (genotype.first == -1)
+			if (genotype.first < 0)
 				(*tmp_file) << "\t0";
 			else
 				(*tmp_file) << "\t" << alleles[genotype.first];
 
-			if (genotype.second == -1)
+			if (genotype.second < 0)
 			{
 				if (phase == '/')
 					(*tmp_file) << "\t0";
-				else if (genotype.first != -1)
+				else if (genotype.first > -1)
 					(*tmp_file) << "\t" << alleles[genotype.first];	// Male X-chr, Y-chr etc
 				else
 					(*tmp_file) << "\t0";
@@ -271,16 +271,16 @@ void variant_file::output_as_plink_tped(const parameters &params)
 				phase = e->get_indv_PHASE(ui);
 			}
 
-			if (genotype.first == -1)
+			if (genotype.first < 0)
 				TPED << "\t0";
 			else
 				TPED << "\t" << alleles[genotype.first];
 
-			if (genotype.second == -1)
+			if (genotype.second < 0)
 			{
 				if (phase == '/')
 					TPED << "\t0";
-				else if (genotype.first != -1)
+				else if (genotype.first > -1)
 					TPED << "\t" << alleles[genotype.first];	// Male X-chr, Y-chr etc
 				else
 					TPED << "\t0";
@@ -388,7 +388,7 @@ void variant_file::output_as_012_matrix(const parameters &params)
 				e->get_indv_GENOTYPE_ids(ui, genotype);
 			}
 
-			if ((genotype.first == -1) && (genotype.second == -1))
+			if ((genotype.first < 0) && (genotype.second < 0))
 				(*tmp_file) << "\t-1";	// Missing data
 			else if ((genotype.first == 0) && (genotype.second == 0))
 				(*tmp_file) << "\t0";	// No copies of the alternative allele
@@ -477,7 +477,7 @@ void variant_file::output_as_IMPUTE(const parameters &params)
 		N_kept_entries++;
 		e->parse_basic_entry(true);
 
-		if (e->get_N_alleles() > 2)
+		if (e->get_N_alleles() != 2)
 		{
 			LOG.one_off_warning("\tIMPUTE: Only outputting biallelic loci.");
 			continue;
@@ -498,7 +498,7 @@ void variant_file::output_as_IMPUTE(const parameters &params)
 
 			e->parse_genotype_entry(ui, true);
 			e->get_indv_GENOTYPE_ids(ui, alleles);
-			if ((alleles.first == -1) || (alleles.second == -1))
+			if ((alleles.first < 0) || (alleles.second < 0))
 			{
 				missing = true;
 				break;
@@ -654,7 +654,7 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 				else
 					geno = alleles.second;
 
-				if ((geno != -1) && (e->include_genotype[ui]==true))
+				if ((geno > 0) && (e->include_genotype[ui]==true))
 					(*tmp_file) << geno;
 				else
 					(*tmp_file) << "?";
@@ -805,6 +805,8 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 
 				switch (alleles.first)
 				{
+				case -2:
+					(*tmp_file) << "?"; break;
 				case -1:
 					(*tmp_file) << "?"; break;
 				case 0:
@@ -813,6 +815,8 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 					else if (alleles.second == 1)
 						(*tmp_file) << 2;
 					else if ((alleles.second == -1) && (e->get_indv_PHASE(ui) == '|'))
+						(*tmp_file) << 0;	// Haploid case
+					else if (alleles.second == -2)
 						(*tmp_file) << 0;	// Haploid case
 					else
 						(*tmp_file) << '?';
@@ -823,6 +827,8 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 					else if (alleles.second == 1)
 						(*tmp_file) << 1;
 					else if ((alleles.second == -1) && (e->get_indv_PHASE(ui) == '|'))
+						(*tmp_file) << 1;	// Haploid case
+					else if (alleles.second == -2)
 						(*tmp_file) << 1;	// Haploid case
 					else
 						(*tmp_file) << '?';

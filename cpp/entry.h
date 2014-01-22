@@ -134,6 +134,7 @@ public:
 
 	void skip_section(unsigned int *line_position, const vector<char> &line);
 	bool check_missing(unsigned int line_position, const unsigned int type, const vector<char> &line);
+	bool check_end(unsigned int line_position, const unsigned int type, const vector<char> &line);
 	void add_ALT_allele(const string &in);
 
 	virtual void print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO=false) = 0;

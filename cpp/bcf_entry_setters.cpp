@@ -195,14 +195,15 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 	for (unsigned int ui=0; ui<size; ui++)
 	{
 		tmp = *reinterpret_cast<const int8_t*>(&line[cur_pos]);
-		if ( tmp == (int8_t)0x80 )
+		if ( tmp == (int8_t)0x81 )
 			break;
 		ploidy[indv]++;
 		cur_pos += sizeof(int8_t);
 	}
+
 	if (ploidy[indv] == 0)
 	{
-		set_indv_GENOTYPE_alleles(indv, make_pair(-1, -1));
+		set_indv_GENOTYPE_alleles(indv, make_pair(-2, -2));
 	}
 	else if (ploidy[indv] == 1)
 	{
@@ -212,7 +213,7 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 			tmp = -1;
 		else
 			tmp = (tmp >> 1) - 1;
-		set_indv_GENOTYPE_alleles(indv, make_pair(tmp, -1));
+		set_indv_GENOTYPE_alleles(indv, make_pair(tmp, -2));
 	}
 	else if (ploidy[indv] == 2)
 	{
@@ -238,7 +239,7 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 		set_indv_GENOTYPE_alleles(indv, make_pair((int)tmp, (int)tmp2));
 	}
 	else if (ploidy[indv] > 2)
-		LOG.error("Polyploidy found, and not supported by vcftools: " + CHROM + ":" + header::int2str(POS));
+		LOG.error("Polyploidy found, and is not supported by vcftools: " + CHROM + ":" + header::int2str(POS));
 	parsed_GT[indv] = true;
 }
 
@@ -269,10 +270,15 @@ void bcf_entry::set_indv_GENOTYPE_alleles(unsigned int indv, const pair<int, int
 
 	pair<int, int> a(-1,-1);
 
-	if (in.first != 0x80)
-			a.first = in.first;
-	if (in.second != 0x80)
-			a.second = in.second;
+	if (in.first == 0x81)
+		a.first = -2;
+	else if (in.first != 0x80)
+		a.first = in.first;
+
+	if (in.second == 0x81)
+		a.second = -2;
+	else if (in.second != 0x80)
+		a.second = in.second;
 
 	GENOTYPE[indv] = in;
 	parsed_GT[indv] = true;
@@ -281,7 +287,7 @@ void bcf_entry::set_indv_GENOTYPE_alleles(unsigned int indv, const pair<int, int
 void bcf_entry::set_indv_GENOTYPE_ids(unsigned int indv, const pair<int, int> &in)
 {
 	if (GENOTYPE.size() == 0)
-		GENOTYPE.resize(N_indv, make_pair(-1,-1));
+		GENOTYPE.resize(N_indv, make_pair(-2,-2));
 	GENOTYPE[indv] = in;
 }
 

@@ -242,7 +242,7 @@ void variant_file::output_het(const parameters &params)
 			if (e->include_genotype[ui] == true)
 			{
 				e->get_indv_GENOTYPE_ids(ui, alleles);
-				if ((alleles.first != -1) && (alleles.second != -1))
+				if ((alleles.first > -1) && (alleles.second > -1))
 				{
 					N_sites_included[ui]++;
 					if (alleles.first == alleles.second)
@@ -665,6 +665,11 @@ void variant_file::output_site_missingness(const parameters &params)
 				site_N_tot--;
 				site_N_missing--;
 			}
+			else if (alleles.second == -2)
+			{
+				site_N_tot--;
+				site_N_missing--;
+			}
 		}
 		out << e->get_CHROM() << "\t" << e->get_POS() << "\t" << site_N_tot << "\t" << site_N_geno_filtered << "\t";
 		out << site_N_missing << "\t" << double(site_N_missing) / double(site_N_tot) << endl;
@@ -715,7 +720,7 @@ void variant_file::calc_hap_r2(entry *e, entry *e2, double &r2, double &D, doubl
 				allele2 = geno2.second;
 			}
 
-			if ((allele1 == -1) || (allele2 == -1))
+			if ((allele1 < 0) || (allele2 < 0))
 				continue;
 
 			if (allele1 == 0 && allele2 == 0){
@@ -812,10 +817,10 @@ void variant_file::calc_geno_r2(entry *e, entry *e2, double &r2, int &indv_count
 			continue;
 		}
 
-		if ((geno1.first == -1) || (geno1.second == -1))
+		if ((geno1.first < 0) || (geno1.second < 0))
 			continue;
 
-		if ((geno2.first == -1) || (geno2.second == -1))
+		if ((geno2.first < 0) || (geno2.second < 0))
 			continue;
 
 		sx=0, sy=0;
@@ -888,10 +893,10 @@ void variant_file::calc_geno_chisq(entry *e, entry *e2, double &chisq, double &d
 			continue;
 		}
 
-		if ((geno1.first == -1) || (geno1.second == -1))
+		if ((geno1.first < 0) || (geno1.second < 0))
 			continue;
 
-		if ((geno2.first == -1) || (geno2.second == -1))
+		if ((geno2.first < 0) || (geno2.second < 0))
 			continue;
 
 		map<pair<int, int>, int> idx_lookup1;
@@ -3733,7 +3738,7 @@ void variant_file::output_LROH(const parameters &params)
 				continue;
 			}
 
-			if ((alleles.first == -1) || (alleles.second == -1))
+			if ((alleles.first < 0) || (alleles.second < 0))
 				continue;
 
 			unsigned int X = alleles.first + alleles.second;
@@ -3749,7 +3754,7 @@ void variant_file::output_LROH(const parameters &params)
 
 				e->parse_genotype_entry(uk, true);
 				e->get_indv_GENOTYPE_ids(uk, alleles);
-				if ((alleles.first != -1) && (alleles.second != -1))
+				if ((alleles.first > -1) && (alleles.second > -1))
 				{
 					N_genotypes++;
 					if (alleles.first != alleles.second)
