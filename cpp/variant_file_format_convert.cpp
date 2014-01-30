@@ -245,8 +245,23 @@ void variant_file::output_as_plink_tped(const parameters &params)
 		CHROM = e->get_CHROM();
 		if (CHROM_to_PLINK.find(CHROM) == CHROM_to_PLINK.end())
 		{
-			LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
-			CHROM_to_PLINK[CHROM] = "0";
+			string tmp = "";
+			if (CHROM.compare(0,3,"chr") == 0)
+				tmp = CHROM.substr(3, string::npos);
+			else
+				tmp = CHROM;
+
+			bool isNumber = true;
+			for(unsigned int ui=0; ui<tmp.size(); ui++)
+			    isNumber = isNumber && isdigit(tmp[ui]);
+
+			if (isNumber)
+				CHROM_to_PLINK[CHROM] = tmp;
+			else
+			{
+				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
+				CHROM_to_PLINK[CHROM] = "0";
+			}
 		}
 		CHROM2 = CHROM_to_PLINK[CHROM];
 
