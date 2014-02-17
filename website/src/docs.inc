@@ -47,10 +47,6 @@ Both tools must be in directories that are listed in the <a href="http://en.wiki
 For running the Perl scripts, the <b>PERL5LIB environment variable must be set</b> to include the Vcf.pm
 module</p>
 <p class="codebox">export PERL5LIB=/path/to/your/vcftools-directory/perl</p>
-The tools can be tested by running the script
-<p class="codebox">/path/to/your/vcftools-directory/perl/test.t</p> 
-If the command complains about missing <tt>Test::Most</tt> perl module, do not
-worry, it is needed only for testing, not for running VCFtools.
 </div>
 
 
