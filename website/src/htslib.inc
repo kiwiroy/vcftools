@@ -93,7 +93,7 @@ See also the <A href="view">bcftools view</A> below.
 
 <div class="item">
 <a name="merge" class="Q">bcftools merge</a>
-<p> Fast alternative to <A href="perl_module.html#vcf-merge">vcf-merge</A>
+<p> Fast alternative to <A href="perl_module.html#vcf-merge">vcf-merge</A> with extended capabilities and correct handling of Number=A,G,R INFO fields.
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("bcftools merge 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
