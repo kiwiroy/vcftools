@@ -374,7 +374,7 @@ unsigned int entry::get_N_chr() const
 
 	for (unsigned int ui=0; ui<N_indv; ui++)
 	{
-		if ((include_indv[ui] == true) && (include_genotype[ui] == true))
+		if (include_indv[ui] == true)
 		{
 			assert(parsed_GT[ui] == true);
 			out += ploidy[ui];
