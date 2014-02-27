@@ -34,7 +34,10 @@ string entry::get_ID() const
 
 string entry::get_REF() const
 {
-	return REF;
+	if (REF == "")
+		return ".";
+	else
+		return REF;
 }
 
 string entry::get_ALT() const
@@ -43,6 +46,8 @@ string entry::get_ALT() const
 
 	string out;
 	if (ALT.empty())
+		out = ".";
+	else if (ALT.size() == 1 && ALT[0] == "")
 		out = ".";
 	else
 	{
@@ -86,7 +91,7 @@ bool entry::is_biallelic_SNP() const
 	return true;
 }
 
-bool entry::is_diploid(const vector<bool> &include_indv, const vector<bool> &include_genotype) const
+bool entry::is_diploid() const
 {
 	for (unsigned int ui=0; ui<N_indv; ui++)
 	{
@@ -104,9 +109,11 @@ void entry::get_allele(int allele_num, string &out) const
 {
 	assert(parsed_ALT == true);
 
-	if (allele_num == 0)
+	if (allele_num == -2)
+		out = "";
+	else if (allele_num == 0)
 		out = REF;
-	else if ((allele_num < 0) || (unsigned(allele_num - 1) >=  ALT.size()))
+	else if ((allele_num == -1) || (unsigned(allele_num - 1) >=  ALT.size()))
 		out = ".";
 	else
 		out = ALT[allele_num-1];
@@ -116,7 +123,9 @@ string entry::get_allele(int allele_num) const
 {
 	assert(parsed_ALT == true);
 
-	if (allele_num == 0)
+	if (allele_num == -2)
+		return "";
+	else if (allele_num == 0)
 		return REF;
 	else if ((allele_num < 0) || (unsigned(allele_num - 1) >=  ALT.size()))
 		return ".";
@@ -128,7 +137,9 @@ string entry::get_ALT_allele(int allele_num) const
 {
 	assert(parsed_ALT == true);
 
-	if ((allele_num < 0) || (unsigned(allele_num) >=  ALT.size()))
+	if (allele_num == -2)
+		return "";
+	else if ((allele_num == -1) || (unsigned(allele_num) >=  ALT.size()))
 		return ".";
 	return ALT[allele_num];
 }
@@ -146,23 +157,18 @@ double entry::get_QUAL() const
 	return QUAL;
 }
 
-
 string entry::get_FILTER() const
 {
 	assert(parsed_FILTER == true);
 
 	ostringstream out;
-	if ((passed_filters == false) && (FILTER.empty()))
+	if (FILTER.empty())
 		out << ".";
-	else if (passed_filters == true)
-		out << "PASS";
 	else
 	{
 		out << FILTER[0];
 		for (unsigned int ui=1; ui<FILTER.size(); ui++)
-		{
 			out << ";" << FILTER[ui];
-		}
 	}
 	return out.str();
 }
@@ -230,7 +236,6 @@ vector<pair<string, string> > entry::get_INFO_vector(const set<string> &INFO_to_
 	return out_vector;
 }
 
-
 string entry::get_INFO_value(const string &key) const
 {
 	assert(parsed_INFO == true);
@@ -241,6 +246,17 @@ string entry::get_INFO_value(const string &key) const
 			return INFO[ui].second;
 	}
 	return "?";
+}
+
+vector<string> entry::get_INFO_values(const string &key) const
+{
+	vector<string> out;
+	string tmp;
+
+	tmp = get_INFO_value(key);
+	if (tmp != "?")	header::tokenize(tmp, ',', out);
+
+	return out;
 }
 
 string entry::get_FORMAT() const
@@ -265,7 +281,6 @@ void entry::get_FORMAT_binary(vector<char> &out) const
 	out = FORMAT_binary;
 }
 
-
 // Return the alleles of a genotype as a pair of strings.
 void entry::get_indv_GENOTYPE_strings(unsigned int indv, pair<string, string> &out) const
 {
@@ -277,7 +292,6 @@ void entry::get_indv_GENOTYPE_strings(unsigned int indv, pair<string, string> &o
 	get_allele(GENOTYPE[indv].second, out_allele2);
 	out = make_pair(out_allele1, out_allele2);
 }
-
 
 void entry::get_indv_GENOTYPE_ids(unsigned int indv, pair<int, int> &out) const
 {
@@ -354,13 +368,13 @@ unsigned int entry::get_N_alleles() const
 	return (ALT.size()+1);
 }
 
-unsigned int entry::get_N_chr(const vector<bool> &include_indv, const vector<bool> &include_genotype) const
+unsigned int entry::get_N_chr() const
 {
 	unsigned int out=0;
 
 	for (unsigned int ui=0; ui<N_indv; ui++)
 	{
-		if ((include_indv[ui] == true) && (include_genotype[ui] == true))
+		if (include_indv[ui] == true)
 		{
 			assert(parsed_GT[ui] == true);
 			out += ploidy[ui];
@@ -370,23 +384,32 @@ unsigned int entry::get_N_chr(const vector<bool> &include_indv, const vector<boo
 }
 
 // Return the frequency (counts) of each allele.
+void entry::get_allele_counts(vector<int> &out, unsigned int &N_non_missing_chr_out) const
+{
+	get_allele_counts(out, N_non_missing_chr_out, include_indv, include_genotype);
+}
+
+// Return the frequency (counts) of each allele.
 void entry::get_allele_counts(vector<int> &out, unsigned int &N_non_missing_chr_out, const vector<bool> &include_indv, const vector<bool> &include_genotype) const
 {
 	pair<int,int> genotype;
 	vector<int> allele_counts(get_N_alleles(), 0);
 	N_non_missing_chr_out = 0;
+
 	for (unsigned int ui=0; ui<N_indv; ui++)
 	{
+		//FILTERING BY INDIVIDUAL
 		if ((include_indv[ui] == true) && (include_genotype[ui] == true))
 		{
 			assert(parsed_GT[ui] == true);
 			get_indv_GENOTYPE_ids(ui, genotype);
-			if (genotype.first != -1)
+
+			if (genotype.first > -1)
 			{
 				allele_counts[genotype.first]++;
 				N_non_missing_chr_out++;
 			}
-			if (genotype.second != -1)
+			if (genotype.second > -1)
 			{
 				allele_counts[genotype.second]++;
 				N_non_missing_chr_out++;
@@ -396,7 +419,6 @@ void entry::get_allele_counts(vector<int> &out, unsigned int &N_non_missing_chr_
 	out = allele_counts;
 }
 
-// Return the counts of homozygote1, heterozygotes, and homozygote2
 void entry::get_genotype_counts(const vector<bool> &include_indv, const vector<bool> &include_genotype, unsigned int &out_N_hom1, unsigned int &out_N_het, unsigned int &out_N_hom2) const
 {
 	out_N_hom1 = 0; out_N_hom2 = 0; out_N_het = 0;
@@ -410,27 +432,49 @@ void entry::get_genotype_counts(const vector<bool> &include_indv, const vector<b
 		{
 			assert(parsed_GT[ui] == true);
 			get_indv_GENOTYPE_ids(ui, genotype);
-			if ((genotype.first != -1) && (genotype.second != -1))
+			if ((genotype.first > -1) && (genotype.second > -1))
 			{
 				if (genotype.first != genotype.second)
-				{
 					out_N_het++;
-				}
 				else if (genotype.first == 0)
-				{
 					out_N_hom1++;
-				}
 				else if (genotype.first == 1)
-				{
 					out_N_hom2++;
-				}
 				else
-				{
 					LOG.error("Unknown allele in genotype", 98);
-				}
 			}
 		}
 	}
+}
+
+void entry::get_multiple_genotype_counts(const vector<bool> &include_indv, const vector<bool> &include_genotype, vector<unsigned int> &out_N_hom, vector<unsigned int> &out_N_het) const
+{
+	out_N_hom.assign(ALT.size()+1, 0);
+	out_N_het.assign(ALT.size()+1, 0);
+	pair<int, int> genotype;
+
+	for (unsigned int ui=0; ui<N_indv; ui++)
+	{
+		if ((include_indv[ui] == true) && (include_genotype[ui] == true))
+		{
+			assert(parsed_GT[ui] == true);
+			get_indv_GENOTYPE_ids(ui, genotype);
+
+			for (int uj=0; uj<=(int)ALT.size(); uj++)
+			{
+				if (genotype.first == uj && genotype.second == uj)
+					out_N_hom[uj]++;
+				else if (genotype.first == uj || genotype.second == uj)
+					out_N_het[uj]++;
+			}
+		}
+	}
+}
+
+// Return the counts of homozygote1, heterozygotes, and homozygote2
+void entry::get_genotype_counts(unsigned int &out_N_hom1, unsigned int &out_N_het, unsigned int &out_N_hom2) const
+{
+	get_genotype_counts(include_indv, include_genotype, out_N_hom1, out_N_het, out_N_hom2);
 }
 
 void entry::get_POS_binary(vector<char> &out) const

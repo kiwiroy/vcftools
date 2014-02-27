@@ -8,59 +8,26 @@
 
 #include "bcf_entry.h"
 
-bcf_entry::bcf_entry(const unsigned int n_indv, const header &header_obj, const vector<char> &data_line)
+bcf_entry::bcf_entry(header &header_obj, vector<bool> &include_individual)
 {
-	N_indv = n_indv; line = data_line;
-	basic_parsed = false; fully_parsed = false;
-	parsed_ALT = false; parsed_FILTER = false;
-	parsed_INFO = false; parsed_FORMAT = false;
-	CHROM = ""; POS = -1; REF = ""; QUAL = -1;
-	passed_filters = false; parsed_FORMAT_binary = false;
-	N_INFO_removed = 0; N_FORMAT_removed = 0;
-	parsed_GT = vector<bool>(N_indv, false); parsed_GQ = vector<bool>(N_indv, false);
-	parsed_DP = vector<bool>(N_indv, false); parsed_FT = vector<bool>(N_indv, false);
-	GT_idx = -1; GQ_idx = -1; DP_idx = -1; FT_idx = -1;
-	N_samples = 0; N_info = 0; N_format = 0; L_shared = 0; L_indiv = 0; line_pos = 0;
-	INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
-	FORMAT_positions.resize(0); FORMAT_types.resize(0); FORMAT_sizes.resize(0); FORMAT_skip.resize(0); FORMAT_keys.resize(0);
-
-	entry_header = header_obj;
-	INFO_map = header_obj.INFO_map;
-	FILTER_map = header_obj.FILTER_map;
-	FORMAT_map = header_obj.FORMAT_map;
-	CONTIG_map = header_obj.CONTIG_map;
-	CONTIG_reverse_map = header_obj.CONTIG_reverse_map;
-	FILTER_reverse_map = header_obj.FILTER_reverse_map;
-	FORMAT_reverse_map = header_obj.FORMAT_reverse_map;
-	INFO_reverse_map = header_obj.INFO_reverse_map;
-}
-
-bcf_entry::bcf_entry(const unsigned int n_indv, const header &header_obj)
-{
-	N_indv = n_indv;
+	N_indv = header_obj.N_indv;
+	include_indv = include_individual;
+	include_genotype = vector<bool>(N_indv, true);
 	basic_parsed = false; fully_parsed = false;
 	parsed_ALT = false; parsed_FILTER = false;
 	parsed_INFO = false; parsed_FORMAT = false;
 	CHROM = ""; POS = -1; REF = ""; QUAL = -1;
 	N_INFO_removed = 0; N_FORMAT_removed = 0;
-	passed_filters = false; parsed_FORMAT_binary = false;
+	passed_filters = true; parsed_FORMAT_binary = false;
 	parsed_GT = vector<bool>(N_indv, false); parsed_GQ = vector<bool>(N_indv, false);
 	parsed_DP = vector<bool>(N_indv, false); parsed_FT = vector<bool>(N_indv, false);
 	GT_idx = -1; GQ_idx = -1; DP_idx = -1; FT_idx = -1;
-	N_samples = 0; N_info = 0; N_format = 0; L_shared = 0; L_indiv = 0; line_pos = 0;
-	INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
+	N_info = 0; N_format = 0; L_shared = 0; L_indiv = 0; line_pos = 0;
+	N_allele = 0; INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
 	FORMAT_positions.resize(0); FORMAT_types.resize(0); FORMAT_sizes.resize(0); FORMAT_skip.resize(0); FORMAT_keys.resize(0);
 	line.clear();
 
 	entry_header = header_obj;
-	INFO_map = header_obj.INFO_map;
-	FILTER_map = header_obj.FILTER_map;
-	FORMAT_map = header_obj.FORMAT_map;
-	CONTIG_map = header_obj.CONTIG_map;
-	CONTIG_reverse_map = header_obj.CONTIG_reverse_map;
-	FILTER_reverse_map = header_obj.FILTER_reverse_map;
-	FORMAT_reverse_map = header_obj.FORMAT_reverse_map;
-	INFO_reverse_map = header_obj.INFO_reverse_map;
 }
 
 bcf_entry::~bcf_entry() {}
@@ -74,6 +41,7 @@ void bcf_entry::reset(const vector<char> &data_line)
 	parsed_INFO = false;
 	parsed_FORMAT = false;
 	parsed_FORMAT_binary = false;
+	passed_filters = true;
 
 	line = data_line;
 
@@ -81,6 +49,7 @@ void bcf_entry::reset(const vector<char> &data_line)
 	fill(parsed_GQ.begin(), parsed_GQ.end(), false);
 	fill(parsed_DP.begin(), parsed_DP.end(), false);
 	fill(parsed_FT.begin(), parsed_FT.end(), false);
+	fill(include_genotype.begin(), include_genotype.end(), true);
 
 	INFO_pos = 0; FILTER_pos = 0; ALT_pos = 0; FORMAT_pos = 0;
 	FORMAT_positions.clear(); FORMAT_types.clear(); FORMAT_sizes.clear(); FORMAT_skip.clear(); FORMAT_keys.clear();
@@ -96,70 +65,65 @@ void bcf_entry::parse_basic_entry(bool parse_ALT, bool parse_FILTER, bool parse_
 		return;
 	}
 
-	uint32_t n_allele_info, n_fmt_sample;
-	unsigned int n_allele;
-	uint32_t chrom, pos, rlen;
-	uint32_t shared, indiv;
-	float qual;
+	if (!basic_parsed)
+	{
+		uint32_t n_allele_info, n_fmt_sample;
+		uint32_t chrom, pos, rlen;
+		uint32_t shared, indiv;
+		float qual;
 
-	line_pos = 0;
+		line_pos = 0;
 
-	get_number(shared, &line_pos, line);
-	get_number(indiv, &line_pos, line);
-	L_shared = shared;
-	L_indiv = indiv;
+		get_number(shared, &line_pos, line);
+		get_number(indiv, &line_pos, line);
+		L_shared = shared;
+		L_indiv = indiv;
 
-	get_number(chrom, &line_pos, line);
-	get_number(pos, &line_pos, line);
-	get_number(rlen, &line_pos, line);
+		get_number(chrom, &line_pos, line);
+		get_number(pos, &line_pos, line);
+		get_number(rlen, &line_pos, line);
 
-	qual = *reinterpret_cast<const float*>(&line[line_pos]);
-	line_pos += sizeof(qual);
+		qual = *reinterpret_cast<const float*>(&line[line_pos]);
+		line_pos += sizeof(qual);
 
-	get_number(n_allele_info, &line_pos, line);
-	get_number(n_fmt_sample, &line_pos, line);
+		get_number(n_allele_info, &line_pos, line);
+		get_number(n_fmt_sample, &line_pos, line);
 
-	N_format = n_fmt_sample >> 24;
-	CHROM = CONTIG_map[chrom].ID;
-	POS = pos + 1;
-	ID = get_typed_string( &line_pos, line );
-	REF = get_typed_string( &line_pos, line );
-	QUAL = qual;
+		N_format = n_fmt_sample >> 24;
+		CHROM = entry_header.CONTIG_map[chrom].ID;
+		POS = pos + 1;
+		ID = get_typed_string( &line_pos, line );
+		REF = get_typed_string( &line_pos, line );
+		QUAL = qual;
 
-	n_allele = n_allele_info >> 16;
-	N_info = n_allele_info & (uint32_t)65535;
+		N_allele = n_allele_info >> 16;
+		N_info = n_allele_info & (uint32_t)65535;
 
-	ALT_pos = line_pos;
-	for (unsigned int ui=1; ui<n_allele; ui++)
+		ALT_pos = line_pos;
+		for (unsigned int ui=1; ui<N_allele; ui++)
+			skip_section(&line_pos, line);
+
+		FILTER_pos = line_pos;
 		skip_section(&line_pos, line);
 
-	FILTER_pos = line_pos;
-	skip_section(&line_pos, line);
+		INFO_pos = line_pos;
+		std::transform(REF.begin(), REF.end(), REF.begin(), ::toupper);
 
-	INFO_pos = line_pos;
-
-	// Convert to uppercase for consistency
-	// Note that VCF v4.1 allows mixtures of lower/upper case in REF and ALT.
-	// However, the spec specifically states that tools using VCF are not required
-	// to preserve the case.
-	std::transform(REF.begin(), REF.end(), REF.begin(), ::toupper);
-
-	parsed_ALT = false;
-	parsed_FILTER = false;
-	parsed_INFO = false;
-	basic_parsed = true;
-
-	if (parse_ALT)
-		set_ALT(n_allele);
-	if (parse_FILTER)
+		basic_parsed = true;
+	}
+	if (parse_ALT && !parsed_ALT)
+		set_ALT(N_allele);
+	if (parse_FILTER && !parsed_FILTER)
 		set_FILTER();
-	if (parse_INFO)
+	if (parse_INFO && !parsed_INFO)
 		set_INFO();
-
 }
 
 void bcf_entry::parse_full_entry(bool parse_FORMAT)
 {
+	if (fully_parsed)
+		return;
+
 	if (basic_parsed == false)
 		parse_basic_entry();
 
@@ -177,50 +141,46 @@ void bcf_entry::parse_full_entry(bool parse_FORMAT)
 }
 
 // Filter specific genotypes by quality
-void bcf_entry::filter_genotypes_by_quality(vector<bool> &include_genotype_out, double min_genotype_quality)
+void bcf_entry::filter_genotypes_by_quality(double min_genotype_quality)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
-	//if (FORMAT_to_idx.find("GQ") != FORMAT_to_idx.end())
 	if (GQ_idx != -1)
 	{	// Have quality info
 		double quality;
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_GQ[ui] == false)
 				parse_genotype_entry(ui, false, true);
 			quality = get_indv_GQUALITY(ui);
 			if (quality < min_genotype_quality)
-				include_genotype_out[ui] = false;
+				include_genotype[ui] = false;
 		}
 	}
 }
 
 // Set the include_genotype flag on the basis of depth
-void bcf_entry::filter_genotypes_by_depth(vector<bool> &include_genotype_out, int min_depth, int max_depth)
+void bcf_entry::filter_genotypes_by_depth(int min_depth, int max_depth)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
-	//if (FORMAT_to_idx.find("DP") != FORMAT_to_idx.end())
 	if (DP_idx != -1)
 	{	// Have depth info
 		int depth;
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_DP[ui] == false)
 				parse_genotype_entry(ui, false, false, true);
 			depth = get_indv_DEPTH(ui);
 			if ((depth < min_depth) || (depth > max_depth))
-				include_genotype_out[ui] = false;
+				include_genotype[ui] = false;
 		}
 	}
 }
 
-void bcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype_out, const set<string> &filter_flags_to_remove, bool remove_all)
+void bcf_entry::filter_genotypes_by_filter_status(const set<string> &filter_flags_to_remove, bool remove_all)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
@@ -228,7 +188,6 @@ void bcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype
 	vector<string> GFILTERs;
 	if (FT_idx != -1)
 	{	// Have GFilter info
-		include_genotype_out.resize(N_indv, true);
 		for (unsigned int ui=0; ui<N_indv; ui++)
 		{
 			if (parsed_FT[ui] == false)
@@ -239,13 +198,13 @@ void bcf_entry::filter_genotypes_by_filter_status(vector<bool> &include_genotype
 			{	// If removing all filters, only keep things with label PASS
 				if (!GFILTERs.empty())
 					if ((GFILTERs[0] != "PASS") && (GFILTERs[0] != "."))
-						include_genotype_out[ui] = false;
+						include_genotype[ui] = false;
 			}
 			else
 			{	// Only removing specific filters
 				for (unsigned int uj=0; uj<GFILTERs.size(); uj++)
 					if (filter_flags_to_remove.find(GFILTERs[uj]) != filter_flags_to_remove.end())
-							include_genotype_out[ui] = false;
+							include_genotype[ui] = false;
 			}
 		}
 	}
@@ -315,6 +274,7 @@ void bcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 				LOG.error("Error: Only expect single value for DEPTH.\n");
 
 			int tmp = -1;
+
 			if (type==1)
 			{
 				if ( !check_missing(l_pos, 1, line) )
@@ -338,7 +298,7 @@ void bcf_entry::parse_genotype_entry(unsigned int indv, bool GT, bool GQ, bool D
 				tmp = (int)tmp2;
 			}
 			else
-				LOG.error("Error: Only expect single value for DEPTH.\n");
+				LOG.error("Error: Invalid type for DEPTH.\n");
 
 			set_indv_DEPTH(indv, tmp);
 		}
@@ -394,7 +354,7 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 		set_FORMAT();
 
 	if(idx == GT_idx)
-		parse_genotype_entry(true);
+		parse_genotype_entry(indv, true);
 
 	out = ".";
 	ostringstream outstream;
@@ -419,12 +379,16 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 			get_indv_GENOTYPE_ids(indv, genotype);
 			phase = get_indv_PHASE(indv);
-			if ((genotype.first != -1) && (genotype.second != -1))
-				outstream << genotype.first << phase << genotype.second;
-			else if ((phase == '|') && (genotype.second == -1))
-				outstream << int2str(genotype.first);	// Handle haploid case
+			if ((genotype.first == -2) && (genotype.second == -2))
+				outstream << ".";
+			else if ((genotype.first == -1) && (genotype.second == -2))
+				outstream << ".";
+			else if ((genotype.first > -1) && (genotype.second == -2))
+				outstream << header::int2str(genotype.first);
+			else if ((genotype.first > -1) && (genotype.second > -1))
+				outstream << header::int2str(genotype.first) << phase << header::int2str(genotype.second);
 			else
-				outstream << int2str(genotype.first) << phase << int2str(genotype.second);
+				outstream << header::int2str(genotype.first) << phase << header::int2str(genotype.second);
 
 			tmpstr = outstream.str();
 			out = tmpstr;
@@ -434,6 +398,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 			format_miss = true;
 			for (unsigned int uj=0; uj<size; uj++)
 			{
+				if (check_end(l_pos, type, line))
+					break;
+
 				miss = check_missing(l_pos, type, line);
 				if (uj != 0)
 					outstream << ",";
@@ -443,7 +410,6 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 				else
 				{
 					tmp = *reinterpret_cast<const int8_t*>(&line[l_pos]);
-//					outstream << int2str(tmp);
 					outstream << int(tmp);
 				}
 				l_pos += sizeof(int8_t);
@@ -462,6 +428,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -471,7 +440,6 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 			else
 			{
 				tmp = *reinterpret_cast<const int16_t*>(&line[l_pos]);
-//				outstream << int2str(tmp);
 				outstream << int(tmp);
 			}
 			l_pos += sizeof(int16_t);
@@ -489,6 +457,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -498,7 +469,6 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 			else
 			{
 				tmp = *reinterpret_cast<const int32_t*>(&line[l_pos]);
-//				outstream << int2str(tmp);
 				outstream << int(tmp);
 			}
 			l_pos += sizeof(int32_t);
@@ -516,6 +486,9 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 
 		for (unsigned int uj=0; uj<size; uj++)
 		{
+			if (check_end(l_pos, type, line))
+				break;
+
 			miss = check_missing(l_pos, type, line);
 			if (uj != 0)
 				outstream << ",";
@@ -525,7 +498,6 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 			else
 			{
 				tmp = *reinterpret_cast<const float*>(&line[l_pos]);
-//				outstream << output_log::dbl2str(tmp, 6);
 				outstream << float(tmp);
 			}
 			l_pos += sizeof(float);
@@ -558,7 +530,7 @@ void bcf_entry::read_indv_generic_entry(unsigned int indv, const int &idx, strin
 	}
 }
 
-void bcf_entry::read_all_entries(string &out, const vector<bool> &include_indv, const vector<bool> &include_genotype)
+void bcf_entry::read_all_entries(string &out)
 {
 	if (fully_parsed == false)
 		parse_full_entry(true);
@@ -617,30 +589,15 @@ void bcf_entry::read_all_entries(string &out, const vector<bool> &include_indv, 
 	outstream.str("");
 }
 
-void bcf_entry::print(ostream &out)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	set<string> INFO_to_keep;
-	print(out, INFO_to_keep, false, include_indv, include_genotype);
-}
-
-void bcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	print(out, INFO_to_keep, keep_all_INFO, include_indv, include_genotype);
-}
-
 // Output BCF entry to output stream in VCF format
-void bcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO, const vector<bool> &include_indv, const vector<bool> &include_genotype)
+void bcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO)
 {
 	if (fully_parsed == false)
 		parse_full_entry();
 
 	out << get_CHROM() << '\t' << POS << '\t' << get_ID() << '\t' << REF << '\t' << get_ALT();
 
-	out << '\t' << entry::double2str(QUAL);
+	out << '\t' << header::double2str(QUAL);
 	out << '\t' << get_FILTER();
 	out << '\t' << get_INFO(INFO_to_keep, keep_all_INFO);
 
@@ -649,29 +606,14 @@ void bcf_entry::print(ostream &out, const set<string> &INFO_to_keep, bool keep_a
 		string indv_entries;
 		out << '\t' << get_FORMAT();
 
-		read_all_entries( indv_entries, include_indv, include_genotype );
+		read_all_entries(indv_entries);
 		out << indv_entries;
 	}
 	out << '\n';	// endl flushes the buffer, which is slow. This (should be) quicker.
 }
 
-void bcf_entry::print_bcf(BGZF* out)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	set<string> INFO_to_keep;
-	print_bcf(out, INFO_to_keep, false, include_indv, include_genotype);
-}
-
-void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO)
-{
-	vector<bool> include_indv(N_indv, true);
-	vector<bool> include_genotype(N_indv, true);
-	print_bcf(out, INFO_to_keep, keep_all_INFO, include_indv, include_genotype);
-}
-
 // Output BCF entry to output stream in BCF format
-void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO, const vector<bool> &include_indv, const vector<bool> &include_genotype)
+void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO)
 {
 	if (fully_parsed == false)
 		parse_full_entry(true);
@@ -700,13 +642,13 @@ void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 		for(unsigned int ui=0; ui<tmp_info.size(); ui++)
 		{
 			tmp_vector.resize(0);
-			index = INFO_reverse_map[ tmp_info[ui].first ];
+			index = entry_header.INFO_reverse_map[ tmp_info[ui].first ];
 			make_typed_int(tmp_vector, index, true);
 			out_vector.insert(out_vector.end(), tmp_vector.begin(), tmp_vector.end());
 
 			tmp_vector.resize(0);
-			map_type = INFO_map[ index ].Type;
-			number = INFO_map[ index ].N_entries;
+			map_type = entry_header.INFO_map[ index ].Type;
+			number = entry_header.INFO_map[ index ].N_entries;
 
 			if (map_type == Integer)
 				make_typed_int_vector(tmp_vector, tmp_info[ui].second, number );
@@ -750,7 +692,7 @@ void bcf_entry::print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_
 
 			if ( ((int)uj == GT_idx) and (include_genotype[uj] == false) )
 				for (unsigned int ploidy = 0; ploidy < FORMAT_skip[ui]; ploidy++)
-					tmp_vector[ploidy] = (int8_t)0x00;
+					tmp_vector[ploidy] = (int8_t)0x81;
 			else
 				memcpy(&tmp_vector[0], &line[l_pos], FORMAT_skip[ui]);
 

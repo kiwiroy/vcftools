@@ -19,44 +19,30 @@ using namespace std;
 class bcf_file : public variant_file
 {
 public:
-	bcf_file(const string &filename, const set<string> &chrs_to_keep, const set<string> &exclude_chrs, bool force_write_index=false, bool gatk=false);
+	bcf_file(const parameters &params, bool diff=false);
 
-	void get_entry(unsigned int entry_num, vector<char> &out);
-	entry* get_entry_object(unsigned int N_indv);
+	void get_entry(vector<char> &out);
+	entry* get_entry_object();
 
-	void print(ostream &out, const set<string> &INFO_to_keep, bool keep_all_INFO);
-	void print(const string &output_file_prefix, const set<string> &INFO_to_keep, bool keep_all_INFO=false);
-	void print_bcf(BGZF* out, const set<string> &INFO_to_keep, bool keep_all_INFO);
-	void print_bcf(const string &output_file_prefix, const set<string> &INFO_to_keep, bool keep_all_INFO=false, bool stream=false);
+	void print(const parameters &params);
+	void print_bcf(const parameters &params);
 
 protected:
 	~bcf_file();
 
 private:
-	gzFile bcf_infile_bgzf;
-	FILE *bcf_infile;
-	bool file_open;
 	bool is_BGZF;
-	bool is_GATK;
 	bool big_endian;
-	unsigned int gzMAX_LINE_LEN;
+	bool stream;
 
 	int read(void *buffer, unsigned int len, size_t size);
-	void read_header(bool skip_meta=false);
+	void read_header();
+	void read_file();
 	void open();
+	void open_gz();
 	void close();
 	bool eof();
-
-	inline void read_CHROM_only(string &CHROM);
-	void read_CHROM_and_POS_only(string &CHROM, int &POS);
-	inline int read_CHROM_and_POS_and_skip_remainder_of_line(string &CHROM, int &POS);
-
-	streampos get_filepos();
-	void set_filepos(streampos &filepos);
-	streampos get_eof();
-
-	void scan_file(const set<string> &chrs_to_keep, const set<string> &exclude_chrs, bool force_write_index=false);
-
+	void check_bcf();
 };
 
 #endif /* BCF_FILE_H_ */

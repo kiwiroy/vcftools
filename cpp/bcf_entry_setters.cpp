@@ -8,11 +8,6 @@
 
 #include "bcf_entry.h"
 
-void bcf_entry::set_QUAL(const float &in)
-{
-	QUAL = in;
-}
-
 void bcf_entry::set_ALT(const int n_allele)
 {
 	ALT.resize(n_allele-1);
@@ -54,8 +49,8 @@ void bcf_entry::set_INFO()
 		key = get_typed_int(&i, line, type, size);
 		get_type(&i, line, type, size);
 
-		pair<string, string> INFO_entry(INFO_map[key].ID, ".");
-		data_type = INFO_map[key].Type_str;
+		pair<string, string> INFO_entry(entry_header.INFO_map[key].ID, ".");
+		data_type = entry_header.INFO_map[key].Type_str;
 		ostringstream ss(ostringstream::out);
 
 		for (unsigned int uj=0; uj<size; uj++)
@@ -108,7 +103,7 @@ void bcf_entry::set_INFO()
 			}
 			else
 			{
-				LOG.printLOG("Error: Unknown type: " + int2str(type) + "\n");
+				LOG.printLOG("Error: Unknown type: " + header::int2str(type) + "\n");
 				parsed_INFO = false;
 				return;
 			}
@@ -118,7 +113,7 @@ void bcf_entry::set_INFO()
 		if (miss)
 			INFO_entry.second = ".";
 		else if (data_type == "Flag")
-			INFO_entry.second = "";
+			INFO_entry.second = "1";
 		else if (value != "")
 			INFO_entry.second = ss.str();
 		else
@@ -127,7 +122,6 @@ void bcf_entry::set_INFO()
 	}
 	parsed_INFO = true;
 }
-
 
 void bcf_entry::set_FORMAT()
 {
@@ -149,11 +143,11 @@ void bcf_entry::set_FORMAT()
 			skip = sizeof(int32_t)*size*N_indv;
 		else
 		{
-			LOG.printLOG("Error: Unknown type: " + int2str(type) + "\n");
+			LOG.printLOG("Error: Unknown type: " + header::int2str(type) + "\n");
 			parsed_FORMAT = false;
 			return;
 		}
-		add_FORMAT_entry( FORMAT_map[fmt_key].ID, fmt_key, ui, l_pos, type, size);
+		add_FORMAT_entry( entry_header.FORMAT_map[fmt_key].ID, fmt_key, ui, l_pos, type, size);
 		l_pos += skip;
 	}
 
@@ -170,7 +164,6 @@ void bcf_entry::set_FORMAT()
 		DP_idx = FORMAT_to_idx["DP"];
 	if (FORMAT_to_idx.find("FT") != FORMAT_to_idx.end())
 		FT_idx = FORMAT_to_idx["FT"];
-
 	parsed_FORMAT = true;
 }
 
@@ -191,64 +184,6 @@ void bcf_entry::add_FORMAT_entry(const string &in, const unsigned int &fmt_key, 
 		FORMAT_skip[pos] = ( sizeof(int32_t)*size );
 }
 
-void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const vector<char> &in)
-{
-	int8_t tmp, tmp2;
-	char phased[2] = {'/', '|'};
-	ploidy.resize(N_indv);
-	ploidy[indv] = 0;
-
-	for (unsigned int ui=0; ui<in.size(); ui++)
-	{
-		tmp = *reinterpret_cast<const int8_t*>(in[ui]);
-		if ( tmp == (int8_t)0x80 )
-			break;
-		ploidy[indv]++;
-	}
-
-	if (ploidy[indv] == 0)
-	{
-		set_indv_GENOTYPE_alleles(indv, make_pair(-1, -1));
-	}
-	else if (ploidy[indv] == 1)
-	{
-		set_indv_PHASE(indv, '|');
-		tmp = in[0];
-		if (tmp == (int8_t)0x80)
-			tmp = -1;
-		else
-			tmp = (tmp >> 1) - 1;
-		set_indv_GENOTYPE_alleles(indv, make_pair(tmp, -1));
-	}
-	else if (ploidy[indv] == 2)
-	{
-		tmp = in[0];
-		tmp2 = in[1];
-		if (tmp == (int8_t)0x80)
-			tmp = -1;
-		else
-			tmp = (tmp >> 1) - 1;
-
-		if (tmp2 == (int8_t)0x80)
-		{
-			tmp2 = -1;
-			set_indv_PHASE(indv, '/');
-		}
-		else
-		{
-			char phase = phased[ tmp2 & (int8_t)1 ];
-			tmp2 = (tmp2 >> 1) - 1;
-			set_indv_PHASE(indv, phase);
-		}
-
-		set_indv_GENOTYPE_alleles(indv, make_pair((int)tmp, (int)tmp2));
-	}
-	else if (ploidy[indv] > 2)
-		LOG.error("Polyploidy found, and not supported by vcftools: " + CHROM + ":" + int2str(POS));
-
-	parsed_GT[indv] = true;
-}
-
 void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned int &pos, const unsigned int &size)
 {
 	int8_t tmp, tmp2;
@@ -260,14 +195,15 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 	for (unsigned int ui=0; ui<size; ui++)
 	{
 		tmp = *reinterpret_cast<const int8_t*>(&line[cur_pos]);
-		if ( tmp == (int8_t)0x80 )
+		if ( tmp == (int8_t)0x81 )
 			break;
 		ploidy[indv]++;
 		cur_pos += sizeof(int8_t);
 	}
+
 	if (ploidy[indv] == 0)
 	{
-		set_indv_GENOTYPE_alleles(indv, make_pair(-1, -1));
+		set_indv_GENOTYPE_alleles(indv, make_pair(-2, -2));
 	}
 	else if (ploidy[indv] == 1)
 	{
@@ -277,7 +213,7 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 			tmp = -1;
 		else
 			tmp = (tmp >> 1) - 1;
-		set_indv_GENOTYPE_alleles(indv, make_pair(tmp, -1));
+		set_indv_GENOTYPE_alleles(indv, make_pair(tmp, -2));
 	}
 	else if (ploidy[indv] == 2)
 	{
@@ -303,7 +239,7 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const unsigned in
 		set_indv_GENOTYPE_alleles(indv, make_pair((int)tmp, (int)tmp2));
 	}
 	else if (ploidy[indv] > 2)
-		LOG.error("Polyploidy found, and not supported by vcftools: " + CHROM + ":" + int2str(POS));
+		LOG.error("Polyploidy found, and is not supported by vcftools: " + CHROM + ":" + header::int2str(POS));
 	parsed_GT[indv] = true;
 }
 
@@ -318,9 +254,9 @@ void bcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const pair<string
 {
 	pair<int, int> a(-1,-1);
 	if (genotype.first != ".")
-		a.first = str2int(genotype.first);
+		a.first = header::str2int(genotype.first);
 	if (genotype.second != ".")
-		a.second = str2int(genotype.second);
+		a.second = header::str2int(genotype.second);
 
 	set_indv_GENOTYPE_alleles(indv, a);
 	set_indv_PHASE(indv, phase);
@@ -334,36 +270,24 @@ void bcf_entry::set_indv_GENOTYPE_alleles(unsigned int indv, const pair<int, int
 
 	pair<int, int> a(-1,-1);
 
-	if (in.first != 0x80)
-			a.first = in.first;
-	if (in.second != 0x80)
-			a.second = in.second;
+	if (in.first == 0x81)
+		a.first = -2;
+	else if (in.first != 0x80)
+		a.first = in.first;
+
+	if (in.second == 0x81)
+		a.second = -2;
+	else if (in.second != 0x80)
+		a.second = in.second;
 
 	GENOTYPE[indv] = in;
-	parsed_GT[indv] = true;
-}
-
-void bcf_entry::set_indv_GENOTYPE_alleles(unsigned int indv, char a1, char a2)
-{
-	if (GENOTYPE.size() == 0)
-		GENOTYPE.resize(N_indv, make_pair(-1,-1));
-
-	pair<int, int> a(-1,-1);
-
-	if (a1 != '.')
-		a.first = a1 - '0';
-
-	if (a2 != '.')
-		a.second = a2 - '0';
-
-	GENOTYPE[indv] = a;
 	parsed_GT[indv] = true;
 }
 
 void bcf_entry::set_indv_GENOTYPE_ids(unsigned int indv, const pair<int, int> &in)
 {
 	if (GENOTYPE.size() == 0)
-		GENOTYPE.resize(N_indv, make_pair(-1,-1));
+		GENOTYPE.resize(N_indv, make_pair(-2,-2));
 	GENOTYPE[indv] = in;
 }
 
@@ -414,21 +338,6 @@ void bcf_entry::set_indv_GQUALITY(unsigned int indv, const float &in)
 		GQUALITY[indv] = in;
 }
 
-void bcf_entry::set_indv_DEPTH(unsigned int indv, int in)
-{
-	parsed_DP[indv] = true;
-	if (in == -1)
-	{
-		if (DEPTH.size() > 0)
-			DEPTH[indv] = -1;
-		return;
-	}
-	if (DEPTH.size() == 0)
-		DEPTH.resize(N_indv, -1);
-
-	DEPTH[indv] = in;
-}
-
 void bcf_entry::set_indv_GFILTER(unsigned int indv, const vector<char> &in)
 {
 	parsed_FT[indv] = true;
@@ -458,9 +367,7 @@ void bcf_entry::set_indv_GFILTER(unsigned int indv, const vector<char> &in)
 			GFILTER[indv].push_back(ith_FILTER);
 		}
 		else
-		{
 			ss << in[ui];
-		}
 	}
 	ith_FILTER = ss.str();
 	ss.clear();
@@ -500,7 +407,7 @@ void bcf_entry::set_FILTER()
 	FILTER_str = get_int_vector( &FILTER_pos, line );
 	FILTER.resize(0);
 
-	if ( (FILTER_str.size() == 1) and FILTER_map[ FILTER_str[0] ].ID == "")
+	if ( (FILTER_str.size() == 1) and entry_header.FILTER_map[ FILTER_str[0] ].ID == "")
 	{
 		FILTER.push_back("PASS");
 		return;
@@ -509,7 +416,7 @@ void bcf_entry::set_FILTER()
 	for (unsigned int ui=0; ui<FILTER_str.size(); ui++)
 	{
 		if ((int8_t)FILTER_str[ui] != (int8_t)0x80)
-			FILTER.push_back( FILTER_map[ FILTER_str[ui] ].ID );
+			FILTER.push_back( entry_header.FILTER_map[ FILTER_str[ui] ].ID );
 		else
 			FILTER.push_back( "." );
 	}

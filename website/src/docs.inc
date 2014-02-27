@@ -10,7 +10,9 @@ the utilities such as <span class="cmd">vcf-convert</span>, <span class="cmd">vc
 
 <h3>Documentation</h3>
 <ul class="faq">
-<li> <a href="perl_module.html">The Perl API and scripts</a>: A complete list of scripts include in the perl module.
+<li> <a href="vcftools.1.html">Man page documentation for the binary executable <span class="cmd">vcftools</span></a>
+<li> <a href="perl_module.html">The Perl API and scripts</a>
+<li> <a href="htslib.html">Fast htslib C tools</a> <span style="font-size:70%;font-style:italic;color:#ff5500;">(new)</span>
 </ul>
 
 <h3>Examples of perl module usage by topic</h3>
