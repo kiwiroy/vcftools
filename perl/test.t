@@ -243,7 +243,7 @@ sub test_merge
         `cat $file | bgzip -c > $file.gz; tabix -f -p vcf $file.gz`;
         $cmd .= " $file.gz";
     }
-    my @out = `$cmd 2>&1 | grep -v ^##source`;
+    my @out = `$cmd 2>/dev/null | grep -v ^##source`;
     open(my $fh,'<',$expected) or confess("$expected: $!");
     my @exp = <$fh>;
     close($fh);

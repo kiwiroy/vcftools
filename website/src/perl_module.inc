@@ -4,8 +4,8 @@
 <p>VCFtools contains a Perl API (<a href="#Vcf.pm">Vcf.pm</a>) and a number
 of Perl scripts that can be used to perform common tasks with VCF files such as
 file validation, file merging, intersecting, complements, etc. The Perl tools
-support all versions of the VCF specification (3.2, 3.3, 4.0 and 4.1), 
-nevertheless, the users are encouraged to use the latest versions VCFv4.0 or VCFv4.1.
+support all versions of the VCF specification (3.2, 3.3, 4.0, 4.1 and 4.2), 
+nevertheless, the users are encouraged to use the latest versions VCFv4.1 or VCFv4.2.
 The VCFtools in general have been used mainly with diploid data, but the Perl tools
 aim to support polyploid data as well.
 </p>
@@ -146,6 +146,7 @@ ones follow:</p>
         .. Tests if variant bases tend to occur with a quality bias (T-test). This filter is by default 
         effectively disabled as it is set to 0.
     </div>
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#annotate">htslib</a> C version of this tool is now available (see <a href="htslib.html#annotate">bcftools annotate</a>).
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-annotate --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 <div class="usageBox"><span class="usageToggle">(Read even more)</span><pre class="usageText"><?php unset($out);exec("cat ../examples/filters.txt",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
@@ -160,7 +161,7 @@ actual sequence (useful when comparing indels), etc.
 <br>
 </p>
 <p class="codebox">vcf-compare -H A.vcf.gz B.vcf.gz C.vcf.gz</p>
-<p><b><i>Note:</i></b> A fast <a href="htslib.html#check">htslib</a> C version of this tool is now available (see <a href="htslib.html#check">bcftools check</a>).
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#stats">htslib</a> C version of this tool is now available (see <a href="htslib.html#stats">bcftools stats</a>).
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-compare --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
@@ -218,9 +219,9 @@ vcf-annotate -f MinMQ=30 file.vcf | vcf-contrast -n +Child -Mother,Father -d 10 
 
 <div class="item">
 <a name="vcf-filter" class="Q">vcf-filter</a>
-<p>Please take a look at <a href="#vcf-annotate">vcf-annotate</a> and <a href="htslib.html#subset">bcftools subset</a> which does what you are looking for. Apologies for the non-intuitive naming.
+<p>Please take a look at <a href="#vcf-annotate">vcf-annotate</a> and <a href="htslib.html#view">bcftools view</a> which does what you are looking for. Apologies for the non-intuitive naming.
 <br><b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of a filtering tool is now available (see <a href="htslib.html#filter">bcftools filter</a> and
-<a href=htslib.html#subset">bcftools subset</a>).
+<a href=htslib.html#view">bcftools view</a>).
 </p>
 </div>
 
@@ -245,6 +246,7 @@ vcf-annotate -f MinMQ=30 file.vcf | vcf-contrast -n +Child -Mother,Father -d 10 
 <a name="vcf-indel-stats" class="Q">vcf-indel-stats</a>
 <p> Calculate in-frame ratio.
 </p>
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#stats">htslib</a> C version of this tool is now available (see <a href="htslib.html#stats">bcftools stats</a>).
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-indel-stats --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
 
@@ -330,6 +332,7 @@ vcf-query file.vcf -f '%CHROM:%POS %REF %ALT [ %DP]\n'
 <p>Outputs some basic statistics: the number of SNPs, indels, etc.
 </p>
 <p class="codebox">vcf-stats file.vcf.gz</p>
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#stats">htslib</a> C version of this tool is now available (see <a href="htslib.html#stats">bcftools stats</a>).
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-stats --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
 
@@ -340,7 +343,7 @@ vcf-query file.vcf -f '%CHROM:%POS %REF %ALT [ %DP]\n'
 </p>
 <p class="codebox">vcf-subset -c NA0001,NA0002 file.vcf.gz | bgzip -c &gt; out.vcf.gz</p>
 <p>
-<b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of this tool is now available (see <a href="htslib.html#subset">bcftools subset</a>).
+<b><i>Note:</i></b> A fast <a href="htslib.html">HTSlib</a> C version of this tool is now available (see <a href="htslib.html#view">bcftools view</a>).
 </p>
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-subset --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
@@ -351,6 +354,7 @@ vcf-query file.vcf -f '%CHROM:%POS %REF %ALT [ %DP]\n'
 <p>A lightweight script for quick calculation of <a href="http://en.wikipedia.org/wiki/Transition_%28genetics%29">Ts</A>/<A href="http://en.wikipedia.org/wiki/Transversion">Tv</A> ratio.
 </p>
 <p class="codebox">cat file.vcf | vcf-tstv</p>
+<p><b><i>Note:</i></b> A fast <a href="htslib.html#stats">htslib</a> C version of this tool is now available (see <a href="htslib.html#stats">bcftools stats</a>).
 <div class="usageBox"><span class="usageToggle">(Read more)</span><pre class="usageText"><?php unset($out);exec("../perl/vcf-tstv --help 2>&1",$out); echo htmlspecialchars(implode("\n",$out)); ?></pre></div>
 </div>
 
