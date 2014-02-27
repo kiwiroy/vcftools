@@ -172,9 +172,20 @@ void variant_file::output_het(const parameters &params)
 
 	LOG.printLOG("Outputting Individual Heterozygosity\n");
 
+	streambuf * buf;
+	ofstream temp_out;
 	string output_file = params.output_prefix + ".het";
-	ofstream out(output_file.c_str());
-	if (!out.is_open()) LOG.error("Could not open output file: " + output_file, 12);
+
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Heterozygosity output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "INDV\tO(HOM)\tE(HOM)\tN_SITES\tF" << endl;
 
 	// P(Homo) = F + (1-F)P(Homo by chance)
@@ -3626,14 +3637,16 @@ void variant_file::output_removed_sites(const parameters &params)
 		e->reset(variant_line);
 		N_entries += e->apply_filters(params);
 
-		if(!e->passed_filters)
+		if(e->passed_filters)
 			continue;
 		N_kept_entries++;
 
 		e->parse_basic_entry();
 		POS = e->get_POS();
 		CHROM = e->get_CHROM();
-		out << CHROM << "\t" << POS << endl;
+
+		if(!eof())
+			out << CHROM << "\t" << POS << endl;
 	}
 	delete e;
 }
