@@ -1,6 +1,5 @@
 
-FILES=documentation downloads examples htslib index license links man perl_module specs
+FILES=documentation downloads examples htslib index license links man_latest perl_examples perl_module specs
 
 install:
 	    @for i in $(FILES); do echo "php src/index.php $$i > $$i.html"; php src/index.php $$i > $$i.html; done;
-#		zcat ../cpp/vcftools.1.gz | groff -mandoc -Thtml > vcftools.1.html

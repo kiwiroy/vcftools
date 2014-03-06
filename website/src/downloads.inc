@@ -15,10 +15,10 @@
     
       <h2>Downloading through Sourceforge</h2>
       <p>There are two ways to download VCFtools.</p>
-      <p>The <b>stable releases</b> can be downloaded from from the project sourceforge page here:</p>
+      <p>The <b>stable releases</b> can be downloaded from from the project Sourceforge page here:</p>
       <p class="codebox" style="text-align: center;"><a href="https://sourceforge.net/projects/vcftools/files/">https://sourceforge.net/projects/vcftools/files/</a></p>
 		<h2>Downloading with Subversion</h2>      
-      <p>The <b>latest experimental version</b> can be downloaded through the subversion client. If subversion is installed, run the following command:</p>
+      <p>The <b>latest developmental version</b> can be downloaded through the subversion client. If subversion is installed, run the following command:</p>
       <p class="codebox" style="text-align: center;">svn checkout http://svn.code.sf.net/p/vcftools/code/trunk/ vcftools</p>
       <p>The above command is required to be run only once, for any subsequent updates run the following command from the vcftools directory:</p>
       <p class="codebox" style="text-align: center;">svn update</p>

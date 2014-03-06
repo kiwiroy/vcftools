@@ -9,6 +9,7 @@ function validate_path($path)
 $titles = array(
         'index'         => 'VCFtools',
         'perl_module'   => 'VCFtools: Perl tools and API',
+        'perl_examples' => 'VCFtools: Perl tools and API Examples',
         'htslib'        => 'VCFtools: htslib VCF commands',
         'documentation' => 'VCFtools Documentation',
         'downloads'     => 'VCFtools Downloads',
@@ -16,7 +17,7 @@ $titles = array(
         'license'       => 'VCFtools License',
         'specs'         => 'VCF Specification',
         'links'         => 'VCF Links',
-        'man'    			=> 'VCF Manual',
+        'man_latest'		=> 'VCF Manual',
         );
 
 if (isset($argc)) { $_GET['pg']=$argv[1]; }

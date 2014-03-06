@@ -33,7 +33,7 @@
 </h2>
 
 
-<p style="margin-left:11%; margin-top: 1em">vcftools
+<p style="margin-left:11%; margin-top: 1em">VCFtools v0.1.12
 &minus; Utilities for the variant call format (VCF) and
 binary variant call format (BCF)</p>
 
@@ -53,7 +53,7 @@ OUTPUT OPTIONS ]</p>
 </h2>
 
 
-<p style="margin-left:11%; margin-top: 1em">vcftools is a
+<p style="margin-left:11%; margin-top: 1em">VCFtools is a
 suite of functions for use on genetic variation data in the
 form of VCF and BCF files. The tools provided will be used
 mainly to summarize data, run calculations on data, filter

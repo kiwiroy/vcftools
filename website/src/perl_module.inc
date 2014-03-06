@@ -20,15 +20,8 @@
 	support all versions of the VCF specification (3.2, 3.3, 4.0, 4.1 and 4.2), 
 	nevertheless, the users are encouraged to use the latest versions VCFv4.1 or VCFv4.2.
 	The VCFtools in general have been used mainly with diploid data, but the Perl tools
-	aim to support polyploid data as well.
-	</p>
-	<p>
-	Run any of the Perl scripts with the --help switch to obtain more help.
-	Note that the <b><span class="cmd">PERL5LIB</span> environment variable must contain 
-	the path to your VCFtools installation</b> in order for the scripts to work.
-	</p>
-	<p class="codebox">export PERL5LIB=/path/to/your/vcftools-directory/</p>
-
+	aim to support polyploid data as well.	Run any of the Perl scripts with the <b>--help</b> switch to obtain more help.	</p>
+	
 	<p>
 	Many of the <b>Perl scripts require that the VCF files are compressed by <span class="cmd">bgzip</span>
 	and indexed by <span class="cmd">tabix</span></b> (both tools are part of the tabix package,

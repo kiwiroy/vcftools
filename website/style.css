@@ -47,7 +47,7 @@ a:hover {
 	background: #EEEEEE;
 	border: 1px solid #DDD;
 	padding: 1px;
-	padding-left: 18px;
+	padding-left: 5px;
 	font-family: courier;
 	font-size: 8pt;
 	margin-bottom: 1.2em;
@@ -199,10 +199,10 @@ blockquote{
 }
 
 #left {
-	width: 350px;
+	width: 65%;
 	float:left;
 	display: block;
-        margin-left: 20px;
+   margin-left: 5px;
 	display: inline;
 }
 
@@ -211,14 +211,14 @@ blockquote{
 
 
 #right {
-	width: 315px;
+	width: 30%;
 	float: right;
 	display:block;
 	margin-top: 10px;
 }
 
 #right .box {
-	width: 280px;
+	width: 100%;
 	background: #F6F9FB;
 	border: 1px solid #E1E1E1;
 	padding:10px 10px 15px 10px;
