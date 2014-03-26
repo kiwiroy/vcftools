@@ -3150,7 +3150,10 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 			int pos = (int)e->get_POS();
 			CHROM = e->get_CHROM();
 			if (CHROM != last_chr)
+			{
 				chrs.push_back(CHROM);
+				last_chr = CHROM;
+			}
 
 			int first = (int) ceil((pos - fst_window_size)/double(fst_window_step));
 			if (first < 0)
@@ -3194,7 +3197,6 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 
 	ostream out(buf);
 	out << "CHROM\tBIN_START\tBIN_END\tN_VARIANTS\tWEIGHTED_FST\tMEAN_FST" << endl;
-
 	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
 		CHROM = chrs[ui];

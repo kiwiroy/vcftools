@@ -355,7 +355,8 @@ void parameters::print_params()
 	if (FORMAT_id_to_extract != defaults.FORMAT_id_to_extract) LOG.printLOG("\t--extract-FORMAT-info " + FORMAT_id_to_extract + "\n");
 	if (geno_rsq_position_list != defaults.geno_rsq_position_list) LOG.printLOG("\t--geno-r2-positions " + geno_rsq_position_list + "\n");
 	if (hap_rsq_position_list != defaults.hap_rsq_position_list) LOG.printLOG("\t--hap-r2-positions " + hap_rsq_position_list + "\n");
-
+	if (fst_window_size != defaults.fst_window_size) LOG.printLOG("\t--fst-window-size " + output_log::int2str(fst_window_size) + "\n");
+	if (fst_window_step != defaults.fst_window_step) LOG.printLOG("\t--fst-window-step " + output_log::int2str(fst_window_step) + "\n");
 	if (weir_fst_populations.size() != 0)
 	{
 		for (unsigned int ui=0; ui<weir_fst_populations.size(); ui++)
