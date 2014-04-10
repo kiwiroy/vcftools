@@ -411,7 +411,7 @@ sub test_consensus
     `cat $vcf | bgzip -c > $vcf.gz`;
     `tabix -p vcf -f $vcf.gz`;
     my $cmd = "perl -I../perl/ -MVcf ../perl/vcf-consensus $args $vcf.gz < $fa";
-    my @out = `$cmd 2>&1`;
+    my @out = `$cmd`;
     open(my $fh,'<',$out) or confess("$out: $!");
     my @exp = <$fh>;
     close($fh);
