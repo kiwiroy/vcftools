@@ -90,6 +90,7 @@ parameters::parameters(int argc, char *argv[])
 	output_HWE = false;
 	output_indel_hist = false;
 	output_indv_depth = false;
+	output_indv_freq_burden = false;
 	output_indv_missingness = false;
 	output_interchromosomal_hap_rsq = false;
 	output_interchromosomal_geno_rsq = false;
@@ -217,6 +218,7 @@ void parameters::read_parameters()
 		else if (in_str == "--hwe") { max_alleles = 2; min_HWE_pvalue = atof(get_arg(i+1).c_str()); i++; }					// Minimum per-site HWE p-value
 		else if (in_str == "--IMPUTE") { output_as_IMPUTE = true; phased_only=true; min_site_call_rate=1.0; min_alleles=2; max_alleles=2; num_outputs++;}// Output as IMPUTE format
 		else if (in_str == "--indv") { indv_to_keep.insert(get_arg(i+1)); i++; }						// List of individuals to keep
+		else if (in_str == "--indv-freq-burden") { output_indv_freq_burden = true; num_outputs++; }
 		else if (in_str == "--interchrom-hap-r2") { output_interchromosomal_hap_rsq = true; phased_only = true;  min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--interchrom-geno-r2") { output_interchromosomal_geno_rsq = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--invert-mask") { mask_file = get_arg(i+1); i++; invert_mask = true; }
@@ -410,6 +412,7 @@ void parameters::print_params()
 	if (output_HWE) LOG.printLOG("\t--hardy\n");
 	if (output_indel_hist != defaults.output_indel_hist) LOG.printLOG("\t--hist-indel-len \n");
 	if (output_indv_depth) LOG.printLOG("\t--depth\n");
+	if (output_indv_freq_burden) LOG.printLOG("\t--indv-freq-burden\n");
 	if (output_indv_missingness) LOG.printLOG("\t--missing-indv\n");
 	if (output_interchromosomal_hap_rsq) LOG.printLOG("\t--interchrom-hap-r2\n");
 	if (output_interchromosomal_geno_rsq) LOG.printLOG("\t--interchrom-geno-r2\n");

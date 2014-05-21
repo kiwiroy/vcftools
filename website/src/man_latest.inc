@@ -772,6 +772,13 @@ corresponding Expected numbers under HWE.</p>
 statistic in bins with size of the specified number. The
 output file has the suffix &quot;.Tajima.D&quot;.</p>
 
+<!--
+<p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b></p>
+
+<p style="margin-left:17%;">This option calculates the number of variants 
+within each individual of a specific frequency. The resulting file has the
+suffix &quot;.ifreqburden&quot;.</p>
+-->
 
 <p style="margin-left:14%; margin-top: 1em"><b>--relatedness</b></p>
 
@@ -789,7 +796,7 @@ themselves. The output file has the suffix
 
 <p style="margin-left:17%;">This option is used to
 calculate and output a relatedness statistic based on the
-method of Manichaikul et al., BIOINFORMATICS 2010
+method of Manichaikul et al., Bioinformatics 2010
 (doi:10.1093/bioinformatics/btq559). The output file has the
 suffix &quot;.relatedness2&quot;.</p>
 

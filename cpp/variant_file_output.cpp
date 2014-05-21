@@ -382,6 +382,137 @@ void variant_file::output_hwe(const parameters &params)
 	delete e;
 }
 
+void variant_file::ouput_indv_freq_burden(const parameters &params)
+{
+	// Output the burden within each individual of variants at each frequency.
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to output Frequency Burden Statistics.");
+	LOG.printLOG("Outputting frequency burden by individual\n");
+	string output_file = params.output_prefix + ".ifreqburden";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency Burden Output File: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	int N = N_kept_individuals();
+	int max_chr_count = N * 2;	// Assuming diploidy...
+	vector< vector<int> > burden_matrix(N, vector<int>(max_chr_count+1, 0));
+
+	out << "INDV";
+	for (int i=0; i<=N; i++)
+		out << "\t" << LOG.int2str(i);
+	out << endl;
+
+	vector<int> allele_counts;
+	unsigned int N_non_missing_chr;
+	unsigned int N_alleles;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	int aa_idx = 0;
+
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		N_entries += e->apply_filters(params);
+
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		if (params.derived)
+			e->parse_basic_entry(true, false, true);
+		else
+			e->parse_basic_entry(true);
+
+		e->parse_genotype_entries(true);
+		N_alleles = e->get_N_alleles();
+
+		if (e->is_diploid() == false)
+		{
+			LOG.one_off_warning("\tWarning: Only using fully diploid sites.");
+			continue;
+		}
+
+		if (params.derived)
+		{
+			string AA = e->get_INFO_value("AA");
+			std::transform(AA.begin(), AA.end(), AA.begin(), ::toupper);	// Comment this out if only want high quality sites.
+			if ((AA == "?") || (AA == "."))
+			{
+				LOG.one_off_warning("\tWarning: Cannot find Ancestral Alleles (AA)");
+				continue;
+			}
+			else
+			{
+				bool found = false;
+				for (unsigned int ui=0; ui<N_alleles; ui++)
+				{
+					if (AA == e->get_allele(ui))
+					{
+						aa_idx = ui;
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					LOG.one_off_warning("\tWarning: Ancestral allele does not match any SNP allele.");
+					continue;
+				}
+			}
+		}
+
+		e->get_allele_counts(allele_counts, N_non_missing_chr);
+		pair<int, int> geno;
+		int idx;
+
+		int indv_count = 0;
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if (e->include_indv[ui] == false)
+				continue;
+
+			if (e->include_genotype[ui] == true)
+			{
+				e->get_indv_GENOTYPE_ids(ui, geno);
+
+				if (geno.first != aa_idx)
+				{
+					burden_matrix[indv_count][allele_counts[geno.first]]++;
+				}
+
+				if (geno.second != aa_idx)
+				{
+					burden_matrix[indv_count][allele_counts[geno.second]]++;
+				}
+			}
+			indv_count++;
+		}
+	}
+	delete e;
+
+	int indv_count = 0;
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		out << meta_data.indv[indv_count];
+		for (int i=0; i<=N; i++)
+			out << "\t" << LOG.int2str(burden_matrix[indv_count][i]);
+		out << endl;
+
+		indv_count++;
+	}
+}
+
 void variant_file::output_individuals_by_mean_depth(const parameters &params)
 {
 	// Output information regarding the mean depth for each individual
@@ -401,7 +532,7 @@ void variant_file::output_individuals_by_mean_depth(const parameters &params)
 	else
 		buf = cout.rdbuf();
 
-		ostream out(buf);
+	ostream out(buf);
 
 	out << "INDV\tN_SITES\tMEAN_DEPTH" << endl;
 	vector<double> depth_sum(meta_data.N_indv, 0.0);

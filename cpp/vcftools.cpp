@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
 	if (!params.INFO_to_extract.empty()) vf->output_INFO_for_each_site(params);
 	if (params.FORMAT_id_to_extract != "") vf->output_FORMAT_information(params);
 	if (params.output_indv_depth == true) vf->output_individuals_by_mean_depth(params);
+	if (params.output_indv_freq_burden == true) vf->ouput_indv_freq_burden(params);
 	if (params.output_geno_depth == true) vf->output_genotype_depth(params);
 	if (params.output_site_depth == true) vf->output_site_depth(params, false);
 	if (params.output_site_mean_depth == true) vf->output_site_depth(params, true);
