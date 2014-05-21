@@ -406,7 +406,7 @@ void variant_file::ouput_indv_freq_burden(const parameters &params)
 	vector< vector<int> > burden_matrix(N, vector<int>(max_chr_count+1, 0));
 
 	out << "INDV";
-	for (int i=0; i<=N; i++)
+	for (int i=0; i<=max_chr_count; i++)
 		out << "\t" << LOG.int2str(i);
 	out << endl;
 
@@ -505,7 +505,7 @@ void variant_file::ouput_indv_freq_burden(const parameters &params)
 		if (include_indv[ui] == false)
 			continue;
 		out << meta_data.indv[indv_count];
-		for (int i=0; i<=N; i++)
+		for (int i=0; i<=max_chr_count; i++)
 			out << "\t" << LOG.int2str(burden_matrix[indv_count][i]);
 		out << endl;
 
