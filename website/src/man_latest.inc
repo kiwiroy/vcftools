@@ -33,7 +33,7 @@
 </h2>
 
 
-<p style="margin-left:11%; margin-top: 1em">VCFtools v0.1.12
+<p style="margin-left:11%; margin-top: 1em">VCFtools v0.1.12b
 &minus; Utilities for the variant call format (VCF) and
 binary variant call format (BCF)</p>
 
@@ -772,13 +772,19 @@ corresponding Expected numbers under HWE.</p>
 statistic in bins with size of the specified number. The
 output file has the suffix &quot;.Tajima.D&quot;.</p>
 
-<!--
 <p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b></p>
 
-<p style="margin-left:17%;">This option calculates the number of variants 
-within each individual of a specific frequency. The resulting file has the
-suffix &quot;.ifreqburden&quot;.</p>
--->
+<p style="margin-left:17%;">This option calculates the
+number of variants within each individual of a specific
+frequency. The resulting file has the suffix
+&quot;.ifreqburden&quot;.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--LROH</b></p>
+
+<p style="margin-left:17%;">This option will identify and
+output Long Runs of Homozygosity. The output file has the
+suffix &quot;.LROH&quot;.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--relatedness</b></p>
 
