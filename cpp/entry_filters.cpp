@@ -679,6 +679,8 @@ void entry::filter_sites_by_allele_type(bool keep_only_indels, bool remove_indel
 	is_indel = false;
 	allele = REF;
 	ref_len = allele.size();
+	if (ref_len != 1)
+		is_indel = true;
 	N_alleles = get_N_alleles();
 	for (unsigned int ui=1; ui<N_alleles; ui++)
 	{
