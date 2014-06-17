@@ -4681,13 +4681,15 @@ void variant_file::output_indel_hist(const parameters &params)
 			e->get_allele(ui, allele);
 			if (allele.size() != ref_len)
 			{
-				indel_len = allele.size() - ref_len;
-				s_vector.push_back (indel_len);
-				if (indel_len > largest_len)
-					largest_len = indel_len;
-				else if (indel_len < smallest_len)
-					smallest_len = indel_len;
-
+				if (allele.find_first_not_of("acgtACGT") == string::npos)
+				{	// Check all bases are ATCGatcg
+					indel_len = allele.size() - ref_len;
+					s_vector.push_back (indel_len);
+					if (indel_len > largest_len)
+						largest_len = indel_len;
+					else if (indel_len < smallest_len)
+						smallest_len = indel_len;
+				}
 			}
 		}
 	}
