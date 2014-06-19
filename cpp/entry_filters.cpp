@@ -754,7 +754,7 @@ void entry::filter_sites_by_HWE_pvalue(double min_HWE_pvalue)
 		return;
 
 	unsigned int b11, b12, b22;
-	double p;
+	double p_hwe, p_lo, p_hi;
 
 	parse_basic_entry(true);
 	parse_genotype_entries(true);
@@ -763,9 +763,9 @@ void entry::filter_sites_by_HWE_pvalue(double min_HWE_pvalue)
 		LOG.error("Require Genotypes in variant file to filter sites by HWE.");
 
 	get_genotype_counts(b11, b12, b22);
-	p = entry::SNPHWE(b12, b11, b22);
+	entry::SNPHWE(b12, b11, b22, p_hwe, p_lo, p_hi);
 
-	if (p < min_HWE_pvalue)
+	if (p_hwe < min_HWE_pvalue)
 		passed_filters = false;
 }
 

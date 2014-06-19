@@ -759,10 +759,11 @@ using a method of moments. The resulting file has the suffix
 
 <p style="margin-left:17%;">Reports a p-value for each site
 from a Hardy-Weinberg Equilibrium test (as defined by
-Wigginton, Cutler and Abecasis (2005)). The resulting file
+Wigginton, Cutler and Abecasis (2005)), as well as tests for heterozygote excess/paucity. The resulting file
 (with suffix &quot;.hwe&quot;) also contains the Observed
 numbers of Homozygotes and Heterozygotes and the
 corresponding Expected numbers under HWE.</p>
+
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--TajimaD</b>

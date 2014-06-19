@@ -305,7 +305,7 @@ void variant_file::output_hwe(const parameters &params)
 
 		ostream out(buf);
 
-	out << "CHR\tPOS\tOBS(HOM1/HET/HOM2)\tE(HOM1/HET/HOM2)\tChiSq\tP" << endl;
+	out << "CHR\tPOS\tOBS(HOM1/HET/HOM2)\tE(HOM1/HET/HOM2)\tChiSq_HWE\tP_HWE\tP_HET_DEFICIT\tP_HET_EXCESS" << endl;
 
 	/* PLINK code:
 	// b11 = Nhom1, b12 = Nhet, b22 = Nhom2
@@ -326,7 +326,7 @@ void variant_file::output_hwe(const parameters &params)
 	double exp_11, exp_12, exp_22;
 	double chisq;
 	double tot;
-	double p;
+	double p_hwe, p_lo, p_hi;
 	unsigned int precision = out.precision();
 	vector<int> allele_counts;
 	unsigned int N_non_missing_chr;
@@ -371,13 +371,13 @@ void variant_file::output_hwe(const parameters &params)
 				+ ( (b12-exp_12)*(b12-exp_12) ) / exp_12
 				+ ( (b22-exp_22)*(b22-exp_22) ) / exp_22;
 
-		p = entry::SNPHWE(b12, b11, b22);
+		entry::SNPHWE(b12, b11, b22, p_hwe, p_lo, p_hi);
 		out << e->get_CHROM() << "\t" << e->get_POS();
 		out << "\t" << b11 << "/" << b12 << "/" << b22;
 		out.precision(2);
 		out << fixed << "\t" << exp_11 << "/" << exp_12 << "/" << exp_22;
 		out.precision(precision);
-		out << "\t" << chisq << "\t" << p << endl;
+		out << "\t" << chisq << "\t" << p_hwe << "\t" << p_lo << "\t" << p_hi << endl;
 	}
 	delete e;
 }

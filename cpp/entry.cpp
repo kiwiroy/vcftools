@@ -15,9 +15,10 @@
 //
 // Written by Jan Wigginton
 */
-double entry::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
+void entry::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2, double &p_hwe, double &p_lo, double &p_hi)
 {
-	if (obs_hom1 + obs_hom2 + obs_hets == 0 ) return 1;
+	p_hwe = 1.0; p_lo = 1.0; p_hi = 1.0; //p_hi_lo = 1.0;
+	if (obs_hom1 + obs_hom2 + obs_hets == 0 ) return;
 
 	if (obs_hom1 < 0 || obs_hom2 < 0 || obs_hets < 0)
 		LOG.error("Internal error: negative count in HWE test", 91);
@@ -74,19 +75,18 @@ double entry::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 	for (int i = 0; i <= rare_copies; i++)
 		het_probs[i] /= sum;
 
-	/* alternate p-value calculation for p_hi/p_lo
-	double p_hi = het_probs[obs_hets];
+	// alternate p-value calculation for p_hi/p_lo
+	p_hi = het_probs[obs_hets];
 	for (int i = obs_hets + 1; i <= rare_copies; i++)
 	 p_hi += het_probs[i];
 
-	double p_lo = het_probs[obs_hets];
+	p_lo = het_probs[obs_hets];
 	for (int i = obs_hets - 1; i >= 0; i--)
 	  p_lo += het_probs[i];
 
-	double p_hi_lo = p_hi < p_lo ? 2.0 * p_hi : 2.0 * p_lo;
-	*/
+	//p_hi_lo = p_hi < p_lo ? 2.0 * p_hi : 2.0 * p_lo;
 
-	double p_hwe = 0.0;
+	p_hwe = 0.0;
 	/*  p-value calculation for p_hwe  */
 	for (int i = 0; i <= rare_copies; i++)
 	{
@@ -98,8 +98,6 @@ double entry::SNPHWE(int obs_hets, int obs_hom1, int obs_hom2)
 	p_hwe = p_hwe > 1.0 ? 1.0 : p_hwe;
 
 	free(het_probs);
-
-	return p_hwe;
 }
 
 void entry::make_typed_string(vector<char> &out, const string &in, bool typed)

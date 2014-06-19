@@ -144,7 +144,7 @@ public:
 	virtual void filter_genotypes_by_quality(double min_genotype_quality) = 0;
 	virtual void filter_genotypes_by_filter_status(const set<string> &filter_flags_to_remove, bool remove_all = false) = 0;
 
-	static double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2);
+	static void SNPHWE(int obs_hets, int obs_hom1, int obs_hom2, double &p_hwe, double &p_lo, double &p_hi);
 
 	static set<string> local_snps_to_keep;
 	static set<string> snps_to_exclude;
