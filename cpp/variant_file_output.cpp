@@ -377,6 +377,7 @@ void variant_file::output_hwe(const parameters &params)
 		out.precision(2);
 		out << fixed << "\t" << exp_11 << "/" << exp_12 << "/" << exp_22;
 		out.precision(precision);
+		out << scientific;
 		out << "\t" << chisq << "\t" << p_hwe << "\t" << p_lo << "\t" << p_hi << endl;
 	}
 	delete e;
