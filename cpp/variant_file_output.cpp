@@ -3807,11 +3807,10 @@ void variant_file::output_LROH(const parameters &params)
 	int POS;
 	entry *e = get_entry_object();
 	pair<int, int> alleles;
-	vector<unsigned int> s_vector;
-	vector<pair<double, double> > p_emission;
-	vector<vector<double> > p_trans;
-	vector<string> tmp_files;
-	int fd = -1;
+	vector< vector< pair<string, int> > > s_vector;
+	vector< vector<pair<double, double> > > p_emission;
+	vector< vector< vector<double> > > p_trans;
+	vector<int> last_POS;
 
 	streambuf * buf;
 	ofstream temp_out;
@@ -3827,6 +3826,11 @@ void variant_file::output_LROH(const parameters &params)
 	ostream out(buf);
 	out << "CHROM\tAUTO_START\tAUTO_END\tN_VARIANTS\tINDV" << endl;
 
+	s_vector.resize(meta_data.N_indv);
+	p_emission.resize(meta_data.N_indv);
+	p_trans.resize(meta_data.N_indv);
+	last_POS.resize(meta_data.N_indv,-1);
+
 	while(!eof())
 	{
 		get_entry(variant_line);
@@ -3837,44 +3841,26 @@ void variant_file::output_LROH(const parameters &params)
 			continue;
 		N_kept_entries++;
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
-		fd = mkstemp(tmpname);
-		if (fd == -1)
-			LOG.error(" Could not open temporary file.\n", 12);
-
-		if (::write(fd,(const char*)&variant_line[0], variant_line.size()) == -1)
-			LOG.error(" Could not write to temporary file.\n");
-		::close(fd);
-		tmp_files.push_back(tmpname);
-	}
-	// TODO - refactor this so that file loop is on the outside.
-	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
-	{
-		if (include_indv[ui] == false)
-			continue;
-
-		LOG.printLOG("\t" + meta_data.indv[ui] + "\n");
-
-		int last_POS = -1;
-		s_vector.resize(0);	p_emission.resize(0); p_trans.resize(0);
-
-		for (unsigned int uj=0; uj<tmp_files.size(); uj++)
+		e->parse_basic_entry(true);
+		if (e->get_N_alleles() != 2)
 		{
-			string filename = tmp_files[uj];
-			ifstream read_file(filename.c_str(), ios::binary);
-			vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-			e->reset(variant_line1);
-			e->parse_basic_entry(true);
+			LOG.one_off_warning("\tLROH: Only using bialleleic sites.");
+			continue;	// TODO: Probably could do without this...
+		}
 
-			if (e->include_genotype[ui] == false)
+		CHROM = e->get_CHROM();
+		POS = e->get_POS();
+		double r = 0;
+
+		unsigned int N_genotypes = 0;
+		unsigned int N_hets = 0;
+
+		vector<int> indv_alleles(meta_data.N_indv, -1);
+
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
 				continue;
-			if (e->get_N_alleles() != 2)
-			{
-				LOG.one_off_warning("\tLROH: Only using bialleleic sites.");
-				continue;	// TODO: Probably could do without this...
-			}
-
-			POS = e->get_POS();
 
 			e->parse_genotype_entry(ui, true);
 			e->get_indv_GENOTYPE_ids(ui, alleles);
@@ -3889,46 +3875,40 @@ void variant_file::output_LROH(const parameters &params)
 				continue;
 
 			unsigned int X = alleles.first + alleles.second;
+			N_genotypes++;
+			if (alleles.first != alleles.second)
+				N_hets++;
 
-			// Calculate heterozyogosity of this site.
-			// TODO: Would be better to do this once, but for simplicity, do it for each individual.
-			unsigned int N_genotypes = 0;
-			unsigned int N_hets = 0;
-			for (unsigned int uk=0; uk<meta_data.N_indv; uk++)
-			{
-				if ((include_indv[uk] == false) || (e->include_genotype[uk] == false))
-					continue;
+			indv_alleles[ui] = X;
+		}
 
-				e->parse_genotype_entry(uk, true);
-				e->get_indv_GENOTYPE_ids(uk, alleles);
-				if ((alleles.first > -1) && (alleles.second > -1))
-				{
-					N_genotypes++;
-					if (alleles.first != alleles.second)
-						N_hets++;
-				}
-			}
-			double h = N_hets / double(N_genotypes);
+		double h = N_hets / double(N_genotypes);
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
+				continue;
+
 			double p_emission_given_nonauto;
 			double p_emission_given_auto;
 
-			if (X == 1)
+			if (indv_alleles[ui] < 0)
+				continue;
+			else if (indv_alleles[ui] == 1)
 			{	// Heterozygote
 				p_emission_given_nonauto = h;
 				p_emission_given_auto = genotype_error_rate;
-				p_emission.push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
+				p_emission[ui].push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
 			}
 			else
 			{	// Homozygote
 				p_emission_given_nonauto = 1.0-h;
 				p_emission_given_auto = 1.0-genotype_error_rate;
-				p_emission.push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
+				p_emission[ui].push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
 			}
 
-			double r = 0;
-			if (last_POS > 0)
+			if (last_POS[ui] > 0)
 			{	// Assume 1cM/Mb.
-				r = (POS - last_POS) / 1000000.0 / 100.0; // Morgans
+				r = (POS - last_POS[ui]) / 1000000.0 / 100.0; // Morgans
 			}
 
 			double e = (1.0 - exp(-2.0*nGen*r));
@@ -3942,29 +3922,37 @@ void variant_file::output_LROH(const parameters &params)
 			A[2] = p_trans_nonauto_to_auto;
 			A[3] = p_trans_nonauto_to_nonauto;
 
-			s_vector.push_back(uj);
-
-			p_trans.push_back(A);
-			last_POS = POS;
+			p_trans[ui].push_back(A);
+			s_vector[ui].push_back(make_pair(CHROM,POS));
+			last_POS[ui] = POS;
 		}
+	}
+	delete e;
+
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		LOG.printLOG("\t" + meta_data.indv[ui] + "\n");
 
 		// Forward-backward algorithm
-		int N_obs = (int)p_emission.size();
+		int N_obs = (int)p_emission[ui].size();
 		if (N_obs == 0)
 			continue;
 
 		vector<vector<double> > alpha(N_obs, vector<double>(2,0));
 		vector<vector<double> > beta(N_obs, vector<double>(2,0));
 
-		alpha[0][0] = p_emission[0].first;
-		alpha[0][1] = p_emission[0].second;
+		alpha[0][0] = p_emission[ui][0].first;
+		alpha[0][1] = p_emission[ui][0].second;
+
 		for (int i=1; i<N_obs; i++)
 		{
-			alpha[i][0] = alpha[i-1][0] * p_trans[i-1][0] * p_emission[i].first;
-			alpha[i][0] += alpha[i-1][1] * p_trans[i-1][2] * p_emission[i].first;
+			alpha[i][0] = alpha[i-1][0] * p_trans[ui][i-1][0] * p_emission[ui][i].first;
+			alpha[i][0] += alpha[i-1][1] * p_trans[ui][i-1][2] * p_emission[ui][i].first;
 
-			alpha[i][1] = alpha[i-1][1] * p_trans[i-1][3] * p_emission[i].second;
-			alpha[i][1] += alpha[i-1][0] * p_trans[i-1][1] * p_emission[i].second;
+			alpha[i][1] = alpha[i-1][1] * p_trans[ui][i-1][3] * p_emission[ui][i].second;
+			alpha[i][1] += alpha[i-1][0] * p_trans[ui][i-1][1] * p_emission[ui][i].second;
 
 			while (alpha[i][0] + alpha[i][1] < 1e-20)
 			{	// Renormalise to prevent underflow
@@ -3972,16 +3960,15 @@ void variant_file::output_LROH(const parameters &params)
 				alpha[i][1] *= 1e20;
 			}
 		}
-
 		beta[N_obs-1][0] = 1.0;
 		beta[N_obs-1][1] = 1.0;
 		for (int i=N_obs-2; i>=0; i--)
 		{
-			beta[i][0] = beta[i+1][0] * p_trans[i][0] * p_emission[i].first;
-			beta[i][0] += beta[i+1][1] * p_trans[i][2] * p_emission[i].first;
+			beta[i][0] = beta[i+1][0] * p_trans[ui][i][0] * p_emission[ui][i].first;
+			beta[i][0] += beta[i+1][1] * p_trans[ui][i][2] * p_emission[ui][i].first;
 
-			beta[i][1] = beta[i+1][1] * p_trans[i][3] * p_emission[i].second;
-			beta[i][1] += beta[i+1][0] * p_trans[i][1] * p_emission[i].second;
+			beta[i][1] = beta[i+1][1] * p_trans[ui][i][3] * p_emission[ui][i].second;
+			beta[i][1] += beta[i+1][0] * p_trans[ui][i][1] * p_emission[ui][i].second;
 
 			while (beta[i][0] + beta[i][1] < 1e-20)
 			{	// Renormalise to prevent underflow
@@ -3989,7 +3976,6 @@ void variant_file::output_LROH(const parameters &params)
 				beta[i][1] *= 1e20;
 			}
 		}
-
 		// Calculate probability of each site being autozygous
 		vector<double> p_auto(N_obs);
 		for (int i=0; i<N_obs; i++)
@@ -4010,14 +3996,8 @@ void variant_file::output_LROH(const parameters &params)
 			{
 				if (in_auto == false)
 				{	// Start of autozygous region
-					unsigned int s = s_vector[i];
-					string filename = tmp_files[s];
-					ifstream read_file(filename.c_str(), ios::binary);
-					vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-					e->reset(variant_line1);
-					e->parse_basic_entry(true);
-					CHROM = e->get_CHROM();
-					start_pos = e->get_POS();
+						CHROM = s_vector[ui][i].first;
+						start_pos = s_vector[ui][i].second;
 				}
 				N_SNPs++;
 				in_auto = true;
@@ -4026,13 +4006,7 @@ void variant_file::output_LROH(const parameters &params)
 			{
 				if (in_auto == true)
 				{	// end of autozygous region
-					unsigned int s = s_vector[i];
-					string filename = tmp_files[s];
-					ifstream read_file(filename.c_str(), ios::binary);
-					vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-					e->reset(variant_line1);
-					e->parse_basic_entry(true);
-					end_pos = e->get_POS();
+					end_pos = s_vector[ui][i].second;
 					if (N_SNPs >= min_SNPs)
 						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 				}
@@ -4042,21 +4016,11 @@ void variant_file::output_LROH(const parameters &params)
 		}
 		if (in_auto == true)
 		{	// Report final region if needed
-			unsigned int s = s_vector[N_obs-1];
-			string filename = tmp_files[s];
-			ifstream read_file(filename.c_str(), ios::binary);
-			vector<char> variant_line1((istreambuf_iterator<char>(read_file)), istreambuf_iterator<char>());
-			e->reset(variant_line1);
-			e->parse_basic_entry(true);
-			end_pos = e->get_POS();
+			end_pos = s_vector[ui][N_obs-1].second;
 			if (N_SNPs >= min_SNPs)
 				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 		}
 	}
-
-	for (unsigned int ui=0; ui<tmp_files.size(); ui++)
-		remove(tmp_files[ui].c_str());
-	delete e;
 }
 
 void variant_file::output_indv_relatedness_Manichaikul(const parameters &params)

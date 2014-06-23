@@ -234,7 +234,7 @@ void parameters::read_parameters()
 		else if (in_str == "--ld-window-min") { ld_snp_window_min = atoi(get_arg(i+1).c_str()); i++; }		// Max SNP distance for LD output
 		else if (in_str == "--ldhat-geno") { output_as_ldhat_unphased = true; num_outputs++;}
 		else if (in_str == "--ldhat") { output_as_ldhat_phased = true; phased_only = true; num_outputs++;} // Output as LDhat format
-		else if (in_str == "--LROH") {output_LROH = true;}
+		else if (in_str == "--LROH") {output_LROH = true; num_outputs++;}
 		else if (in_str == "--mac") { min_mac = atoi(get_arg(i+1).c_str()); i++; }								// Minimum Site MAC
 		else if (in_str == "--maf") { min_maf = atof(get_arg(i+1).c_str()); i++; }								// Minimum Site MAF
 		else if (in_str == "--mask-min") { min_kept_mask_value = atoi(get_arg(i+1).c_str()); i++; }
