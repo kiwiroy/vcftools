@@ -167,7 +167,14 @@ void parameters::read_parameters()
 		else if (in_str == "--012") {output_012_matrix = true; num_outputs++;}				// Output as 0/1/2 matrix
 		else if (in_str == "--BEAGLE-GL") { output_BEAGLE_genotype_likelihoods_GL = true; min_alleles=2; max_alleles=2; num_outputs++;}	// Output as BEAGLE Genotype Likelihood format
 		else if (in_str == "--BEAGLE-PL") { output_BEAGLE_genotype_likelihoods_PL = true; min_alleles=2; max_alleles=2; num_outputs++;}	// Output as BEAGLE Genotype Likelihood format
-		else if (in_str == "--bed") { BED_file = get_arg(i+1); i++; BED_exclude=false; }
+		else if (in_str == "--bed") {
+			if (BED_file == "")
+			{
+				BED_file = get_arg(i+1); i++; BED_exclude=false;
+			}
+			else
+				LOG.error(" Multiple --bed/--exclude-bed options can not be used together.");
+		}
 		else if (in_str == "-c") {stream_out = true;}						// Write output to stream
 		else if (in_str == "--chr") { chrs_to_keep.insert(get_arg(i+1)); i++; }					// Chromosome to process
 		else if (in_str == "--counts") {output_counts = true; num_outputs++;}								// Output per-site allele count statistics
@@ -181,7 +188,14 @@ void parameters::read_parameters()
 		else if (in_str == "--diff-switch-error") { diff_switch_error = true; num_outputs++;}	// Calculate some concensus statistics
 		else if (in_str == "--diff") { diff_file = get_arg(i+1); diff_file_compressed = false; i++; }	// Calculate some concensus statistics
 		else if (in_str == "--diff-bcf") { diff_file = get_arg(i+1); diff_file_bcf = true; i++; }	// Calculate some concensus statistics
-		else if (in_str == "--exclude-bed") { BED_file = get_arg(i+1); i++; BED_exclude=true; }
+		else if (in_str == "--exclude-bed") {
+			if (BED_file == "")
+			{
+				BED_file = get_arg(i+1); i++; BED_exclude=true;
+			}
+			else
+				LOG.error(" Multiple --bed/--exclude-bed options can not be used together.");
+		}
 		else if (in_str == "--exclude") { snps_to_exclude_file = get_arg(i+1); i++; }				// List of SNPs to exclude
 		else if (in_str == "--exclude-positions") { exclude_positions_file = get_arg(i+1); i++; }
 		else if (in_str == "--extract-FORMAT-info") { FORMAT_id_to_extract = get_arg(i+1); i++; num_outputs++;}

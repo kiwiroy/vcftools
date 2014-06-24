@@ -724,6 +724,9 @@ void entry::filter_sites_by_allele_count(double min_mac, double max_mac, double 
 
 	N_alleles = get_N_alleles();
 
+	if (N_alleles <= 1 && min_mac > 0)
+		passed_filters = false;
+
 	vector<int> allele_counts;
 	get_allele_counts(allele_counts, N_non_missing_chr);
 	N_chr = get_N_chr();
