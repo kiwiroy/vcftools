@@ -151,9 +151,11 @@ void vcf_file::print_bcf(const parameters &params)
 	if (meta_data.has_contigs == false)
 	{
 		vector<string> contig_vector;
-		get_default_contigs(contig_vector);
+		get_contigs(params.contigs_file, contig_vector);
+
 		for(unsigned int ui=0; ui<contig_vector.size(); ui++)
 		{
+			meta_data.add_CONTIG_descriptor(contig_vector[ui].substr(10, contig_vector[ui].size()-8),int(ui));
 			for(unsigned int uj=0; uj<contig_vector[ui].size(); uj++)
 				header.push_back(contig_vector[ui][uj]);
 			header.push_back('\n');

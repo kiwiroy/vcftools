@@ -147,7 +147,7 @@ public:
 	void return_indv_union(variant_file &file2, map<string, pair< int, int> > &combined_individuals, const string &indv_ID_map_file="");
 	void return_site_union(variant_file &file2, const parameters &params, map<pair<string, int>, pair<string, string> > &out);
 
-	void get_default_contigs(vector<string> &contig_vector);
+	void get_contigs(const std::string &contigs_file, vector<string> &contig_vector);
 	virtual ~variant_file();
 };
 

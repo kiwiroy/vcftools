@@ -1218,7 +1218,10 @@ void variant_file::output_haplotype_r2(const parameters &params)
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -1381,7 +1384,10 @@ void variant_file::output_genotype_r2(const parameters &params)
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -1530,7 +1536,10 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 		N_kept_entries++;
 		e2->parse_basic_entry(true);
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -1683,7 +1692,10 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -1824,7 +1836,10 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -1975,7 +1990,10 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -2120,7 +2138,10 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 			continue;	// Isn't biallelic
 		}
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);

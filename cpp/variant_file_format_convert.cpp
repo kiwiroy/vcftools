@@ -25,7 +25,10 @@ void variant_file::output_as_plink(const parameters &params)
 		if (include_indv[ui] == false)
 			continue;
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -347,7 +350,10 @@ void variant_file::output_as_012_matrix(const parameters &params)
 			continue;
 		FAM << meta_data.indv[ui] << endl;
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -569,7 +575,10 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 	int max_pos = -1;
 	int fd = -1;
 
-	char tmpname[] = "/tmp/vcftools.XXXXXX";
+	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+	char tmpname[new_tmp.size()];
+	strcpy(tmpname, new_tmp.c_str());
+
 	fd = mkstemp(tmpname);
 	if (fd == -1)
 		LOG.error(" Could not open temporary file.\n", 12);
@@ -600,7 +609,9 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 		if (include_indv[ui] == false)
 			continue;
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -612,7 +623,9 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 		tmp_files[2*ui] = tmp_file;
 		tmp_filenames[2*ui] = tmpname;
 
-		char tmpname2[] = "/tmp/vcftools.XXXXXX";
+		char tmpname2[new_tmp.size()];
+		strcpy(tmpname2, new_tmp.c_str());
+
 		fd = mkstemp(tmpname2);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
@@ -669,7 +682,7 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 				else
 					geno = alleles.second;
 
-				if ((geno > 0) && (e->include_genotype[ui]==true))
+				if ((geno >= 0) && (e->include_genotype[ui]==true))
 					(*tmp_file) << geno;
 				else
 					(*tmp_file) << "?";
@@ -734,7 +747,10 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 	int max_pos = -1;
 	int fd = -1;
 
-	char tmpname[] = "/tmp/vcftools.XXXXXX";
+	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
+	char tmpname[new_tmp.size()];
+	strcpy(tmpname, new_tmp.c_str());
+
 	fd = mkstemp(tmpname);
 	if (fd == -1)
 		LOG.error(" Could not open temporary file.\n", 12);
@@ -764,7 +780,10 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 	{
 		if (include_indv[ui] == false)
 			continue;
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);

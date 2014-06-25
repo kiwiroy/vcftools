@@ -26,6 +26,7 @@ parameters::parameters(int argc, char *argv[])
 	bcf_format = false;
 	BED_exclude = false;
 	BED_file = "";
+	contigs_file = "";
 	derived = false;
 	diff_discordance_matrix = false;
 	diff_file = "";
@@ -132,6 +133,7 @@ parameters::parameters(int argc, char *argv[])
 	stream_in = false;
 	stream_out = false;
 	suppress_allele_output = false;
+	temp_dir = "/tmp/";
 	vcf_filename="";
 	vcf_format = false;
 	vcf_compressed = false;
@@ -177,6 +179,7 @@ void parameters::read_parameters()
 		}
 		else if (in_str == "-c") {stream_out = true;}						// Write output to stream
 		else if (in_str == "--chr") { chrs_to_keep.insert(get_arg(i+1)); i++; }					// Chromosome to process
+		else if (in_str == "--contigs") { contigs_file = get_arg(i+1); i++;}	// Contigs file for header
 		else if (in_str == "--counts") {output_counts = true; num_outputs++;}								// Output per-site allele count statistics
 		else if (in_str == "--counts2") {output_counts = true; suppress_allele_output = true; num_outputs++;}								// Output per-site allele count statistics
 		else if (in_str == "--depth") {output_indv_depth = true; num_outputs++;}							// Output per-individual coverage statistics
@@ -307,6 +310,7 @@ void parameters::read_parameters()
 		else if (in_str == "--snps") { snps_to_keep_file = get_arg(i+1); i++; }						// List of SNPs to keep
 		else if (in_str == "--stdout") {stream_out = true; }						// Write output to stream
 		else if (in_str == "--TajimaD") { output_Tajima_D_bin_size = atoi(get_arg(i+1).c_str()); i++; num_outputs++;} //Output Tajima D
+		else if (in_str == "--temp") { temp_dir = get_arg(i+1); i++;}	// Directory for vcftools temporary files
 		else if (in_str == "--to-bp") { end_pos = atoi(get_arg(i+1).c_str()); i++; }						// End position
 		else if (in_str == "--thin") { min_interSNP_distance = atoi(get_arg(i+1).c_str()); i++; }	// Set minimum distance between SNPs
 		else if (in_str == "--TsTv") {output_TsTv_bin_size = atoi(get_arg(i+1).c_str()); i++; num_outputs++;}				// Output Ts/Tv stats
@@ -364,7 +368,7 @@ void parameters::print_params()
 			LOG.printLOG("\t--not-chr " + tmp + "\n");
 		}
 	}
-
+	if (contigs_file != defaults.contigs_file) LOG.printLOG("\t--contigs " + contigs_file + "\n");
 	if (derived != defaults.derived) LOG.printLOG("\t--derived\n");
 	if (end_pos != defaults.end_pos) LOG.printLOG("\t--to-bp " + output_log::int2str(end_pos) + "\n");
 	if (exclude_positions_file != defaults.exclude_positions_file) LOG.printLOG("\t--exclude-positions " + exclude_positions_file + "\n");
@@ -472,6 +476,7 @@ void parameters::print_params()
 	if (snps_to_keep_file != defaults.snps_to_keep_file) LOG.printLOG("\t--snps " + snps_to_keep_file + "\n");
 	if (start_pos != defaults.start_pos) LOG.printLOG("\t--from-bp " + output_log::int2str(start_pos) + "\n");
 	if (stream_out != defaults.stream_out) LOG.printLOG("\t--stdout\n");
+	if (temp_dir != defaults.temp_dir) LOG.printLOG("\t--temp " + temp_dir + "\n");
 	if (output_Tajima_D_bin_size != defaults.output_Tajima_D_bin_size) LOG.printLOG("\t--TajimaD " + output_log::int2str(output_Tajima_D_bin_size) + "\n");
 	if (output_as_ldhat_phased) LOG.printLOG("\t--ldhat\n");
 	if (output_as_ldhat_unphased) LOG.printLOG("\t--ldhat-geno\n");

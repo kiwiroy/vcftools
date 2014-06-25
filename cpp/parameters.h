@@ -40,6 +40,7 @@ public:
 	string BED_file;
 	set<string> chrs_to_exclude;
 	set<string> chrs_to_keep;
+	string contigs_file;
 	bool derived;
 	bool diff_discordance_matrix;
 	string diff_file;
@@ -160,6 +161,7 @@ public:
 	bool stream_err;
 	bool stream_out;
 	bool suppress_allele_output;
+	string temp_dir;
 	string vcf_filename;
 	bool vcf_format;
 	bool vcf_compressed;

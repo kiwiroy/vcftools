@@ -15,6 +15,7 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	entry *e2 = file2.get_entry_object();
+	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	int fd = -1;
 
 	while(!eof())
@@ -31,7 +32,9 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 
 		if (fd == -1)
@@ -57,7 +60,9 @@ void variant_file::return_site_union(variant_file &file2, const parameters &para
 		CHROM = e2->get_CHROM();
 		POS = e2->get_POS();
 
-		char tmpname[] = "/tmp/vcftools.XXXXXX";
+		char tmpname[new_tmp.size()];
+		strcpy(tmpname, new_tmp.c_str());
+
 		fd = mkstemp(tmpname);
 		if (fd == -1)
 			LOG.error(" Could not open temporary file.\n", 12);
