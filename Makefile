@@ -26,7 +26,7 @@ export MODDIR = ${PREFIX}/lib/perl5/site_perl
 DIRS = cpp perl
 install:
 	    @mkdir -p $(BINDIR); mkdir -p $(MODDIR); mkdir -p $(MANDIR); \
-	    cp ${PREFIX}/cpp/vcftools.1.gz $(MANDIR); \
+	    cp ${PREFIX}/cpp/vcftools.1 $(MANDIR); \
         for dir in $(DIRS); do cd $$dir && $(MAKE) $(MAKEFLAGS) && cd ..; done
 
 clean:

@@ -128,7 +128,6 @@ public:
 	void output_windowed_weir_and_cockerham_fst(const parameters &params);
 
 	void output_sites_in_files(const parameters &params, variant_file &diff_vcf_file);
-	void output_sites_in_files(const parameters &params, variant_file &diff_vcf_file, map<pair<string, int>, pair<string,string> > &CHROMPOS_to_filename_pair);
 	void output_indv_in_files(const parameters &params, variant_file &diff_vcf_file);
 	void output_discordance_by_site(const parameters &params, variant_file &diff_vcf_file);
 	void output_discordance_matrix(const parameters &params, variant_file &diff_vcf_file);
@@ -145,7 +144,6 @@ public:
 	void calc_r2_em(entry *e, entry *e2, double &r2, int &indv_count);
 	void calc_geno_chisq(entry *e, entry *e2, double &chisq, double &dof, double &pval, int &indv_count);
 	void return_indv_union(variant_file &file2, map<string, pair< int, int> > &combined_individuals, const string &indv_ID_map_file="");
-	void return_site_union(variant_file &file2, const parameters &params, map<pair<string, int>, pair<string, string> > &out);
 
 	void get_contigs(const std::string &contigs_file, vector<string> &contig_vector);
 	virtual ~variant_file();

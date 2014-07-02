@@ -57,6 +57,9 @@ void variant_file::get_contigs(const string &contigs_file, vector<string> &conti
 
 	while (getline(contigs, line))
 	{
+		if (line.find("##contig=")==string::npos)
+			LOG.error("Contigs file must contain only contig header lines.");
+
 		contig_vector.push_back(line);
 		contig_lines++;
 	}
