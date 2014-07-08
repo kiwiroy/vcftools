@@ -485,12 +485,12 @@ void variant_file::ouput_indv_freq_burden(const parameters &params)
 			{
 				e->get_indv_GENOTYPE_ids(ui, geno);
 
-				if (geno.first != aa_idx)
+				if ((geno.first != aa_idx) && (geno.first >= 0))
 				{
 					burden_matrix[indv_count][allele_counts[geno.first]]++;
 				}
 
-				if (geno.second != aa_idx)
+				if ((geno.second != aa_idx) && (geno.second >= 0))
 				{
 					burden_matrix[indv_count][allele_counts[geno.second]]++;
 				}
