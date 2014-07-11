@@ -113,6 +113,7 @@ public:
 	bool output_indel_hist;
 	bool output_indv_depth;
 	bool output_indv_freq_burden;
+	bool output_indv_freq_burden2;
 	bool output_indv_missingness;
 	bool output_interchromosomal_hap_rsq;
 	bool output_interchromosomal_geno_rsq;

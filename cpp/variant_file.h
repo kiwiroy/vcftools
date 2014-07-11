@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string>
 #include <sys/stat.h>
+#include <utility>
 #include <vector>
 #include <zlib.h>
 
@@ -87,7 +88,7 @@ public:
 	void output_hwe(const parameters &params);
 	void output_SNP_density(const parameters &params);
 	void output_indv_missingness(const parameters &params);
-	void ouput_indv_freq_burden(const parameters &params);
+	void output_indv_freq_burden(const parameters &params, int double_count_hom_alt=0);
 	void output_site_missingness(const parameters &params);
 	void output_haplotype_r2(const parameters &params);
 	void output_genotype_r2(const parameters &params);

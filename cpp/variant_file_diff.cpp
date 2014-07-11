@@ -59,7 +59,6 @@ void variant_file::return_indv_union(variant_file &file2, map<string, pair< int,
 
 void variant_file::output_sites_in_files(const parameters &params, variant_file &diff_variant_file)
 {
-	int POS;
 	string CHROM;
 	vector<char> variant_line;
 	entry *e1 = get_entry_object();
@@ -330,7 +329,6 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 	int indv1, indv2;
 	entry * e1 = get_entry_object();
 	entry * e2 = diff_variant_file.get_entry_object();
-	int POS;
 	string CHROM;
 	bool new_e1 = true;
 	bool new_e2 = true;
@@ -638,7 +636,6 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 
 	LOG.printLOG("Outputting Discordance By Site...\n");
 
-	int POS;
 	string CHROM;
 	vector<char> variant_line;
 	int indv1, indv2;
@@ -964,7 +961,6 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
 	LOG.printLOG("Outputting Discordance Matrix\n\tFor bi-allelic loci, called in both files, with matching alleles only...\n");
-	int POS;
 	string CHROM;
 	vector<char> variant_line;
 	int indv1, indv2;
@@ -983,7 +979,6 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	string REF2 = "";
 	string ALT1 = "";
 	string ALT2 = "";
-	bool alleles_match = false;
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
 	vector<vector<int> > discordance_matrix(4, vector<int>(4, 0));
 

@@ -773,12 +773,12 @@ corresponding Expected numbers under HWE.</p>
 statistic in bins with size of the specified number. The
 output file has the suffix &quot;.Tajima.D&quot;.</p>
 
-<p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b></p>
+<p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b><br><b>--indv-freq-burden2</b></p>
 
 <p style="margin-left:17%;">This option calculates the
 number of variants within each individual of a specific
 frequency. The resulting file has the suffix
-&quot;.ifreqburden&quot;.</p>
+&quot;.ifreqburden&quot;.</p> The first version double counts homozygous alt variants (e.g. 1/1, 2/2, etc.), whereas the second version does not.
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--LROH</b></p>

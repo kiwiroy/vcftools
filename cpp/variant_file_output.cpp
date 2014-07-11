@@ -383,7 +383,7 @@ void variant_file::output_hwe(const parameters &params)
 	delete e;
 }
 
-void variant_file::ouput_indv_freq_burden(const parameters &params)
+void variant_file::output_indv_freq_burden(const parameters &params, int double_count_hom_alt)
 {
 	// Output the burden within each individual of variants at each frequency.
 	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
@@ -473,7 +473,6 @@ void variant_file::ouput_indv_freq_burden(const parameters &params)
 
 		e->get_allele_counts(allele_counts, N_non_missing_chr);
 		pair<int, int> geno;
-		int idx;
 
 		int indv_count = 0;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
@@ -486,13 +485,11 @@ void variant_file::ouput_indv_freq_burden(const parameters &params)
 				e->get_indv_GENOTYPE_ids(ui, geno);
 
 				if ((geno.first != aa_idx) && (geno.first >= 0))
-				{
 					burden_matrix[indv_count][allele_counts[geno.first]]++;
-				}
-
-				if ((geno.second != aa_idx) && (geno.second >= 0))
-				{
-					burden_matrix[indv_count][allele_counts[geno.second]]++;
+				if ((double_count_hom_alt == 0) || (geno.first != geno.second))
+				{	// Count the second allele if required
+					if ((geno.second != aa_idx) && (geno.second >= 0))
+						burden_matrix[indv_count][allele_counts[geno.second]]++;
 				}
 			}
 			indv_count++;
