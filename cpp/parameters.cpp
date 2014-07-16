@@ -212,7 +212,7 @@ void parameters::read_parameters()
 		else if (in_str == "--geno-depth") {output_geno_depth = true; num_outputs++;}						// Output Depth for each genoptype
 		else if (in_str == "--geno-r2") { output_geno_rsq = true; min_alleles = 2; max_alleles = 2; num_outputs++;} // Output pairwise LD (r^2)
 		else if (in_str == "--geno-chisq") { output_geno_chisq = true; num_outputs++;} // Output pairwise LD (r^2)
-		else if (in_str == "--geno-r2-positions") { geno_rsq_position_list = get_arg(i+1); i++; min_alleles = 2; max_alleles = 2; }	// Output pairwise LD (r^2)
+		else if (in_str == "--geno-r2-positions") { geno_rsq_position_list = get_arg(i+1); i++; min_alleles = 2; max_alleles = 2; num_outputs++; }	// Output pairwise LD (r^2)
 		else if (in_str == "--get-INFO") {
 			if (INFO_to_extract.empty())
 				num_outputs++;
