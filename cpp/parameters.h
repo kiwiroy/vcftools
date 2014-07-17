@@ -52,6 +52,7 @@ public:
 	bool diff_switch_error;
 	int end_pos;
 	string exclude_positions_file;
+	string exclude_positions_overlap_file;
 	string FORMAT_id_to_extract;
 	set<string> geno_filter_flags_to_exclude;
 	string geno_rsq_position_list;
@@ -144,6 +145,7 @@ public:
 	bool plink_output;
 	bool plink_tped_output;
 	string positions_file;
+	string positions_overlap_file;
 	bool recode;
 	bool recode_bcf;
 	set<string> recode_INFO_to_keep;

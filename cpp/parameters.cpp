@@ -38,6 +38,7 @@ parameters::parameters(int argc, char *argv[])
 	diff_switch_error = false;
 	end_pos = numeric_limits<int>::max();
 	exclude_positions_file = "";
+	exclude_positions_overlap_file = "";
 	fst_window_size = -1;
 	fst_window_step = -1;
 	indv_exclude_file = "";
@@ -123,6 +124,7 @@ parameters::parameters(int argc, char *argv[])
 	plink_output = false;
 	plink_tped_output = false;
 	positions_file = "";
+	positions_overlap_file = "";
 	recode = false;
 	recode_bcf = false;
 	remove_all_filtered_genotypes = false;
@@ -202,6 +204,7 @@ void parameters::read_parameters()
 		}
 		else if (in_str == "--exclude") { snps_to_exclude_file = get_arg(i+1); i++; }				// List of SNPs to exclude
 		else if (in_str == "--exclude-positions") { exclude_positions_file = get_arg(i+1); i++; }
+		else if (in_str == "--exclude-positions-overlap") { exclude_positions_overlap_file = get_arg(i+1); i++; }
 		else if (in_str == "--extract-FORMAT-info") { FORMAT_id_to_extract = get_arg(i+1); i++; num_outputs++;}
 		else if (in_str == "--FILTER-summary") {output_filter_summary = true; num_outputs++;}
 		else if (in_str == "--freq") {output_freq = true; num_outputs++;}						// Output per-site frequency statistics
@@ -287,6 +290,7 @@ void parameters::read_parameters()
 		else if (in_str == "--plink") {plink_output = true; num_outputs++;}				// Output as PLINK file
 		else if (in_str == "--plink-tped") {plink_tped_output = true; num_outputs++;}	// Output as PLINK tped file
 		else if (in_str == "--positions") { positions_file = get_arg(i+1); i++; }
+		else if (in_str == "--positions-overlap") { positions_overlap_file = get_arg(i+1); i++; }
 		else if (in_str == "--recode") {recode = true; num_outputs++;}					// Output VCF file
 		else if (in_str == "--recode-bcf") {recode_bcf = true; num_outputs++;}			// Output BCF file
 		else if (in_str == "--recode-INFO-all") { recode_all_INFO=true; }		// Specify INFO to keep when recoding
@@ -374,6 +378,7 @@ void parameters::print_params()
 	if (derived != defaults.derived) LOG.printLOG("\t--derived\n");
 	if (end_pos != defaults.end_pos) LOG.printLOG("\t--to-bp " + output_log::int2str(end_pos) + "\n");
 	if (exclude_positions_file != defaults.exclude_positions_file) LOG.printLOG("\t--exclude-positions " + exclude_positions_file + "\n");
+	if (exclude_positions_overlap_file != defaults.exclude_positions_overlap_file) LOG.printLOG("\t--exclude-positions-overlap " + exclude_positions_overlap_file + "\n");
 	if (FORMAT_id_to_extract != defaults.FORMAT_id_to_extract) LOG.printLOG("\t--extract-FORMAT-info " + FORMAT_id_to_extract + "\n");
 	if (geno_rsq_position_list != defaults.geno_rsq_position_list) LOG.printLOG("\t--geno-r2-positions " + geno_rsq_position_list + "\n");
 	if (hap_rsq_position_list != defaults.hap_rsq_position_list) LOG.printLOG("\t--hap-r2-positions " + hap_rsq_position_list + "\n");
@@ -469,6 +474,7 @@ void parameters::print_params()
 	if (plink_output) LOG.printLOG("\t--plink\n");
 	if (plink_tped_output) LOG.printLOG("\t--plink-tped\n");
 	if (positions_file != defaults.positions_file) LOG.printLOG("\t--positions " + positions_file + "\n");
+	if (positions_overlap_file != defaults.positions_overlap_file) LOG.printLOG("\t--positions-overlap " + positions_overlap_file + "\n");
 	if (recode) LOG.printLOG("\t--recode\n");
 	if (recode_bcf) LOG.printLOG("\t--recode-bcf\n");
 	if (remove_all_filtered_genotypes) LOG.printLOG("\t--remove-filtered-geno-all\n");

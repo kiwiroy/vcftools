@@ -43,6 +43,7 @@ public:
 	void filter_sites_to_exclude(const string &snps_to_exclude_file);
 	void filter_sites_by_position(const string &chr, int start_pos, int end_pos);
 	void filter_sites_by_positions(const string &positions_file, const string &exclude_positions_file);
+	void filter_sites_by_overlap_positions(const string &positions_overlap_file, const string &exclude_positions_overlap_file);
 	void filter_sites_by_chromosome(const set<string> &chrs_to_keep, const set<string> &chrs_to_exclude);
 	void filter_sites_by_quality(double min_quality);
 	void filter_sites_by_mean_depth(double min_mean_depth, double max_mean_depth);

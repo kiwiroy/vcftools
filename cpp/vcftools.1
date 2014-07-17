@@ -124,6 +124,15 @@ These options specify a lower bound and upper bound for a range of sites to be p
 Include or exclude a set of sites on the basis of a list of positions in a file. Each line of the input file should contain a (tab-separated) chromosome and position. The file can have comment lines that start with a "#", they will be ignored. 
 .RE
 .PP
+.B --positions-overlap 
+.I <filename>
+.br
+.B --exclude-positions-overlap
+.I <filename>
+.RS 2
+Include or exclude a set of sites on the basis of the reference allele overlapping with a list of positions in a file. Each line of the input file should contain a (tab-separated) chromosome and position. The file can have comment lines that start with a "#", they will be ignored. 
+.RE
+.PP
 .B --bed 
 .I <filename>
 .br
@@ -433,6 +442,18 @@ This optional parameter defines the maximum number of SNPs between the SNPs bein
 .I <int>
 .RS 2
 This optional parameter defines the maximum number of physical bases between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
+.RE
+.PP
+.B --ld-window-min 
+.I <int>
+.RS 2
+This optional parameter defines the minimum number of SNPs between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
+.RE
+.PP
+.B --ld-window-bp-min
+.I <int>
+.RS 2
+This optional parameter defines the minimum number of physical bases between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
 .PP
 .B --min-r2 

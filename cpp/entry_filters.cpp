@@ -36,6 +36,7 @@ int entry::apply_filters(const parameters &params)
 		chr_to_keep = *(params.chrs_to_keep.begin()); // Get first chromosome in list (there should only be one).
 	filter_sites_by_position(chr_to_keep, params.start_pos, params.end_pos);
 	filter_sites_by_positions(params.positions_file, params.exclude_positions_file);
+	filter_sites_by_overlap_positions(params.positions_overlap_file, params.exclude_positions_overlap_file);
 	filter_sites_by_chromosome(params.chrs_to_keep, params.chrs_to_exclude);
 	filter_sites_by_BED_file(params.BED_file, params.BED_exclude);
 	filter_sites_by_number_of_alleles(params.min_alleles, params.max_alleles);
@@ -404,6 +405,148 @@ void entry::filter_sites_by_positions(const string &positions_file, const string
 
 			if (exclude_positions[idx].find(POS) != exclude_positions[idx].end())
 				found = true;
+
+				if (found == true)
+					passed_filters = false;
+		}
+	}
+}
+
+void entry::filter_sites_by_overlap_positions(const string &positions_overlap_file, const string &exclude_positions_overlap_file)
+{
+	// Filter sites by overlapping with a user defined file containing a list of positions
+	if (passed_filters == false)
+		return;
+
+	if ((positions_overlap_file == "") && (exclude_positions_overlap_file == ""))
+		return;
+
+	int idx;
+	if (keep_positions.empty() && positions_overlap_file != "")
+	{
+		string chr;
+		int pos1;
+		unsigned int N_chr=chr_to_idx.size();
+		stringstream ss;
+		string line;
+		unsigned int gzMAX_LINE_LEN = 1024*1024;
+		char *gz_readbuffer = new char[gzMAX_LINE_LEN];
+
+		gzFile gz_in = gzopen(positions_overlap_file.c_str(), "rb");
+		if (gz_in == NULL)
+			LOG.error("Could not open Positions file: " + positions_overlap_file);
+
+		while (!gzeof(gz_in))
+		{
+			line = "";
+			bool again = true;
+			while (again == true)
+			{
+				gzgets(gz_in, gz_readbuffer, gzMAX_LINE_LEN);
+				line.append(gz_readbuffer);
+				if (strlen(gz_readbuffer) != gzMAX_LINE_LEN-1)
+					again = false;
+			}
+			if (line[0] == '#')
+				continue;
+			line.erase( line.find_last_not_of(" \t\n\r") + 1);	// Trim whitespace at end of line (required in gzipped case!)
+
+			ss.clear();
+			ss.str(line);
+			ss >> chr >> pos1;
+
+			if (chr_to_idx.find(chr) == chr_to_idx.end())
+			{
+				N_chr++;
+				chr_to_idx[chr] = (N_chr-1);
+				keep_positions.resize(N_chr);
+			}
+
+			idx = chr_to_idx[chr];
+			keep_positions[idx].insert(pos1);
+		}
+		gzclose(gz_in);
+		delete [] gz_readbuffer;
+	}
+	if (exclude_positions.empty() && exclude_positions_overlap_file != "")
+	{
+		string chr;
+		int pos1;
+		unsigned int N_chr=0;
+		stringstream ss;
+		string line;
+		unsigned int gzMAX_LINE_LEN = 1024*1024;
+		char *gz_readbuffer = new char[gzMAX_LINE_LEN];
+
+		gzFile gz_in = gzopen(exclude_positions_overlap_file.c_str(), "rb");
+		if (gz_in == NULL)
+			LOG.error("Could not open Positions file: " + exclude_positions_overlap_file);
+
+		while (!gzeof(gz_in))
+		{
+			line = "";
+			bool again = true;
+			while (again == true)
+			{
+				gzgets(gz_in, gz_readbuffer, gzMAX_LINE_LEN);
+				line.append(gz_readbuffer);
+				if (strlen(gz_readbuffer) != gzMAX_LINE_LEN-1)
+					again = false;
+			}
+			if (line[0] == '#')
+				continue;
+			line.erase( line.find_last_not_of(" \t\n\r") + 1);	// Trim whitespace at end of line (required in gzipped case!)
+
+			ss.clear();
+			ss.str(line);
+			ss >> chr >> pos1;
+
+			if (chr_to_idx.find(chr) == chr_to_idx.end())
+			{
+				N_chr++;
+				chr_to_idx[chr] = (N_chr-1);
+				exclude_positions.resize(N_chr);
+			}
+
+			idx = chr_to_idx[chr];
+			exclude_positions[idx].insert(pos1);
+		}
+		gzclose(gz_in);
+		delete [] gz_readbuffer;
+	}
+
+	parse_basic_entry();
+
+	if (!keep_positions.empty())
+	{	// Check to see if position is in keep list
+			if (chr_to_idx.find(CHROM) == chr_to_idx.end())
+				passed_filters = false;
+			else
+			{
+				idx = chr_to_idx[CHROM];
+				bool found=false;
+
+				for (unsigned int ui=POS; ui<(POS+REF.size()); ui++)
+					if (keep_positions[idx].find(ui) != keep_positions[idx].end())
+					{
+						found = true;
+						break;
+					}
+
+				if (found == false)
+					passed_filters = false;
+			}
+	}
+	if (!exclude_positions.empty())
+	{	// Check to see if position is in exclude list
+		if (chr_to_idx.find(CHROM) != chr_to_idx.end())
+		{
+			idx = chr_to_idx[CHROM];
+			bool found=false;
+
+			for (unsigned int ui=POS; ui<(POS+REF.size()); ui++)
+				if (exclude_positions[idx].find(ui) != exclude_positions[idx].end())
+					found = true;
 
 				if (found == true)
 					passed_filters = false;
