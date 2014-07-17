@@ -91,6 +91,7 @@ parameters::parameters(int argc, char *argv[])
 	output_het = false;
 	output_HWE = false;
 	output_indel_hist = false;
+	output_indv_burden = false;
 	output_indv_depth = false;
 	output_indv_freq_burden = false;
 	output_indv_freq_burden2 = false;
@@ -239,6 +240,7 @@ void parameters::read_parameters()
 		else if (in_str == "--hwe") { max_alleles = 2; min_HWE_pvalue = atof(get_arg(i+1).c_str()); i++; }					// Minimum per-site HWE p-value
 		else if (in_str == "--IMPUTE") { output_as_IMPUTE = true; phased_only=true; min_site_call_rate=1.0; min_alleles=2; max_alleles=2; num_outputs++;}// Output as IMPUTE format
 		else if (in_str == "--indv") { indv_to_keep.insert(get_arg(i+1)); i++; }						// List of individuals to keep
+		else if (in_str == "--indv-burden") { output_indv_burden = true; num_outputs++; }
 		else if (in_str == "--indv-freq-burden") { output_indv_freq_burden = true; num_outputs++; }
 		else if (in_str == "--indv-freq-burden2") { output_indv_freq_burden2 = true; num_outputs++; }
 		else if (in_str == "--interchrom-hap-r2") { output_interchromosomal_hap_rsq = true; phased_only = true;  min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
@@ -436,6 +438,7 @@ void parameters::print_params()
 	if (output_het) LOG.printLOG("\t--het\n");
 	if (output_HWE) LOG.printLOG("\t--hardy\n");
 	if (output_indel_hist != defaults.output_indel_hist) LOG.printLOG("\t--hist-indel-len \n");
+	if (output_indv_burden) LOG.printLOG("\t--indv-burden\n");
 	if (output_indv_depth) LOG.printLOG("\t--depth\n");
 	if (output_indv_freq_burden) LOG.printLOG("\t--indv-freq-burden\n");
 	if (output_indv_missingness) LOG.printLOG("\t--missing-indv\n");

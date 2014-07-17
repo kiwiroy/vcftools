@@ -73,6 +73,7 @@ void variant_file::output_frequency(const parameters &params, bool output_counts
 
 		if (params.derived)
 		{
+			aa_idx = 0;
 			string AA = e->get_INFO_value("AA");
 			std::transform(AA.begin(), AA.end(), AA.begin(), ::toupper);	// Comment this out if only want high quality sites.
 			if ((AA == "?") || (AA == "."))
@@ -383,6 +384,132 @@ void variant_file::output_hwe(const parameters &params)
 	delete e;
 }
 
+
+void variant_file::output_indv_burden(const parameters &params)
+{
+	// Output the burden within each individual of variants at each frequency.
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to output Burden Statistics.");
+	LOG.printLOG("Outputting variant burden by individual\n");
+	string output_file = params.output_prefix + ".iburden";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Burden Output File: " + output_file, 2);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	vector< int > hom_ref_burden(meta_data.N_indv, 0);
+	vector< int > het_burden(meta_data.N_indv, 0);
+	vector< int > hom_alt_burden(meta_data.N_indv, 0);
+	vector< int > missing_burden(meta_data.N_indv, 0);
+
+	if (params.derived)
+		out << "INDV\tN_HOM_ANC\tN_HET\tN_HOM_DER\tN_MISS" << endl;
+	else
+		out << "INDV\tN_HOM_REF\tN_HET\tN_HOM_ALT\tN_MISS" << endl;
+
+	unsigned int N_alleles;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	int aa_idx = 0;
+
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		N_entries += e->apply_filters(params);
+
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		if (params.derived)
+			e->parse_basic_entry(true, false, true);
+		else
+			e->parse_basic_entry(true);
+
+		e->parse_genotype_entries(true);
+		N_alleles = e->get_N_alleles();
+
+		if (e->is_diploid() == false)
+		{
+			LOG.one_off_warning("\tWarning: Only using fully diploid sites.");
+			continue;
+		}
+
+		if (params.derived)
+		{
+			aa_idx = 0;
+			string AA = e->get_INFO_value("AA");
+			std::transform(AA.begin(), AA.end(), AA.begin(), ::toupper);	// Comment this out if only want high quality sites.
+			if ((AA == "?") || (AA == "."))
+			{
+				LOG.one_off_warning("\tWarning: Cannot find Ancestral Alleles (AA)");
+				continue;
+			}
+			else
+			{
+				bool found = false;
+				for (unsigned int ui=0; ui<N_alleles; ui++)
+				{
+					if (AA == e->get_allele(ui))
+					{
+						aa_idx = ui;
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					LOG.one_off_warning("\tWarning: Ancestral allele does not match any SNP allele.");
+					continue;
+				}
+			}
+		}
+
+		pair<int, int> geno;
+
+		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+		{
+			if (e->include_indv[ui] == false)
+				continue;
+
+			if (e->include_genotype[ui] == true)
+			{
+				e->get_indv_GENOTYPE_ids(ui, geno);
+
+				if ((geno.first == aa_idx) && (geno.second == aa_idx))
+					hom_ref_burden[ui]++;
+				else if ((geno.first >= 0) && (geno.second >= 0) && (geno.first != geno.second))
+					het_burden[ui]++;
+				else if ((geno.first >= 0) && (geno.second >= 0) && (geno.first == geno.second))
+					hom_alt_burden[ui]++;
+				else
+					missing_burden[ui]++;
+			}
+		}
+	}
+	delete e;
+
+	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+	{
+		if (include_indv[ui] == false)
+			continue;
+		out << meta_data.indv[ui];
+		out << "\t" << hom_ref_burden[ui];
+		out << "\t" << het_burden[ui];
+		out << "\t" << hom_alt_burden[ui];
+		out << "\t" << missing_burden[ui] << endl;
+	}
+}
+
+
 void variant_file::output_indv_freq_burden(const parameters &params, int double_count_hom_alt)
 {
 	// Output the burden within each individual of variants at each frequency.
@@ -444,6 +571,7 @@ void variant_file::output_indv_freq_burden(const parameters &params, int double_
 
 		if (params.derived)
 		{
+			aa_idx = 0;
 			string AA = e->get_INFO_value("AA");
 			std::transform(AA.begin(), AA.end(), AA.begin(), ::toupper);	// Comment this out if only want high quality sites.
 			if ((AA == "?") || (AA == "."))

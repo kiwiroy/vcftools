@@ -36,7 +36,7 @@ void variant_file::return_indv_union(variant_file &file2, map<string, pair< int,
 	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		if (include_indv[ui] == true)
 		{
-			combined_individuals[meta_data.indv[ui]] = make_pair<int,int>(ui, -1);
+			combined_individuals[meta_data.indv[ui]] = make_pair<int,int>((int)ui, -1);
 		}
 
 	for (unsigned int ui=0; ui<file2.meta_data.N_indv; ui++)
@@ -53,7 +53,7 @@ void variant_file::return_indv_union(variant_file &file2, map<string, pair< int,
 				combined_individuals[indv_id].second = ui;
 			}
 			else
-				combined_individuals[indv_id] = make_pair<int,int>(-1, ui);
+				combined_individuals[indv_id] = make_pair<int,int>(-1, (int)ui);
 		}
 }
 
@@ -1252,7 +1252,6 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	string REF2 = "";
 	string ALT1 = "";
 	string ALT2 = "";
-	bool alleles_match = false;
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
 
 	string output_file = params.output_prefix + ".diff.switch";
@@ -1468,9 +1467,9 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 							if ((phase1 == '|') && (phase2 == '|'))
 							{	// Calculate Phasing error (switch error)
 								N_phased_het_sites[indv_count]++;
-								file1_hap1 = make_pair<string,string>(prev_geno_file1[indv_count].first, genotype1.first);
-								file1_hap2 = make_pair<string,string>(prev_geno_file1[indv_count].second, genotype1.second);
-								file2_hap1 = make_pair<string,string>(prev_geno_file2[indv_count].first, genotype2.first);
+								file1_hap1 = make_pair<string,string>((string)prev_geno_file1[indv_count].first, (string)genotype1.first);
+								file1_hap2 = make_pair<string,string>((string)prev_geno_file1[indv_count].second, (string)genotype1.second);
+								file2_hap1 = make_pair<string,string>((string)prev_geno_file2[indv_count].first, (string)genotype2.first);
 
 								if ((file2_hap1 != file1_hap1) && (file2_hap1 != file1_hap2))
 								{	// Must be a switch error
