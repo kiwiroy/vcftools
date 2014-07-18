@@ -76,11 +76,11 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 	string REF2 = "";
 	string ALT1 = "";
 	string ALT2 = "";
-	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
+	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0, N_overlap_SNPs = 0;
 
 	string output_file = params.output_prefix + ".diff.sites_in_files";
 	ofstream sites_in_files(output_file.c_str());
-	sites_in_files << "CHROM\tPOS\tIN_FILE\tREF\tALT1\tALT2" << endl;
+	sites_in_files << "CHROM\tPOS1\tPOS2\tIN_FILE\tREF1\tREF2\tALT1\tALT2" << endl;
 
 	LOG.printLOG("Comparing sites in VCF files...\n");
 	while(true)
@@ -132,7 +132,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 		{
 			if(CHROM1 == curr_CHROM)
 			{
-				sites_in_files << CHROM1 << "\t" << POS1 << "\t1\t" << REF1 << "\t" << ALT1 << "\t." << endl;
+				sites_in_files << CHROM1 << "\t" << POS1 << "\t.\t1\t" << REF1 << "\t.\t" << ALT1 << "\t." << endl;
 				N_SNPs_file1_only++;
 				new_e1 = true;
 
@@ -145,7 +145,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 				{
 					curr_CHROM = CHROM1;
 					all_CHROM.push_back(CHROM1);
-					sites_in_files << CHROM1 << "\t" << POS1 << "\t1\t" << REF1 << "\t" << ALT1 << "\t." << endl;
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t.\t1\t" << REF1 << "\t.\t" << ALT1 << "\t." << endl;
 					N_SNPs_file1_only++;
 					new_e1 = true;
 				}
@@ -155,7 +155,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 		{
 			if(CHROM2 == curr_CHROM)
 			{
-				sites_in_files << CHROM2 << "\t" << POS2 << "\t2\t" << REF2 << "\t.\t" << ALT2 << endl;
+				sites_in_files << CHROM2 << "\t.\t" << POS2 << "\t2\t.\t" << REF2 << "\t.\t" << ALT2 << endl;
 				N_SNPs_file2_only++;
 				new_e2 = true;
 
@@ -168,7 +168,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 				{
 					curr_CHROM = CHROM2;
 					all_CHROM.push_back(CHROM2);
-					sites_in_files << CHROM2 << "\t" << POS2 << "\t2\t" << REF2 << "\t.\t" << ALT2 << endl;
+					sites_in_files << CHROM2 << "\t.\t" << POS2 << "\t2\t.\t" << REF2 << "\t.\t" << ALT2 << endl;
 					N_SNPs_file2_only++;
 					new_e2 = true;
 				}
@@ -193,36 +193,59 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 				new_e2 = true;
 				if ((REF1 != REF2) && (REF2 != "N") && (REF1 != "N") && (REF1 != ".") && (REF2 != ".") && (REF1 != "") && (REF2 != ""))
 				{
-					LOG.one_off_warning("Non-matching REF. Skipping all such sites.");
-					continue;
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t" << POS2 << "\tO\t" << REF1 << "\t" << REF2 << "\t" << ALT1 << "\t" << ALT2 << endl;
+					N_overlap_SNPs++;
 				}
-				sites_in_files << CHROM1 << "\t" << POS1 << "\tB\t" << REF1 << "\t" << ALT1 << "\t" << ALT2 << endl;
-				N_common_SNPs++;
+				else
+				{
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t" << POS2 << "\tB\t" << REF1 << "\t" << REF2 << "\t" << ALT1 << "\t" << ALT2 << endl;
+					N_common_SNPs++;
+				}
 			}
 			else if(POS1 < POS2)
 			{
-				sites_in_files << CHROM1 << "\t" << POS1 << "\t1\t" << REF1 << "\t" << ALT1 << "\t." << endl;
-				N_SNPs_file1_only++;
-				new_e1 = true;
+				if (POS2 < (POS1+REF1.size()))
+				{
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t" << POS2 << "\tO\t" << REF1 << "\t" << REF2 <<"\t" << ALT1 << "\t" << ALT2 << endl;
+					N_overlap_SNPs++;
+					new_e1 = true;
+					new_e2 = true;
+				}
+				else
+				{
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t.\t1\t" << REF1 << "\t.\t" << ALT1 << "\t." << endl;
+					N_SNPs_file1_only++;
+					new_e1 = true;
+				}
 			}
 			else
 			{
-				sites_in_files << CHROM2 << "\t" << POS2 << "\t2\t" << REF2 << "\t.\t" << ALT2 << endl;
-				N_SNPs_file2_only++;
-				new_e2 = true;
+				if (POS1 < (POS2+REF2.size()))
+				{
+					sites_in_files << CHROM1 << "\t" << POS1 << "\t" << POS2 << "\tO\t" << REF1 << "\t" << REF2 <<"\t" << ALT1 << "\t" << ALT2 << endl;
+					N_overlap_SNPs++;
+					new_e1 = true;
+					new_e2 = true;
+				}
+				else
+				{
+					sites_in_files << CHROM2 << "\t.\t" << POS2 << "\t2\t.\t" << REF2 << "\t.\t" << ALT2 << endl;
+					N_SNPs_file2_only++;
+					new_e2 = true;
+				}
 			}
 		}
 		else
 		{
 			if (CHROM1 == curr_CHROM)
 			{
-				sites_in_files << CHROM1 << "\t" << POS1 << "\t1\t" << REF1 << "\t" << ALT1 << "\t." << endl;
+				sites_in_files << CHROM1 << "\t" << POS1 << "\t.\t1\t" << REF1 << "\t.\t" << ALT1 << "\t." << endl;
 				N_SNPs_file1_only++;
 				new_e1 = true;
 			}
 			else if (CHROM2 == curr_CHROM)
 			{
-				sites_in_files << CHROM2 << "\t" << POS2 << "\t2\t" << REF2 << "\t.\t" << ALT2 << endl;
+				sites_in_files << CHROM2 << "\t.\t" << POS2 << "\t2\t.\t" << REF2 << "\t.\t" << ALT2 << endl;
 				N_SNPs_file2_only++;
 				new_e2 = true;
 			}
@@ -263,9 +286,10 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 	}
 	sites_in_files.close();
 
-	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " SNPs only in main file.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_overlap_SNPs) + " non-matching overlapping sites.\n");
 	delete e1;
 	delete e2;
 }
@@ -619,9 +643,9 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 		discordance = N_discord / double(N);
 		out << "\t" << N << "\t" << N_discord << "\t" << discordance << endl;
 	}
-	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " SNPs only in main file.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
 
 	delete e1;
 	delete e2;
@@ -945,9 +969,9 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 	}
 	diffsites.close();
 
-	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " SNPs only in main file.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
 	delete e1;
 	delete e2;
 
@@ -1219,9 +1243,9 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	out << "N_./._file2\t" << discordance_matrix[0][3] << "\t" << discordance_matrix[1][3] << "\t" << discordance_matrix[2][3] << "\t" << discordance_matrix[3][3] << endl;
 	out.close();
 
-	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " SNPs only in main file.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
 	delete e1;
 	delete e2;
 }
@@ -1233,8 +1257,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	return_indv_union(diff_variant_file, combined_individuals, params.diff_indv_map_file);
 
 	LOG.printLOG("Outputting Phase Switch Errors...\n");
-	int POS;
-	string CHROM;
+
 	vector<char> variant_line;
 	int indv1, indv2;
 	entry *e1 = get_entry_object();
@@ -1320,7 +1343,6 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 			{
 				N_SNPs_file1_only++;
 				new_e1 = true;
-
 			}
 			else
 			{
@@ -1341,7 +1363,6 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 			{
 				N_SNPs_file2_only++;
 				new_e2 = true;
-
 			}
 			else
 			{
@@ -1479,7 +1500,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 										indv_id = meta_data.indv[indv1];
 									else
 										indv_id = diff_variant_file.meta_data.indv[indv2];
-									switcherror << CHROM << "\t" << POS << "\t" << indv_id << endl;
+									switcherror << e1->get_CHROM() << "\t" << e1->get_POS() << "\t" << indv_id << endl;
 								}
 								prev_geno_file1[indv_count] = genotype1;
 								prev_geno_file2[indv_count] = genotype2;
@@ -1522,7 +1543,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 		indv_count++;
 	}
 	idiscord.close();
-	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " SNPs common to both files.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " SNPs only in main file.\n");
-	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " SNPs only in second file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
+	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
 }
