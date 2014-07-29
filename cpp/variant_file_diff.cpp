@@ -1281,15 +1281,18 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	ofstream switcherror(output_file.c_str());
 	if (!switcherror.is_open())
 		LOG.error("Could not open Switch Error file: " + output_file, 4);
-	switcherror << "CHROM\tPOS\tINDV" << endl;
+	switcherror << "CHROM\tPOS_START\tPOS_END\tINDV" << endl;
 
 	unsigned int N_combined_indv = combined_individuals.size();
 	vector<int> N_phased_het_sites(N_combined_indv, 0);
 	vector<int> N_switch_errors(N_combined_indv, 0);
 
 	pair<string, string> missing_genotype(".",".");
+	pair<string, int> missing_loc(".",-1);
 	vector<pair<string, string> > prev_geno_file1(N_combined_indv, missing_genotype);
 	vector<pair<string, string> > prev_geno_file2(N_combined_indv, missing_genotype);
+	vector<pair<string, int> > prev_pos_file1(N_combined_indv, missing_loc);
+	vector<pair<string, int> > prev_pos_file2(N_combined_indv, missing_loc);
 	pair<string, string> file1_hap1, file1_hap2, file2_hap1;
 
 	while(true)
@@ -1500,10 +1503,19 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 										indv_id = meta_data.indv[indv1];
 									else
 										indv_id = diff_variant_file.meta_data.indv[indv2];
-									switcherror << e1->get_CHROM() << "\t" << e1->get_POS() << "\t" << indv_id << endl;
+
+									if (prev_pos_file1[indv_count].first == prev_pos_file2[indv_count].first)
+									{
+										if (prev_pos_file1[indv_count].second <= prev_pos_file2[indv_count].second)
+											switcherror << prev_pos_file1[indv_count].first << "\t" << prev_pos_file1[indv_count].second << "\t" << POS1 << "\t" << indv_id << endl;
+										else
+											switcherror << prev_pos_file1[indv_count].first << "\t" << prev_pos_file2[indv_count].second << "\t" << POS1 << "\t" << indv_id << endl;
+									}
 								}
 								prev_geno_file1[indv_count] = genotype1;
 								prev_geno_file2[indv_count] = genotype2;
+								prev_pos_file1[indv_count] = make_pair<string,int>(CHROM1,POS1);
+								prev_pos_file2[indv_count] = make_pair<string,int>(CHROM2,POS2);
 							}
 						}
 					}
