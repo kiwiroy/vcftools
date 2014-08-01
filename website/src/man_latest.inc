@@ -33,9 +33,9 @@
 </h2>
 
 
-<p style="margin-left:11%; margin-top: 1em">VCFtools v0.1.12b
-&minus; Utilities for the variant call format (VCF) and
-binary variant call format (BCF)</p>
+<p style="margin-left:11%; margin-top: 1em">vcftools
+v0.1.12b &minus; Utilities for the variant call format (VCF)
+and binary variant call format (BCF)</p>
 
 <h2>SYNOPSIS
 <a name="SYNOPSIS"></a>
@@ -53,7 +53,7 @@ OUTPUT OPTIONS ]</p>
 </h2>
 
 
-<p style="margin-left:11%; margin-top: 1em">VCFtools is a
+<p style="margin-left:11%; margin-top: 1em">vcftools is a
 suite of functions for use on genetic variation data in the
 form of VCF and BCF files. The tools provided will be used
 mainly to summarize data, run calculations on data, filter
@@ -69,14 +69,14 @@ formats.</p>
 frequency for all sites in the input vcf file from
 chromosome 1</p>
 
-<p class="codebox"><b>vcftools</b> --gzvcf
+<p style="margin-left:14%;"><b>vcftools</b> --gzvcf
 input_file.vcf.gz --freq --chr 1 --out chr1_analysis</p>
 
 <p style="margin-left:11%; margin-top: 1em">Output a new
 vcf file from the input vcf file that removes any indel
 sites</p>
 
-<p class="codebox"><b>vcftools</b> --vcf
+<p style="margin-left:14%;"><b>vcftools</b> --vcf
 input_file.vcf --remove-indels --recode --recode-INFO-all
 --out SNPs_only</p>
 
@@ -84,7 +84,7 @@ input_file.vcf --remove-indels --recode --recode-INFO-all
 comparing and summarizing the individuals and sites in two
 vcf files</p>
 
-<p class="codebox"><b>vcftools</b> --gzvcf
+<p style="margin-left:14%;"><b>vcftools</b> --gzvcf
 input_file1.vcf.gz --gzdiff input_file2.vcf.gz --out
 in1_v_in2</p>
 
@@ -92,7 +92,7 @@ in1_v_in2</p>
 vcf file to standard out without any sites that have a
 filter tag, then compress it with gzip</p>
 
-<p class="codebox"><b>vcftools</b> --gzvcf
+<p style="margin-left:14%;"><b>vcftools</b> --gzvcf
 input_file.vcf.gz --remove-filtered-all --recode --stdout |
 gzip -c &gt; output_PASS_only.vcf.gz</p>
 
@@ -100,14 +100,14 @@ gzip -c &gt; output_PASS_only.vcf.gz</p>
 Hardy-Weinberg p-value for every site in the bcf file that
 does not have any missing genotypes</p>
 
-<p class="codebox"><b>vcftools</b> --bcf
+<p style="margin-left:14%;"><b>vcftools</b> --bcf
 input_file.bcf --hardy --max-missing 1.0 --out
 output_noMissing</p>
 
 <p style="margin-left:11%; margin-top: 1em">Output
 nucleotide diversity at a list of positions</p>
 
-<p class="codebox">zcat input_file.vcf.gz |
+<p style="margin-left:14%;">zcat input_file.vcf.gz |
 <b>vcftools</b> --vcf - --site-pi --positions SNP_list.txt
 --out nucleotide_diversity</p>
 
@@ -128,9 +128,9 @@ OPTIONS</b></p>
 <p style="margin-left:17%;">This option defines the VCF
 file to be processed. VCFtools expects files in VCF format
 v4.0, v4.1 or v4.2. The latter two are supported with some
-small limitations. If the user provides a dash character '-' as the file name, the
-program expects a VCF file to be piped in through standard
-in.</p>
+small limitations. If the user provides a dash character
+&rsquo;-&rsquo; as a file name, the program expects a VCF
+file to be piped in through standard in.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--gzvcf</b>
 <i>&lt;input_filename&gt;</i></p>
@@ -145,8 +145,9 @@ files directly.</p>
 <p style="margin-left:17%;">This option can be used in
 place of the --vcf option to read BCF2 files directly. You
 do not need to specify if this file is compressed with BGZF
-encoding. If the user provides a dash character '-' as the file name, the program
-expects a BCF2 file to be piped in through standard in.</p>
+encoding. If the user provides a dash character
+&rsquo;-&rsquo; as a file name, the program expects a BCF2
+file to be piped in through standard in.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT FILE
 OPTIONS</b></p>
@@ -171,6 +172,13 @@ vcftools output to standard out so it can be piped into
 another program or written directly to a filename of choice.
 However, a select few output functions cannot be written to
 standard out.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>--temp</b>
+<i>&lt;temporary_directory&gt;</i></p>
+
+<p style="margin-left:17%;">This option can be used to
+redirect any temporary files that vcftools creates into a
+specified directory.</p>
 
 <h2>SITE FILTERING OPTIONS
 <a name="SITE FILTERING OPTIONS"></a>
@@ -215,6 +223,18 @@ sites on the basis of a list of positions in a file. Each
 line of the input file should contain a (tab-separated)
 chromosome and position. The file can have comment lines
 that start with a &quot;#&quot;, they will be ignored.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--positions-overlap</b>
+<i>&lt;filename&gt;</i> <b><br>
+--exclude-positions-overlap</b> <i>&lt;filename&gt;</i></p>
+
+<p style="margin-left:17%;">Include or exclude a set of
+sites on the basis of the reference allele overlapping with
+a list of positions in a file. Each line of the input file
+should contain a (tab-separated) chromosome and position.
+The file can have comment lines that start with a
+&quot;#&quot;, they will be ignored.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--bed</b>
 <i>&lt;filename&gt;</i> <b><br>
@@ -647,6 +667,25 @@ tested for LD in the &quot;--hap-r2&quot;,
 functions.</p>
 
 
+<p style="margin-left:14%; margin-top: 1em"><b>--ld-window-min</b>
+<i>&lt;int&gt;</i></p>
+
+<p style="margin-left:17%;">This optional parameter defines
+the minimum number of SNPs between the SNPs being tested for
+LD in the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;, and
+&quot;--geno-chisq&quot; functions.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--ld-window-bp-min</b>
+<i>&lt;int&gt;</i></p>
+
+<p style="margin-left:17%;">This optional parameter defines
+the minimum number of physical bases between the SNPs being
+tested for LD in the &quot;--hap-r2&quot;,
+&quot;--geno-r2&quot;, and &quot;--geno-chisq&quot;
+functions.</p>
+
+
 <p style="margin-left:14%; margin-top: 1em"><b>--min-r2</b>
 <i>&lt;float&gt;</i></p>
 
@@ -654,6 +693,43 @@ functions.</p>
 minimum value for r2, below which the LD statistic is not
 reported by the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;,
 and &quot;--geno-chisq&quot; functions.</p>
+
+<p style="margin-left:14%;"><b>--interchrom-hap-r2</b></p>
+
+<p style="margin-left:17%;">Outputs a file reporting the r2
+statistics using phased haplotypes only with sites on
+different chromosomes. The output file has the suffix
+&quot;.interchrom.hap.ld&quot;. This option assumes that the
+VCF input file has phased haplotypes.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--interchrom-geno-r2</b></p>
+
+<p style="margin-left:17%;">Calculates the squared
+correlation coefficient between genotypes encoded as 0, 1
+and 2 to represent the number of non-reference alleles in
+each individual but only for sites on differing chromosomes.
+The output file has the suffix
+&quot;.interchrom.geno.ld&quot;.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b>
+<i>&lt;BED file&gt;</i></p>
+
+<p style="margin-left:17%;">Outputs a file reporting the r2
+statistics using phased haplotypes only at the sites
+contained in the provided BED file. The output file has the
+suffix &quot;.list.hap.ld&quot;. This option assumes that
+the VCF input file has phased haplotypes.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--geno-r2-positions</b>
+<i>&lt;BED file&gt;</i></p>
+
+<p style="margin-left:17%;">Calculates the squared
+correlation coefficient between genotypes only at the sites
+contained in the provided BED file. The output file has the
+suffix &quot;.list.geno.ld&quot;.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT
 TRANSITION/TRANSVERSION STATISTICS</b></p>
@@ -759,11 +835,10 @@ using a method of moments. The resulting file has the suffix
 
 <p style="margin-left:17%;">Reports a p-value for each site
 from a Hardy-Weinberg Equilibrium test (as defined by
-Wigginton, Cutler and Abecasis (2005)), as well as tests for heterozygote excess/paucity. The resulting file
+Wigginton, Cutler and Abecasis (2005)). The resulting file
 (with suffix &quot;.hwe&quot;) also contains the Observed
 numbers of Homozygotes and Heterozygotes and the
 corresponding Expected numbers under HWE.</p>
-
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--TajimaD</b>
@@ -773,12 +848,13 @@ corresponding Expected numbers under HWE.</p>
 statistic in bins with size of the specified number. The
 output file has the suffix &quot;.Tajima.D&quot;.</p>
 
-<p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b><br><b>--indv-freq-burden2</b></p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>--indv-freq-burden</b></p>
 
 <p style="margin-left:17%;">This option calculates the
 number of variants within each individual of a specific
 frequency. The resulting file has the suffix
-&quot;.ifreqburden&quot;.</p> The first version double counts homozygous alt variants (e.g. 1/1, 2/2, etc.), whereas the second version does not.
+&quot;.ifreqburden&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--LROH</b></p>
@@ -786,6 +862,7 @@ frequency. The resulting file has the suffix
 <p style="margin-left:17%;">This option will identify and
 output Long Runs of Homozygosity. The output file has the
 suffix &quot;.LROH&quot;.</p>
+
 
 <p style="margin-left:14%; margin-top: 1em"><b>--relatedness</b></p>
 
@@ -803,7 +880,7 @@ themselves. The output file has the suffix
 
 <p style="margin-left:17%;">This option is used to
 calculate and output a relatedness statistic based on the
-method of Manichaikul et al., Bioinformatics 2010
+method of Manichaikul et al., BIOINFORMATICS 2010
 (doi:10.1093/bioinformatics/btq559). The output file has the
 suffix &quot;.relatedness2&quot;.</p>
 
@@ -930,6 +1007,16 @@ the above recode options to define an INFO key name to keep
 in the output file. This option can be used multiple times
 to keep more of the INFO fields. The second option is used
 to keep all INFO values in the original file.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--contigs</b>
+<i>&lt;string&gt;</i></p>
+
+<p style="margin-left:17%;">This option can be used in
+conjuction with the --recode-bcf when the input file does
+not have any contig declarations. This option expects a file
+name with one contig header per line. These lines are
+included in the output file.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT OTHER
 FORMATS</b></p>
@@ -1097,6 +1184,5 @@ the suffixes &quot;.diff.switch&quot; and
 (adam.auton@einstein.yu.edu) <br>
 Anthony Marcketta (anthony.marcketta@einstein.yu.edu)</p>
 <hr>
-</div>
 </body>
 </html>

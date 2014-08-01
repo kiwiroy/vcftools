@@ -37,7 +37,9 @@
      <div id="right">
       <div class="box">
       	<h2>Binary executable documentation</h2>
-      		<p>The manual page for the <a href="man_latest.html">latest version</a>.</p>
+      		<p>The manual page for:</p>
+		<p><a href="man_latest.html">v0.1.12b</a> - the latest version</p>
+		<p><a href="man_0112a.html">v0.1.12a</a></p>
       	<h2>PERL module documentation</h2>
       		<p>The full documentation for the <a href="perl_module.html">latest version</a>.</p>
       	<h2>HTSlib</h2>
