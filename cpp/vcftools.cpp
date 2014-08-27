@@ -45,14 +45,13 @@ int main(int argc, char *argv[])
 			variant_diff = new vcf_file(params, true);
 
 		variant_diff->apply_filters(params);
-		vf->output_indv_in_files(params, *variant_diff);
-
-		if (params.diff_site_discordance == true) vf->output_discordance_by_site(params, *variant_diff);
+		if (params.diff_indv == true) vf->output_indv_in_files(params, *variant_diff);
+		else if (params.diff_site_discordance == true) vf->output_discordance_by_site(params, *variant_diff);
 		else if (params.diff_discordance_matrix == true) vf->output_discordance_matrix(params, *variant_diff);
 		else if (params.diff_indv_discordance == true) vf->output_discordance_by_indv(params, *variant_diff);
 		else if (params.diff_switch_error == true) vf->output_switch_error(params, *variant_diff);
-		else
-			vf->output_sites_in_files(params, *variant_diff);
+		else if (params.diff_site == true)	vf->output_sites_in_files(params, *variant_diff);
+		else LOG.warning("Diff file provided, but no additional option.\n");
 
 		delete variant_diff;
 	}

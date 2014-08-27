@@ -34,7 +34,7 @@
 
 
 <p style="margin-left:11%; margin-top: 1em">vcftools
-v0.1.12b &minus; Utilities for the variant call format (VCF)
+v0.1.13 &minus; Utilities for the variant call format (VCF)
 and binary variant call format (BCF)</p>
 
 <h2>SYNOPSIS
@@ -80,12 +80,11 @@ sites</p>
 input_file.vcf --remove-indels --recode --recode-INFO-all
 --out SNPs_only</p>
 
-<p style="margin-left:11%; margin-top: 1em">Output files
-comparing and summarizing the individuals and sites in two
-vcf files</p>
+<p style="margin-left:11%; margin-top: 1em">Output file
+comparing the sites in two vcf files</p>
 
 <p style="margin-left:14%;"><b>vcftools</b> --gzvcf
-input_file1.vcf.gz --gzdiff input_file2.vcf.gz --out
+input_file1.vcf.gz --gzdiff input_file2.vcf.gz --diff-site --out
 in1_v_in2</p>
 
 <p style="margin-left:11%; margin-top: 1em">Output a new
@@ -1105,8 +1104,7 @@ the files in the PLINK transposed format with suffixes
 
 <p style="margin-left:11%; margin-top: 1em">These options
 are used to compare the original variant file to another
-variant file and output the results. All diff functions
-cannot be written to standard out.</p>
+variant file and output the results. </p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>DIFF VCF
 FILE</b></p>
@@ -1118,15 +1116,18 @@ FILE</b></p>
 
 <p style="margin-left:17%;">These options compare the
 original input file to this specified VCF, gzipped VCF, or
-BCF file. This option outputs two files describing the sites
-and individuals common / unique to each file. These files
-have the suffixes &quot;.diff.sites_in_files&quot; and
-&quot;.diff.indv_in_files&quot; respectively. <br>
-See examples section for usage help.</p>
+BCF file. These options must be specified with an additional option described below
+in order to specify what type of comparison is to be performed. See the examples section for typical usage.</p>
 
-<p style="margin-left:11%; margin-top: 1em"><b>DIFF
-OPTIONS</b></p>
+<p style="margin-left:11%; margin-top: 1em"><b>DIFF OPTIONS</b></p>
 
+<p style="margin-left:14%;"><b>--diff-site</b></p>
+<p style="margin-left:17%;">Outputs the sites that are common / unique to each file. The output file
+has the suffix &quot;.diff.sites_in_files&quot;. </p>
+
+<p style="margin-left:14%;"><b>--diff-indv</b></p>
+<p style="margin-left:17%;">Outputs the individuals that are shared / unique to each file. The output file
+has the suffix &quot;.diff.indv_in_files&quot;. </p>
 
 <p style="margin-left:14%;"><b>--diff-site-discordance</b></p>
 
@@ -1135,7 +1136,6 @@ conjuction with any of the above &quot;--diff&quot; options
 to calculate discordance on a site by site basis. The
 resulting output file has the suffix
 &quot;.diff.sites&quot;.</p>
-
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-indv-discordance</b></p>
 
@@ -1167,15 +1167,12 @@ in both files. The resulting output file has the suffix
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-switch-error</b></p>
 
-<p style="margin-left:17%;">Used in conjuction with the
---diff option to calculate phasing errors (specifically
-&quot;switch errors&quot;). This option generates two output
-files describing switch errors found between sites, and the
-average switch error per individual. These two files have
-the suffixes &quot;.diff.switch&quot; and
-&quot;.diff.indv.switch&quot; respectively.</p>
+<p style="margin-left:17%;">This option can be used in
+conjuction with any of the above &quot;--diff&quot; options to calculate phasing errors (specifically
+&quot;switch errors&quot;). This option an output
+file describing switch errors found between sites, with suffix &quot;.diff.switch&quot;.</p>
 
-<h2>AUTHOR
+<h2>AUTHORS
 <a name="AUTHOR"></a>
 </h2>
 

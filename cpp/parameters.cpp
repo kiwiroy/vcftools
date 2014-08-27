@@ -32,8 +32,10 @@ parameters::parameters(int argc, char *argv[])
 	diff_file = "";
 	diff_file_bcf = false;
 	diff_file_compressed = false;
+	diff_indv = false;
 	diff_indv_discordance = false;
 	diff_indv_map_file = "";
+	diff_site = false;
 	diff_site_discordance = false;
 	diff_switch_error = false;
 	end_pos = numeric_limits<int>::max();
@@ -188,13 +190,15 @@ void parameters::read_parameters()
 		else if (in_str == "--counts2") {output_counts = true; suppress_allele_output = true; num_outputs++;}								// Output per-site allele count statistics
 		else if (in_str == "--depth") {output_indv_depth = true; num_outputs++;}							// Output per-individual coverage statistics
 		else if (in_str == "--derived") derived = true;								// Output frequencies so that AA is first.
-		else if (in_str == "--diff-discordance-matrix") { diff_discordance_matrix = true; num_outputs++;}	// Calculate some concensus statistics
-		else if (in_str == "--diff-indv-discordance") { diff_indv_discordance = true; num_outputs++;}	// Calculate some concensus statistics
+		else if (in_str == "--diff-discordance-matrix") { diff_discordance_matrix = true; num_outputs++;}	// Calculate some consensus statistics
+		else if (in_str == "--diff-indv") { diff_indv = true; num_outputs++;}	// Calculate some consensus statistics
+		else if (in_str == "--diff-indv-discordance") { diff_indv_discordance = true; num_outputs++;}	// Calculate some consensus statistics
 		else if (in_str == "--diff-indv-map") { diff_indv_map_file = get_arg(i+1); i++;}	// Map individual ids in the second file
-		else if (in_str == "--diff-site-discordance") { diff_site_discordance = true; num_outputs++;}	// Calculate some concensus statistics
-		else if (in_str == "--diff-switch-error") { diff_switch_error = true; num_outputs++;}	// Calculate some concensus statistics
-		else if (in_str == "--diff") { diff_file = get_arg(i+1); diff_file_compressed = false; i++; }	// Calculate some concensus statistics
-		else if (in_str == "--diff-bcf") { diff_file = get_arg(i+1); diff_file_bcf = true; i++; }	// Calculate some concensus statistics
+		else if (in_str == "--diff-site") { diff_site = true; num_outputs++;}	// Calculate some consensus statistics
+		else if (in_str == "--diff-site-discordance") { diff_site_discordance = true; num_outputs++;}	// Calculate some consensus statistics
+		else if (in_str == "--diff-switch-error") { diff_switch_error = true; num_outputs++;}	// Calculate some consensus statistics
+		else if (in_str == "--diff") { diff_file = get_arg(i+1); diff_file_compressed = false; i++; }	// Calculate some consensus statistics
+		else if (in_str == "--diff-bcf") { diff_file = get_arg(i+1); diff_file_bcf = true; i++; }	// Calculate some consensus statistics
 		else if (in_str == "--exclude-bed") {
 			if (BED_file == "")
 			{
@@ -526,6 +530,8 @@ void parameters::print_params()
 		else
 			LOG.printLOG("\t--gzdiff " + diff_file + "\n");
 
+		if (diff_site == true) LOG.printLOG("\t--diff-site\n");
+		if (diff_indv == true) LOG.printLOG("\t--diff-indv\n");
 		if (diff_site_discordance == true) LOG.printLOG("\t--diff-site-discordance\n");
 		if (diff_indv_discordance == true) LOG.printLOG("\t--diff-indv-discordance\n");
 		if (diff_discordance_matrix == true) LOG.printLOG("\t--diff-discordance-matrix\n");
@@ -681,8 +687,6 @@ void parameters::check_parameters()
 			error("Cannot output LDhat files to stream",19);
 		if (output_as_IMPUTE)
 			error("Cannot output IMPUTE files to stream",19);
-		if (diff_file != "")
-			error("Cannot output diff files to stream",19);
 	}
 }
 

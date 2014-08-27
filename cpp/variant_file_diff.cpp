@@ -77,9 +77,21 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 	string ALT1 = "";
 	string ALT2 = "";
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0, N_overlap_SNPs = 0;
-
 	string output_file = params.output_prefix + ".diff.sites_in_files";
-	ofstream sites_in_files(output_file.c_str());
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream sites_in_files(buf);
+
 	sites_in_files << "CHROM\tPOS1\tPOS2\tIN_FILE\tREF1\tREF2\tALT1\tALT2" << endl;
 
 	LOG.printLOG("Comparing sites in VCF files...\n");
@@ -284,7 +296,6 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 			}
 		}
 	}
-	sites_in_files.close();
 
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
@@ -300,9 +311,18 @@ void variant_file::output_indv_in_files(const parameters &params, variant_file &
 
 	string output_file = params.output_prefix + ".diff.indv_in_files";
 
-	ofstream out(output_file.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Indv Differences File: " + output_file, 3);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "INDV\tFILES" << endl;
 
 	// Build a list of individuals contained in each file
@@ -332,7 +352,6 @@ void variant_file::output_indv_in_files(const parameters &params, variant_file &
 		else
 			LOG.error("Unhandled case");
 	}
-	out.close();
 
 	LOG.printLOG("N_combined_individuals:\t" + output_log::int2str(N_combined_indv) + "\n");
 	LOG.printLOG("N_individuals_common_to_both_files:\t" + output_log::int2str(N[0]) + "\n");
@@ -628,9 +647,18 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 	}
 
 	string output_file = params.output_prefix + ".diff.indv";
-	ofstream out(output_file.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Sites Differences File: " + output_file, 3);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 	out << "INDV\tN_COMMON_CALLED\tN_DISCORD\tDISCORDANCE" << endl;
 
 	int N, N_discord;
@@ -649,7 +677,6 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 
 	delete e1;
 	delete e2;
-	out.close();
 }
 
 void variant_file::output_discordance_by_site(const parameters &params, variant_file &diff_variant_file)
@@ -682,9 +709,18 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
 
 	string output_file = params.output_prefix + ".diff.sites";
-	ofstream diffsites(output_file.c_str());
-	if (!diffsites.is_open())
-		LOG.error("Could not open Sites Differences File: " + output_file, 3);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream diffsites(buf);
 	diffsites << "CHROM\tPOS\tFILES\tMATCHING_ALLELES\tN_COMMON_CALLED\tN_DISCORD\tDISCORDANCE" << endl;
 
 	while(true)
@@ -967,15 +1003,12 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 		diffsites << "\t" << N_common_called << "\t" << N_discord << "\t" << discordance;
 		diffsites << endl;
 	}
-	diffsites.close();
 
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
 	delete e1;
 	delete e2;
-
-	diffsites.close();
 }
 
 void variant_file::output_discordance_matrix(const parameters &params, variant_file &diff_variant_file)
@@ -1232,16 +1265,24 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	}
 
 	string output_file = params.output_prefix + ".diff.discordance_matrix";
-	ofstream out(output_file.c_str());
-	if (!out.is_open())
-		LOG.error("Could not open Discordance Matrix File: " + output_file, 3);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
 
 	out << "-\tN_0/0_file1\tN_0/1_file1\tN_1/1_file1\tN_./._file1" << endl;
 	out << "N_0/0_file2\t" << discordance_matrix[0][0] << "\t" << discordance_matrix[1][0] << "\t" << discordance_matrix[2][0] << "\t" << discordance_matrix[3][0] << endl;
 	out << "N_0/1_file2\t" << discordance_matrix[0][1] << "\t" << discordance_matrix[1][1] << "\t" << discordance_matrix[2][1] << "\t" << discordance_matrix[3][1] << endl;
 	out << "N_1/1_file2\t" << discordance_matrix[0][2] << "\t" << discordance_matrix[1][2] << "\t" << discordance_matrix[2][2] << "\t" << discordance_matrix[3][2] << endl;
 	out << "N_./._file2\t" << discordance_matrix[0][3] << "\t" << discordance_matrix[1][3] << "\t" << discordance_matrix[2][3] << "\t" << discordance_matrix[3][3] << endl;
-	out.close();
 
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
@@ -1278,9 +1319,19 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
 
 	string output_file = params.output_prefix + ".diff.switch";
-	ofstream switcherror(output_file.c_str());
-	if (!switcherror.is_open())
-		LOG.error("Could not open Switch Error file: " + output_file, 4);
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Frequency output file: " + output_file, 12);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream switcherror(buf);
+
 	switcherror << "CHROM\tPOS_START\tPOS_END\tINDV" << endl;
 
 	unsigned int N_combined_indv = combined_individuals.size();
@@ -1525,8 +1576,8 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	}
 	delete e1;
 	delete e2;
-	switcherror.close();
 
+	/*
 	output_file = params.output_prefix + ".diff.indv.switch";
 	ofstream idiscord(output_file.c_str());
 	if (!idiscord.is_open())
@@ -1555,6 +1606,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 		indv_count++;
 	}
 	idiscord.close();
+	*/
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");
