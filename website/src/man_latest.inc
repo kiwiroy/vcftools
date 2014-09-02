@@ -713,21 +713,21 @@ The output file has the suffix
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b>
-<i>&lt;BED file&gt;</i></p>
+<i>&lt;positions list file&gt;</i></p>
 
 <p style="margin-left:17%;">Outputs a file reporting the r2
-statistics using phased haplotypes only at the sites
-contained in the provided BED file. The output file has the
+statistics using phased haplotypes between the sites
+contained in the provided file. The output file has the
 suffix &quot;.list.hap.ld&quot;. This option assumes that
 the VCF input file has phased haplotypes.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--geno-r2-positions</b>
-<i>&lt;BED file&gt;</i></p>
+<i>&lt;positions list file&gt;</i></p>
 
 <p style="margin-left:17%;">Calculates the squared
-correlation coefficient between genotypes only at the sites
-contained in the provided BED file. The output file has the
+correlation coefficient between genotypes between the sites
+contained in the provided file. The output file has the
 suffix &quot;.list.geno.ld&quot;.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT
