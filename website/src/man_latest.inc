@@ -640,11 +640,17 @@ for phased genotypes. The output file has the suffix
 
 <p style="margin-left:14%; margin-top: 1em"><b>--geno-chisq</b></p>
 
-<p style="margin-left:17%;">If your data contains sites
-with more than two alleles, then this option can be used to
-test for genotype independence via the chi-squared
-statistic. The output file has the suffix
+<p style="margin-left:17%;">If your data contains sites with more than two alleles, then this option can be used to
+test for genotype independence via the chi-squared statistic. The output file has the suffix
 &quot;.geno.chisq&quot;.</p>
+
+<p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b> <i>&lt;positions list file&gt;</i><br>
+<b>--geno-r2-positions</b> <i>&lt;positions list file&gt;</i></p>
+
+<p style="margin-left:17%;">Outputs a file reporting the r2
+statistics of the sites
+contained in the provided file verses all other sites. The output files have the
+suffix &quot;.list.hap.ld&quot; or &quot;.list.geno.ld&quot;, depending on which option is used. </p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window</b>
@@ -693,42 +699,12 @@ minimum value for r2, below which the LD statistic is not
 reported by the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;,
 and &quot;--geno-chisq&quot; functions.</p>
 
-<p style="margin-left:14%;"><b>--interchrom-hap-r2</b></p>
+<p style="margin-left:14%;"><b>--interchrom-hap-r2</b><br>
+<b>--interchrom-geno-r2</b></p>
 
 <p style="margin-left:17%;">Outputs a file reporting the r2
-statistics using phased haplotypes only with sites on
-different chromosomes. The output file has the suffix
-&quot;.interchrom.hap.ld&quot;. This option assumes that the
-VCF input file has phased haplotypes.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--interchrom-geno-r2</b></p>
-
-<p style="margin-left:17%;">Calculates the squared
-correlation coefficient between genotypes encoded as 0, 1
-and 2 to represent the number of non-reference alleles in
-each individual but only for sites on differing chromosomes.
-The output file has the suffix
-&quot;.interchrom.geno.ld&quot;.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b>
-<i>&lt;positions list file&gt;</i></p>
-
-<p style="margin-left:17%;">Outputs a file reporting the r2
-statistics using phased haplotypes between the sites
-contained in the provided file. The output file has the
-suffix &quot;.list.hap.ld&quot;. This option assumes that
-the VCF input file has phased haplotypes.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--geno-r2-positions</b>
-<i>&lt;positions list file&gt;</i></p>
-
-<p style="margin-left:17%;">Calculates the squared
-correlation coefficient between genotypes between the sites
-contained in the provided file. The output file has the
-suffix &quot;.list.geno.ld&quot;.</p>
+statistics for sites on different chromosomes. The output files have the suffix
+&quot;.interchrom.hap.ld&quot; or &quot;.interchrom.geno.ld&quot;, depending on the option used.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT
 TRANSITION/TRANSVERSION STATISTICS</b></p>

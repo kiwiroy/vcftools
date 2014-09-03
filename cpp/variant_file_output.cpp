@@ -2050,7 +2050,7 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 
 		if (e->get_N_alleles() != 2)
 		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			LOG.one_off_warning("\tLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
 		e->parse_genotype_entries(true);
@@ -2109,11 +2109,13 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	vector<pair<int,int> > GTs, GTs2;
 	streampos file_pos = 0;
 
+	GTs.resize(meta_data.N_indv, make_pair(-1,-1));
+	GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
+
 	unsigned int uj = 0;
 	for(unsigned int ui=0; ui<site_count; ui++)
 	{
 		tmp_file.seekg(file_pos);
-		GTs.resize(meta_data.N_indv, make_pair(-1,-1));
 		read_temp_site(tmp_file, CHROM, POS, GTs);
 		file_pos = tmp_file.tellg();
 
@@ -2127,11 +2129,9 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		tmp_file.seekg(0);
 		for(uj=0; uj<site_count; uj++)
 		{
-			GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
-			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
-
 			if (ui == uj)
 				continue;
+			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
 			calc_hap_r2(GTs, GTs2, r2, D, Dprime, chr_count);
 
 			if (min_r2 > 0)
@@ -2231,7 +2231,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 
 		if (e->get_N_alleles() != 2)
 		{
-			LOG.one_off_warning("\tinterchromLD: Only using biallelic variants.");
+			LOG.one_off_warning("\tLD: Only using biallelic variants.");
 			continue;	// Isn't biallelic
 		}
 
@@ -2290,10 +2290,11 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	streampos file_pos = 0;
 
 	unsigned int uj = 0;
+	GTs.resize(meta_data.N_indv, make_pair(-1,-1));
+	GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
 	for(unsigned int ui=0; ui<count; ui++)
 	{
 		tmp_file.seekg(file_pos);
-		GTs.resize(meta_data.N_indv, make_pair(-1,-1));
 		read_temp_site(tmp_file, CHROM, POS, GTs);
 		file_pos = tmp_file.tellg();
 
@@ -2307,11 +2308,10 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 		tmp_file.seekg(0);
 		for(uj=0; uj<count; uj++)
 		{
-			GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
-			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
 
 			if (ui == uj)
 				continue;
+			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
 			calc_geno_r2(GTs, GTs2, r2, indv_count);
 
 			if (min_r2 > 0)
