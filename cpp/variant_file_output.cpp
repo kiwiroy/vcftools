@@ -2032,11 +2032,15 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
-
-	int fd = mkstemp(tmpname);
-	if (fd == -1)
+	mktemp(tmpname);
+	//int fd = mkstemp(tmpname);
+	//if (fd == -1)
+	//	LOG.error(" Could not open temporary file.\n", 12);
+	ofstream fd(tmpname, std::ios::out | std::ios::binary);
+	if (!fd.is_open())
 		LOG.error(" Could not open temporary file.\n", 12);
 
+	//int ret;
 	while (!eof())
 	{
 		get_entry(variant_line);
@@ -2061,10 +2065,13 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		site_count++;
 		CHROM = CHROM+"\n";
 
-		int ret = ::write(fd,(const char*)CHROM.c_str(), CHROM.size());
-		if (ret == -1)
-			LOG.error(" Could not write to temporary file.\n");
-		ret = ::write(fd,(const char*)&POS, sizeof(POS));
+		//int ret = ::write(fd,(const char*)CHROM.c_str(), CHROM.size());
+		//if (ret == -1)
+		//	LOG.error(" Could not write to temporary file.\n");
+		//ret = ::write(fd,(const char*)&POS, sizeof(POS));
+
+		fd.write(CHROM.c_str(), CHROM.size());
+		fd.write((const char*)&POS, sizeof(POS));
 
 		char out_byte;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
@@ -2078,14 +2085,16 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
 			{
 				out_byte = 0x22;
-				ret = ::write(fd,&out_byte, sizeof(out_byte));
+				//ret = ::write(fd,&out_byte, sizeof(out_byte));
+				fd.write(&out_byte, sizeof(out_byte));
 				continue;
 			}
 
 			if (e->get_indv_ploidy(ui) != 2)
 			{
 				out_byte = 0x22;
-				ret = ::write(fd,&out_byte, sizeof(out_byte));
+				//ret = ::write(fd,&out_byte, sizeof(out_byte));
+				fd.write(&out_byte, sizeof(out_byte));
 				LOG.one_off_warning("\tLD: Only using diploid individuals.");
 				continue;
 			}
@@ -2100,10 +2109,12 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 				out_byte |= 0x02;
 			else
 				out_byte |= (char)geno.second;
-			ret = ::write(fd,&out_byte, sizeof(out_byte));
+			//ret = ::write(fd,&out_byte, sizeof(out_byte));
+			fd.write(&out_byte, sizeof(out_byte));
 		}
 	}
-	::close(fd);
+	//::close(fd);
+	fd.close();
 
 	ifstream tmp_file(tmpname, ios::binary);
 	vector<pair<int,int> > GTs, GTs2;
