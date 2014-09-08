@@ -1970,8 +1970,14 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 
 	LOG.printLOG("Outputting haplotype pairwise LD (bi-allelic only) for a set of SNPs versus all others.\n");
 
+	int snp_window_size = params.ld_snp_window_size;
+	int snp_window_min = params.ld_snp_window_min;
+	int bp_window_size = params.ld_bp_window_size;
+	int bp_window_min = params.ld_bp_window_min;
+
 	string positions_file = params.hap_rsq_position_list;
 	double min_r2 = params.min_r2;
+	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
 	vector< set<int > > keep_positions;
 	map<string, int> chr_to_idx;
 	string line;
@@ -2033,9 +2039,6 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
 	mktemp(tmpname);
-	//int fd = mkstemp(tmpname);
-	//if (fd == -1)
-	//	LOG.error(" Could not open temporary file.\n", 12);
 	ofstream fd(tmpname, std::ios::out | std::ios::binary);
 	if (!fd.is_open())
 		LOG.error(" Could not open temporary file.\n", 12);
@@ -2065,11 +2068,6 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		site_count++;
 		CHROM = CHROM+"\n";
 
-		//int ret = ::write(fd,(const char*)CHROM.c_str(), CHROM.size());
-		//if (ret == -1)
-		//	LOG.error(" Could not write to temporary file.\n");
-		//ret = ::write(fd,(const char*)&POS, sizeof(POS));
-
 		fd.write(CHROM.c_str(), CHROM.size());
 		fd.write((const char*)&POS, sizeof(POS));
 
@@ -2085,7 +2083,6 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
 			{
 				out_byte = 0x22;
-				//ret = ::write(fd,&out_byte, sizeof(out_byte));
 				fd.write(&out_byte, sizeof(out_byte));
 				continue;
 			}
@@ -2093,7 +2090,6 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			if (e->get_indv_ploidy(ui) != 2)
 			{
 				out_byte = 0x22;
-				//ret = ::write(fd,&out_byte, sizeof(out_byte));
 				fd.write(&out_byte, sizeof(out_byte));
 				LOG.one_off_warning("\tLD: Only using diploid individuals.");
 				continue;
@@ -2109,11 +2105,9 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 				out_byte |= 0x02;
 			else
 				out_byte |= (char)geno.second;
-			//ret = ::write(fd,&out_byte, sizeof(out_byte));
 			fd.write(&out_byte, sizeof(out_byte));
 		}
 	}
-	//::close(fd);
 	fd.close();
 
 	ifstream tmp_file(tmpname, ios::binary);
@@ -2143,6 +2137,16 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			if (ui == uj)
 				continue;
 			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
+
+			if(uj < (ui+skip))
+				continue;
+			if (CHROM != CHROM2)
+				continue;
+			if ((POS2 - POS) < bp_window_min)
+				continue;
+			if ((POS2 - POS) > bp_window_size)
+				break;
+
 			calc_hap_r2(GTs, GTs2, r2, D, Dprime, chr_count);
 
 			if (min_r2 > 0)
@@ -2163,6 +2167,11 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 
 	LOG.printLOG("Outputting genotype pairwise LD (bi-allelic only) for a set of SNPs versus all others.\n");
 
+	int snp_window_size = params.ld_snp_window_size;
+	int snp_window_min = params.ld_snp_window_min;
+	int bp_window_size = params.ld_bp_window_size;
+	int bp_window_min = params.ld_bp_window_min;
+
 	vector< set<int > > keep_positions;
 	map<string, int> chr_to_idx;
 	string line;
@@ -2172,6 +2181,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	pair<int,int> geno;
 	unsigned int N_chr=0;
 	double min_r2 = params.min_r2;
+	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
 
 	ifstream BED(params.geno_rsq_position_list.c_str());
 	if (!BED.is_open())
@@ -2323,6 +2333,16 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 			if (ui == uj)
 				continue;
 			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
+
+			if(uj < (ui+skip))
+				continue;
+			if (CHROM != CHROM2)
+				continue;
+			if ((POS2 - POS) < bp_window_min)
+				continue;
+			if ((POS2 - POS) > bp_window_size)
+				break;
+
 			calc_geno_r2(GTs, GTs2, r2, indv_count);
 
 			if (min_r2 > 0)
