@@ -3705,8 +3705,8 @@ void variant_file::output_Tajima_D(const parameters &params)
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			int S = bins[CHROM][s].first;
-			double D = 0;
-			if (S > 1)
+			double D = numeric_limits<double>::quiet_NaN();
+			if (S > 0)
 			{
 				double pi = 2.0*bins[CHROM][s].second*n/double(n-1);
 				double tw = double(S) / a1;
@@ -3714,8 +3714,6 @@ void variant_file::output_Tajima_D(const parameters &params)
 				D = (pi - tw) / sqrt(var);
 				output = true;
 			}
-			if (S > 0)
-				output = true;
 			if (output == true)
 				out << CHROM << "\t" << s*window_size << "\t" << bins[CHROM][s].first << "\t" << D << endl;
 		}
