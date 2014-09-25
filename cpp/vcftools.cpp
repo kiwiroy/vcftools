@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
 	if (params.hap_rsq_position_list != "") vf->output_haplotype_r2_of_SNP_list_vs_all_others(params);
 	if (params.geno_rsq_position_list != "") vf->output_genotype_r2_of_SNP_list_vs_all_others(params);
 	if (params.output_het == true) vf->output_het(params);
+	if (params.hapcount_BED != "") vf->output_haplotype_count(params);
 	if (params.output_site_quality == true) vf->output_site_quality(params);
 	if (params.output_012_matrix == true) vf->output_as_012_matrix(params);
 	if (params.output_as_IMPUTE == true) vf->output_as_IMPUTE(params);

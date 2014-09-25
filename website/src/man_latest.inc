@@ -924,6 +924,11 @@ indel lengths that occur at least once in the input file.
 SNPs are considered indels with length zero. The output file
 has the suffix &quot;.indel.hist&quot;.</p>
 
+<p style="margin-left:14%; margin-top: 1em"><b>--hapcount</b> <i>&lt;BED_file&gt;</i></p>
+
+<p style="margin-left:17%;">This option will output the number of unique haplotypes within user specified bins, as defined by the BED file. The output file
+has the suffix &quot;.hapcount&quot;.</p>
+
 
 <p style="margin-left:14%; margin-top: 1em"><b>--extract-FORMAT-info</b>
 <i>&lt;string&gt;</i></p>

@@ -14,7 +14,7 @@ output_log::output_log()
 	output_to_file = true;
 }
 
-void output_log::open(bool stout, bool sterr, const string &filename_prefix )
+void output_log::open(bool stout, bool sterr, const string &filename_prefix)
 {
 	if (stout)
 	{
@@ -42,7 +42,7 @@ void output_log::printLOG(string s)
 	if (output_to_file)
 		LOG << s; LOG.flush();
 	if (output_to_screen)
-	cerr << s; cerr.flush();
+		cerr << s; cerr.flush();
 }
 
 void output_log::error(string err_msg, int error_code)

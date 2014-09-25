@@ -50,11 +50,11 @@ void vcf_entry::reset(const vector<char> &data_line)
 	convert_line.assign(line.begin(), line.end());
 	data_stream.str(convert_line);
 
-	fill(parsed_GT.begin(), parsed_GT.end(), false);
-	fill(parsed_GQ.begin(), parsed_GQ.end(), false);
-	fill(parsed_DP.begin(), parsed_DP.end(), false);
-	fill(parsed_FT.begin(), parsed_FT.end(), false);
-	fill(include_genotype.begin(), include_genotype.end(), true);
+	fill(parsed_GT.begin(), parsed_GT.end(), 0);
+	fill(parsed_GQ.begin(), parsed_GQ.end(), 0);
+	fill(parsed_DP.begin(), parsed_DP.end(), 0);
+	fill(parsed_FT.begin(), parsed_FT.end(), 0);
+	fill(include_genotype.begin(), include_genotype.end(), 1);
 
 	N_INFO_removed = 0; N_FORMAT_removed = 0;
 	FORMAT_positions.clear(); FORMAT_types.clear(); FORMAT_sizes.clear(); FORMAT_skip.clear(); FORMAT_keys.clear();

@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <set>
 #include <sstream>
@@ -97,6 +98,7 @@ public:
 	void output_interchromosomal_genotype_r2(const parameters &params);
 	void output_interchromosomal_haplotype_r2(const parameters & params);
 	void output_haplotype_r2_of_SNP_list_vs_all_others(const parameters &params);
+	void output_haplotype_count(const parameters &params);
 	void output_genotype_r2_of_SNP_list_vs_all_others(const parameters &params);
 	void output_singletons(const parameters &params);
 	void output_TsTv(const parameters &params);

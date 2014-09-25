@@ -43,6 +43,7 @@ parameters::parameters(int argc, char *argv[])
 	exclude_positions_overlap_file = "";
 	fst_window_size = -1;
 	fst_window_step = -1;
+	hapcount_BED = "";
 	indv_exclude_file = "";
 	indv_keep_file = "";
 	invert_mask = false;
@@ -236,6 +237,7 @@ void parameters::read_parameters()
 				i++;
 			}
 		}
+		else if (in_str == "--hapcount") { hapcount_BED = get_arg(i+1); i++; phased_only = true; num_outputs++; }	// Haplotype count
 		else if (in_str == "--hap-r2") { output_hap_rsq = true; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--hap-r2-positions") { hap_rsq_position_list = get_arg(i+1); i++; phased_only = true; min_alleles = 2; max_alleles = 2; num_outputs++;}	// Output pairwise LD (r^2)
 		else if (in_str == "--hardy") {output_HWE = true; num_outputs++;}									// Output HWE statistics
@@ -438,6 +440,7 @@ void parameters::print_params()
 	if (output_geno_depth) LOG.printLOG("\t--geno-depth\n");
 	if (output_geno_rsq) LOG.printLOG("\t--geno-r2\n");
 	if (output_geno_chisq) LOG.printLOG("\t--geno-chisq\n");
+	if (hapcount_BED != defaults.hapcount_BED) LOG.printLOG("\t--hapcount " + hapcount_BED + "\n");
 	if (output_hap_rsq) LOG.printLOG("\t--hap-r2\n");
 	if (output_het) LOG.printLOG("\t--het\n");
 	if (output_HWE) LOG.printLOG("\t--hardy\n");

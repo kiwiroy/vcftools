@@ -1191,6 +1191,221 @@ void variant_file::calc_geno_chisq(vector<pair<int,int> > &GT1, vector<pair<int,
 	pval = 1.0-gammp(dof/2, chisq/2);
 }
 
+// Count the number of haplotypes within user-defined bins
+void variant_file::output_haplotype_count(const parameters &params)
+{
+	if ((meta_data.has_genotypes == false) | (N_kept_individuals() == 0))
+		LOG.error("Require Genotypes in VCF file in order to output Haplotype Counts.");
+
+	LOG.printLOG("Outputting Haplotype Counts\n");
+
+	ifstream BED(params.hapcount_BED.c_str());
+	if (!BED.is_open())
+		LOG.error("Could not open BED file: " + params.hapcount_BED);
+
+	string line; stringstream ss;
+	string CHROM; int POS1, POS2; int idx;
+	unsigned int N_chr=0;
+	BED.ignore(numeric_limits<streamsize>::max(), '\n');;
+	vector< vector< pair<int, int> > > bin_positions;
+	map<string, int> chr_to_idx;
+	while (!BED.eof())
+	{
+		getline(BED, line);
+		if ((line[0] == '#') || (line.size() == 0))
+			continue;
+
+		ss.clear();
+		ss.str(line);
+		ss >> CHROM >> POS1 >> POS2;
+
+		if (chr_to_idx.find(CHROM) == chr_to_idx.end())
+		{
+			N_chr++;
+			chr_to_idx[CHROM] = (N_chr-1);
+			bin_positions.resize(N_chr);
+		}
+
+		idx = chr_to_idx[CHROM];
+		bin_positions[idx].push_back(make_pair(POS1, POS2));
+	}
+	BED.close();
+
+	for (unsigned int ui=0; ui<bin_positions.size(); ui++)
+	{
+		sort(bin_positions[ui].begin(), bin_positions[ui].end());
+		for (unsigned int uj=1; uj<bin_positions[ui].size(); uj++)
+		{	// Very naive check to ensure BED file is non-overlapping
+			if (bin_positions[ui][uj-1].second > bin_positions[ui][uj].first)
+				LOG.error("BED file must be non-overlapping.\n", 33);
+		}
+	}
+
+	// N_chr, hap_len, position
+	vector< vector<int> > haplotypes(2*meta_data.N_indv);
+
+	unsigned int count = 0;
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	string haplotype;
+	pair<int, int> geno;
+	vector<unsigned int> min_ui(N_chr, 0);
+	bool have_data=false;
+
+	string output_file = params.output_prefix + ".hapcount";
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Haplotype Output File: " + output_file, 3);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+	out << "#CHROM\tBIN_START\tBIN_END\tHAP_COUNT" << endl;
+	int bin_idx=0, prev_bin_idx=-1;
+	int prev_idx = -1;
+	vector<int> haplotype_count;
+	string prev_CHROM="";
+
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		N_entries += e->apply_filters(params);
+
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+
+		e->parse_basic_entry(true);
+		CHROM = e->get_CHROM();
+		POS1 = e->get_POS();
+
+		if (chr_to_idx.find(CHROM) == chr_to_idx.end())
+			continue;
+
+		idx = chr_to_idx[CHROM];
+
+		if (idx != prev_idx)
+		{	// Moved to a new chromosome, so output last chromosome
+			set<vector<int> > haplotype_set;
+			if (have_data == true)
+			{	// Process any remaining data
+				for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+				{
+					if (e->include_indv[ui] == false)
+						continue;
+
+					haplotype_set.insert(haplotypes[(2*ui)]);
+					haplotype_set.insert(haplotypes[(2*ui)+1]);
+					haplotypes[(2*ui)].resize(0);
+					haplotypes[(2*ui)+1].resize(0);
+				}
+				haplotype_count[prev_bin_idx] = haplotype_set.size();
+			}
+			have_data = false;
+
+			for (unsigned int ui=0; ui<haplotype_count.size(); ui++)
+				out << prev_CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second << "\t" << haplotype_count[ui] << endl;
+
+			// Set up for new chromosome
+			unsigned int N_bins = bin_positions[idx].size();
+			haplotype_count.clear(); haplotype_count.resize(N_bins, 0);
+			bin_idx=0, prev_bin_idx=-1;
+			prev_idx = idx;
+			prev_CHROM = CHROM;
+		}
+
+
+		bool found=false;
+		unsigned int max_ui = bin_positions[idx].size();
+		for (unsigned int ui=min_ui[idx]; ui<max_ui; ui++)
+		{	// No need to start this loop at zero every time...
+			if ((POS1 > bin_positions[idx][ui].first) && (POS1 <= bin_positions[idx][ui].second))
+			{	// We're in a BED bin, so add to haplotypes
+				found=true;
+				prev_bin_idx = bin_idx;
+				bin_idx = ui;
+				break;
+			}
+			else if (POS1 > bin_positions[idx][ui].second)
+				min_ui[idx] = ui+1;
+		}
+
+		if ((found == false) || (prev_bin_idx != bin_idx))
+		{	// Changed bin, so update haplotype count in previous bin, and reset for next bin
+			if (have_data == true)
+			{
+				set<vector<int> > haplotype_set;
+				for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+				{
+					if (e->include_indv[ui] == false)
+						continue;
+
+					haplotype_set.insert(haplotypes[(2*ui)]);
+					haplotype_set.insert(haplotypes[(2*ui)+1]);
+					haplotypes[(2*ui)].resize(0);
+					haplotypes[(2*ui)+1].resize(0);
+				}
+				haplotype_count[prev_bin_idx] = haplotype_set.size();
+			}
+			have_data = false;
+		}
+
+		if (found == true)
+		{	// Inside a bin, so append to haplotypes
+			have_data = true;
+			e->parse_genotype_entries(true);
+
+			if (e->is_diploid() == false)
+			{
+				LOG.one_off_warning("\tWarning: Only using fully diploid sites.");
+				continue;
+			}
+
+			for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+			{
+				if (e->include_indv[ui] == false)
+					continue;
+
+				geno.first = -1; geno.second = -1;
+				if (e->include_genotype[ui] == true)
+					e->get_indv_GENOTYPE_ids(ui, geno);
+
+				haplotypes[(2*ui)].push_back(geno.first);
+				haplotypes[(2*ui)+1].push_back(geno.second);
+			}
+		}
+	}
+	delete e;
+
+	if (idx == prev_idx)
+	{	// Output any remaining data from last chromosome
+		if (have_data == true)
+		{	// Process any remaining data
+			set<vector<int> > haplotype_set;
+			for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
+			{
+				if (e->include_indv[ui] == false)
+					continue;
+
+				haplotype_set.insert(haplotypes[(2*ui)]);
+				haplotype_set.insert(haplotypes[(2*ui)+1]);
+				haplotypes[(2*ui)].resize(0);
+				haplotypes[(2*ui)+1].resize(0);
+			}
+			haplotype_count[prev_bin_idx] = haplotype_set.size();
+		}
+
+		for (unsigned int ui=0; ui<haplotype_count.size(); ui++)
+			out << prev_CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second << "\t" << haplotype_count[ui] << endl;
+	}
+}
+
 void variant_file::output_haplotype_r2(const parameters &params)
 {
 	// Output pairwise LD statistics, using traditional r^2. Requires phased haplotypes.
