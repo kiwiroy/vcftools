@@ -88,8 +88,7 @@ void variant_file::output_frequency(const parameters &params, bool output_counts
 				{
 					if (AA == e->get_allele(ui))
 					{
-						aa_idx = ui;
-						found = true;
+						aa_idx = ui; found = true;
 						break;
 					}
 				}
@@ -170,13 +169,10 @@ void variant_file::output_het(const parameters &params)
 		LOG.error("Require Genotypes in VCF file in order to output Heterozygosity Statistics.");
 	// Following the calculations in PLINK....
 	// Note this assumes Biallelic SNPs.
-
 	LOG.printLOG("Outputting Individual Heterozygosity\n");
-
 	streambuf * buf;
 	ofstream temp_out;
 	string output_file = params.output_prefix + ".het";
-
 	if (!params.stream_out)
 	{
 		temp_out.open(output_file.c_str(), ios::out);
@@ -209,7 +205,6 @@ void variant_file::output_het(const parameters &params)
 
 	vector<char> variant_line;
 	entry *e = get_entry_object();
-
 	while (!eof())
 	{
 		get_entry(variant_line);
@@ -228,7 +223,6 @@ void variant_file::output_het(const parameters &params)
 		}
 
 		e->parse_genotype_entries(true);
-
 		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tIndividual Heterozygosity: Only using fully diploid SNPs.");
@@ -304,8 +298,7 @@ void variant_file::output_hwe(const parameters &params)
 	else
 		buf = cout.rdbuf();
 
-		ostream out(buf);
-
+	ostream out(buf);
 	out << "CHR\tPOS\tOBS(HOM1/HET/HOM2)\tE(HOM1/HET/HOM2)\tChiSq_HWE\tP_HWE\tP_HET_DEFICIT\tP_HET_EXCESS" << endl;
 
 	/* PLINK code:
@@ -321,7 +314,6 @@ void variant_file::output_hwe(const parameters &params)
 
 	p = chiprobP(chisq,1);
 	*/
-
 	double freq;
 	unsigned int b11, b12, b22;
 	double exp_11, exp_12, exp_22;
@@ -345,7 +337,6 @@ void variant_file::output_hwe(const parameters &params)
 		N_kept_entries++;
 
 		e->parse_basic_entry(true);
-
 		if (e->get_N_alleles() != 2)
 		{
 			LOG.one_off_warning("\tHWE: Only using biallelic SNPs.");
@@ -353,7 +344,6 @@ void variant_file::output_hwe(const parameters &params)
 		}
 
 		e->parse_genotype_entries(true);
-
 		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tHWE: Only using fully diploid SNPs.");
@@ -436,7 +426,6 @@ void variant_file::output_indv_burden(const parameters &params)
 
 		e->parse_genotype_entries(true);
 		N_alleles = e->get_N_alleles();
-
 		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tWarning: Only using fully diploid sites.");
@@ -474,7 +463,6 @@ void variant_file::output_indv_burden(const parameters &params)
 		}
 
 		pair<int, int> geno;
-
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (e->include_indv[ui] == false)
@@ -634,7 +622,6 @@ void variant_file::output_indv_freq_burden(const parameters &params, int double_
 		for (int i=0; i<=max_chr_count; i++)
 			out << "\t" << LOG.int2str(burden_matrix[indv_count][i]);
 		out << endl;
-
 		indv_count++;
 	}
 }
@@ -726,14 +713,11 @@ void variant_file::output_SNP_density(const parameters &params)
 		buf = cout.rdbuf();
 
 	ostream out(buf);
-
 	string CHROM; int POS;
 	vector<char> variant_line;
 	entry *e = get_entry_object();
-
 	map<string, vector<int> > bins;
 	vector<string> chrs;
-
 	unsigned int idx;
 	double C = 1.0 / double(bin_size);
 	int prev_pos = -1; string prev_chrom = "";
@@ -750,7 +734,6 @@ void variant_file::output_SNP_density(const parameters &params)
 		N_kept_entries++;
 
 		e->parse_basic_entry(true);
-
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
 		alt = e->get_ALT();
@@ -774,12 +757,10 @@ void variant_file::output_SNP_density(const parameters &params)
 	out << "CHROM\tBIN_START\tSNP_COUNT\tVARIANTS/KB" << endl;
 	int bin_tot;
 	C = 1000.0 / bin_size;
-
 	for (unsigned int ui=0; ui<chrs.size(); ui++)
 	{
 		bool output = false;
 		CHROM = chrs[ui];
-
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
 			bin_tot = bins[CHROM][s];
@@ -833,7 +814,6 @@ void variant_file::output_indv_missingness(const parameters &params)
 		N_kept_entries++;
 
 		e->parse_basic_entry();
-
 		for (ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if (include_indv[ui] == false)
@@ -1015,7 +995,6 @@ void variant_file::calc_hap_r2(vector<pair<int, int> > &GT1, vector<pair<int,int
 	X /= chr_count; X2 /= chr_count;
 	Y /= chr_count;	Y2 /= chr_count;
 	XY /= chr_count;
-
 	var1 = X2 - X*X;
 	var2 = Y2 - Y*Y;
 	cov12 = XY - X*Y;
@@ -1026,8 +1005,7 @@ void variant_file::calc_hap_r2(vector<pair<int, int> > &GT1, vector<pair<int,int
 // Calculate r2 for either haplotypes or genotypes using the em algorithm...
 void variant_file::calc_r2_em(entry *e, entry *e2, double &r2, int &indv_count)
 {
-	r2 = 0;
-	indv_count = 0;
+	r2 = 0;	indv_count = 0;
 	pair<int, int> geno1, geno2;
 	for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 	{
@@ -1064,9 +1042,7 @@ void variant_file::calc_geno_r2(vector<pair<int,int> > &GT1, vector<pair<int,int
 		if (geno1.first == geno1.second)
 		{
 			if (geno1.first == 0)
-			{
 				sx = 2;
-			}
 		}
 		else
 			sx = 1;
@@ -1074,9 +1050,7 @@ void variant_file::calc_geno_r2(vector<pair<int,int> > &GT1, vector<pair<int,int
 		if (geno2.first == geno2.second)
 		{
 			if (geno2.first == 0)
-			{
 				sy = 2;
-			}
 		}
 		else
 			sy = 1;
@@ -1241,9 +1215,7 @@ void variant_file::output_haplotype_count(const parameters &params)
 		}
 	}
 
-	// N_chr, hap_len, position
 	vector< vector<int> > haplotypes(2*meta_data.N_indv);
-
 	unsigned int count = 0;
 	vector<char> variant_line;
 	entry *e = get_entry_object();
@@ -1289,7 +1261,6 @@ void variant_file::output_haplotype_count(const parameters &params)
 			continue;
 
 		idx = chr_to_idx[CHROM];
-
 		if (idx != prev_idx)
 		{	// Moved to a new chromosome, so output last chromosome
 			set<vector<int> > haplotype_set;
@@ -1319,7 +1290,6 @@ void variant_file::output_haplotype_count(const parameters &params)
 			prev_idx = idx;
 			prev_CHROM = CHROM;
 		}
-
 
 		bool found=false;
 		unsigned int max_ui = bin_positions[idx].size();
@@ -2092,7 +2062,6 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
-
 		site_count++;
 		CHROM = CHROM+"\n";
 
@@ -2258,7 +2227,6 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	if (!fd.is_open())
 		LOG.error(" Could not open temporary file.\n", 12);
 
-	//int ret;
 	while (!eof())
 	{
 		get_entry(variant_line);
@@ -2595,11 +2563,9 @@ void variant_file::output_singletons(const parameters &params)
 
 	out << "CHROM\tPOS\tSINGLETON/DOUBLETON\tALLELE\tINDV" << endl;
 
-	unsigned int ui;
 	int a;
 	vector<int> allele_counts;
-	unsigned int N_non_missing_chr;
-	unsigned int N_alleles;
+	unsigned int N_non_missing_chr, N_alleles, ui;
 	pair<int, int> geno;
 	string allele;
 	vector<char> variant_line;
@@ -2941,12 +2907,9 @@ void variant_file::output_TsTv_summary(const parameters &params)
 	LOG.printLOG("Outputting Ts/Tv summary\n");
 
 	map<string, unsigned int> model_to_idx;
-	model_to_idx["AC"] = 0;
-	model_to_idx["AG"] = 1;
-	model_to_idx["AT"] = 2;
-	model_to_idx["CG"] = 3;
-	model_to_idx["CT"] = 4;
-	model_to_idx["GT"] = 5;
+	model_to_idx["AC"] = 0; model_to_idx["AG"] = 1;
+	model_to_idx["AT"] = 2; model_to_idx["CG"] = 3;
+	model_to_idx["CT"] = 4; model_to_idx["GT"] = 5;
 
 	vector<char> variant_line;
 	entry *e = get_entry_object();
@@ -3019,18 +2982,14 @@ void variant_file::output_TsTv_by_count(const parameters &params)
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	map<string, unsigned int> model_to_Ts_or_Tv;
-	model_to_Ts_or_Tv["AC"] = 1;
-	model_to_Ts_or_Tv["CA"] = 1;
+	model_to_Ts_or_Tv["AC"] = 1;	model_to_Ts_or_Tv["CA"] = 1;
 	model_to_Ts_or_Tv["AG"] = 0;	// Ts
 	model_to_Ts_or_Tv["GA"] = 0;	// Ts
-	model_to_Ts_or_Tv["AT"] = 1;
-	model_to_Ts_or_Tv["TA"] = 1;
-	model_to_Ts_or_Tv["CG"] = 1;
-	model_to_Ts_or_Tv["GC"] = 1;
+	model_to_Ts_or_Tv["AT"] = 1;	model_to_Ts_or_Tv["TA"] = 1;
+	model_to_Ts_or_Tv["CG"] = 1;	model_to_Ts_or_Tv["GC"] = 1;
 	model_to_Ts_or_Tv["CT"] = 0;	// Ts
 	model_to_Ts_or_Tv["TC"] = 0;	// Ts
-	model_to_Ts_or_Tv["GT"] = 1;
-	model_to_Ts_or_Tv["TG"] = 1;
+	model_to_Ts_or_Tv["GT"] = 1;	model_to_Ts_or_Tv["TG"] = 1;
 	unsigned int idx;
 	vector<int> allele_counts;
 	unsigned int allele_count;
@@ -3105,18 +3064,14 @@ void variant_file::output_TsTv_by_quality(const parameters &params)
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	map<string, unsigned int> model_to_Ts_or_Tv;
-	model_to_Ts_or_Tv["AC"] = 1;
-	model_to_Ts_or_Tv["CA"] = 1;
+	model_to_Ts_or_Tv["AC"] = 1;	model_to_Ts_or_Tv["CA"] = 1;
 	model_to_Ts_or_Tv["AG"] = 0;	// Ts
 	model_to_Ts_or_Tv["GA"] = 0;	// Ts
-	model_to_Ts_or_Tv["AT"] = 1;
-	model_to_Ts_or_Tv["TA"] = 1;
-	model_to_Ts_or_Tv["CG"] = 1;
-	model_to_Ts_or_Tv["GC"] = 1;
+	model_to_Ts_or_Tv["AT"] = 1;	model_to_Ts_or_Tv["TA"] = 1;
+	model_to_Ts_or_Tv["CG"] = 1;	model_to_Ts_or_Tv["GC"] = 1;
 	model_to_Ts_or_Tv["CT"] = 0;	// Ts
 	model_to_Ts_or_Tv["TC"] = 0;	// Ts
-	model_to_Ts_or_Tv["GT"] = 1;
-	model_to_Ts_or_Tv["TG"] = 1;
+	model_to_Ts_or_Tv["GT"] = 1;	model_to_Ts_or_Tv["TG"] = 1;
 	unsigned int idx;
 	double QUAL;
 
@@ -3239,7 +3194,6 @@ void variant_file::output_site_quality(const parameters &params)
 
 	ostream out(buf);
 	out << "CHROM\tPOS\tQUAL" << endl;
-
 	vector<char> variant_line;
 	entry *e = get_entry_object();
 	while(!eof())
@@ -3417,7 +3371,6 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 		e->parse_genotype_entries(true);
 
 		unsigned int N_alleles = e->get_N_alleles();
-
 		if (e->is_diploid() == false)
 		{
 			LOG.one_off_warning("\tFst: Only using diploid sites.");
@@ -5012,7 +4965,6 @@ void variant_file::output_indel_hist(const parameters &params)
 	largest_len = 0;
 	smallest_len = 0;
 	snp_count = 0;
-
 	while(!eof())
 	{
 		get_entry(variant_line);

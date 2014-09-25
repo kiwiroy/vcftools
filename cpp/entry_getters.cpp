@@ -462,9 +462,9 @@ void entry::get_multiple_genotype_counts(const vector<bool> &include_indv, const
 
 			for (int uj=0; uj<=(int)ALT.size(); uj++)
 			{
-				if (genotype.first == uj && genotype.second == uj)
+				if ((genotype.first == uj) && (genotype.second == uj))
 					out_N_hom[uj]++;
-				else if (genotype.first == uj || genotype.second == uj)
+				else if (((genotype.first == uj) || (genotype.second == uj)) && (genotype.first != -1) && (genotype.second != -1))
 					out_N_het[uj]++;
 			}
 		}
