@@ -1237,10 +1237,12 @@ void variant_file::output_haplotype_count(const parameters &params)
 		buf = cout.rdbuf();
 
 	ostream out(buf);
-	out << "#CHROM\tBIN_START\tBIN_END\tHAP_COUNT" << endl;
+	out << "#CHROM\tBIN_START\tBIN_END\tN_SNP\tN_UNIQ_HAPS\tN_GROUPS\t{MULTIPLICITY:FREQ}" << endl;
 	int bin_idx=0, prev_bin_idx=-1;
 	int prev_idx = -1;
 	vector<int> haplotype_count;
+	vector<int> SNP_count;
+	vector< map<int, int> > haplotype_frequencies;
 	string prev_CHROM="";
 
 	while(!eof())
@@ -1263,7 +1265,7 @@ void variant_file::output_haplotype_count(const parameters &params)
 		idx = chr_to_idx[CHROM];
 		if (idx != prev_idx)
 		{	// Moved to a new chromosome, so output last chromosome
-			set<vector<int> > haplotype_set;
+			map<vector<int>, int > haplotype_set;
 			if (have_data == true)
 			{	// Process any remaining data
 				for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
@@ -1271,21 +1273,33 @@ void variant_file::output_haplotype_count(const parameters &params)
 					if (e->include_indv[ui] == false)
 						continue;
 
-					haplotype_set.insert(haplotypes[(2*ui)]);
-					haplotype_set.insert(haplotypes[(2*ui)+1]);
+					haplotype_set[haplotypes[(2*ui)]]++;
+					haplotype_set[haplotypes[(2*ui)+1]]++;
+					SNP_count[prev_bin_idx] = haplotypes[2*ui].size();
 					haplotypes[(2*ui)].resize(0);
 					haplotypes[(2*ui)+1].resize(0);
 				}
 				haplotype_count[prev_bin_idx] = haplotype_set.size();
+				for (map<vector<int>, int >::iterator it=haplotype_set.begin(); it != haplotype_set.end(); ++it)
+					haplotype_frequencies[prev_bin_idx][it->second]++;
 			}
 			have_data = false;
 
 			for (unsigned int ui=0; ui<haplotype_count.size(); ui++)
-				out << prev_CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second << "\t" << haplotype_count[ui] << endl;
+			{
+				out << prev_CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second;
+				out << "\t" << SNP_count[ui] << "\t" << haplotype_count[ui];
+				out << "\t" << haplotype_frequencies[ui].size();
+				for (map<int, int>::iterator it = haplotype_frequencies[ui].begin(); it != haplotype_frequencies[ui].end(); ++it)
+					out << "\t" << it->second << ":" << it->first;
+				out << endl;
+			}
 
 			// Set up for new chromosome
 			unsigned int N_bins = bin_positions[idx].size();
 			haplotype_count.clear(); haplotype_count.resize(N_bins, 0);
+			SNP_count.clear(); SNP_count.resize(N_bins, 0);
+			haplotype_frequencies.clear(); haplotype_frequencies.resize(N_bins);
 			bin_idx=0, prev_bin_idx=-1;
 			prev_idx = idx;
 			prev_CHROM = CHROM;
@@ -1310,18 +1324,21 @@ void variant_file::output_haplotype_count(const parameters &params)
 		{	// Changed bin, so update haplotype count in previous bin, and reset for next bin
 			if (have_data == true)
 			{
-				set<vector<int> > haplotype_set;
+				map<vector<int>, int > haplotype_set;
 				for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 				{
 					if (e->include_indv[ui] == false)
 						continue;
 
-					haplotype_set.insert(haplotypes[(2*ui)]);
-					haplotype_set.insert(haplotypes[(2*ui)+1]);
+					haplotype_set[haplotypes[(2*ui)]]++;
+					haplotype_set[haplotypes[(2*ui)+1]]++;
+					SNP_count[prev_bin_idx] = haplotypes[2*ui].size();
 					haplotypes[(2*ui)].resize(0);
 					haplotypes[(2*ui)+1].resize(0);
 				}
 				haplotype_count[prev_bin_idx] = haplotype_set.size();
+				for (map<vector<int>, int >::iterator it=haplotype_set.begin(); it != haplotype_set.end(); ++it)
+					haplotype_frequencies[prev_bin_idx][it->second]++;
 			}
 			have_data = false;
 		}
@@ -1357,22 +1374,30 @@ void variant_file::output_haplotype_count(const parameters &params)
 	{	// Output any remaining data from last chromosome
 		if (have_data == true)
 		{	// Process any remaining data
-			set<vector<int> > haplotype_set;
+			map<vector<int>, int > haplotype_set;
 			for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 			{
 				if (e->include_indv[ui] == false)
 					continue;
 
-				haplotype_set.insert(haplotypes[(2*ui)]);
-				haplotype_set.insert(haplotypes[(2*ui)+1]);
-				haplotypes[(2*ui)].resize(0);
-				haplotypes[(2*ui)+1].resize(0);
+				haplotype_set[haplotypes[(2*ui)]]++;
+				haplotype_set[haplotypes[(2*ui)+1]]++;
+				SNP_count[prev_bin_idx] = haplotypes[2*ui].size();
 			}
 			haplotype_count[prev_bin_idx] = haplotype_set.size();
+			for (map<vector<int>, int >::iterator it=haplotype_set.begin(); it != haplotype_set.end(); ++it)
+				haplotype_frequencies[prev_bin_idx][it->second]++;
 		}
 
 		for (unsigned int ui=0; ui<haplotype_count.size(); ui++)
-			out << prev_CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second << "\t" << haplotype_count[ui] << endl;
+		{
+			out << CHROM << "\t" << bin_positions[prev_idx][ui].first << "\t" << bin_positions[prev_idx][ui].second << "\t";
+			out << SNP_count[ui] << "\t" << haplotype_count[ui];
+			out << "\t" << haplotype_frequencies[ui].size();
+			for (map<int, int>::iterator it = haplotype_frequencies[ui].begin(); it != haplotype_frequencies[ui].end(); ++it)
+				out << "\t" << it->second << ":" << it->first;
+			out << endl;
+		}
 	}
 }
 
