@@ -245,7 +245,7 @@ columns (chrom, chromStart and chromEnd) are required. The
 BED file is expected to have a header line.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--thin</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Thin sites so that no two sites
 are within the specified distance from one another.</p>
@@ -253,7 +253,7 @@ are within the specified distance from one another.</p>
 <p style="margin-left:14%; margin-top: 1em"><b>--mask</b>
 <i>&lt;filename&gt;</i> <b><br>
 --invert-mask</b> <i>&lt;filename&gt;</i> <b><br>
---mask-min</b> <i>&lt;int&gt;</i></p>
+--mask-min</b> <i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">These options are used to
 specify a FASTA-like mask file to filter with. The mask file
@@ -359,12 +359,12 @@ alleles at that site.</p>
 <p style="margin-left:14%; margin-top: 1em">
 <b>--non-ref-af</b> <i>&lt;float&gt;</i> <br>
 <b>--max-non-ref-af</b> <i>&lt;float&gt;</i><br>
-<b>--non-ref-ac</b> <i>&lt;float&gt;</i> <br>
-<b>--max-non-ref-ac</b> <i>&lt;float&gt;</i> <br><br>
+<b>--non-ref-ac</b> <i>&lt;integer&gt;</i> <br>
+<b>--max-non-ref-ac</b> <i>&lt;integer&gt;</i> <br><br>
 <b>--non-ref-af-any</b> <i>&lt;float&gt;</i> <br>
 <b>--max-non-ref-af-any</b> <i>&lt;float&gt;</i><br>
-<b>--non-ref-ac-any</b> <i>&lt;float&gt;</i> <br>
-<b>--max-non-ref-ac-any</b> <i>&lt;float&gt;</i>
+<b>--non-ref-ac-any</b> <i>&lt;integer&gt;</i> <br>
+<b>--max-non-ref-ac-any</b> <i>&lt;integer&gt;</i>
 </p>
 
 <p style="margin-left:17%;">Include only sites with all
@@ -376,8 +376,8 @@ individuals at that site, divided by the total number of
 non-missing alleles at that site.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--mac</b>
-<i>&lt;int&gt;</i> <b><br>
---max-mac</b> <i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i> <b><br>
+--max-mac</b> <i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Include only sites with Minor
 Allele Count greater than or equal to the &quot;--mac&quot;
@@ -388,8 +388,8 @@ appears over all individuals at that site.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--min-alleles</b>
-<i>&lt;int&gt;</i> <b><br>
---max-alleles</b> <i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i> <b><br>
+--max-alleles</b> <i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Include only sites with a
 number of alleles greater than or equal to the
@@ -437,7 +437,7 @@ indicates no missing data allowed).</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--max-missing-count</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Exclude sites with more than
 this number of missing genotypes over all individuals.</p>
@@ -491,7 +491,7 @@ line is expected.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--max-indv</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Randomly thins individuals so
 that only the specified number are retained.</p>
@@ -647,7 +647,7 @@ suffix &quot;.list.hap.ld&quot; or &quot;.list.geno.ld&quot;, depending on which
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the maximum number of SNPs between the SNPs being tested for
@@ -656,7 +656,7 @@ LD in the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;, and
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-bp</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the maximum number of physical bases between the SNPs being
@@ -666,7 +666,7 @@ functions.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-min</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the minimum number of SNPs between the SNPs being tested for
@@ -675,7 +675,7 @@ LD in the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;, and
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-bp-min</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the minimum number of physical bases between the SNPs being
@@ -703,7 +703,7 @@ statistics for sites on different chromosomes. The output files have the suffix
 TRANSITION/TRANSVERSION STATISTICS</b></p>
 
 <p style="margin-left:14%;"><b>--TsTv</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Calculates the Transition /
 Transversion ratio in bins of size defined by this option.
@@ -751,8 +751,8 @@ on a per-site basis. The output file has the suffix
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--window-pi</b>
-<i>&lt;int&gt;</i> <b><br>
---window-pi-step</b> <i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i> <b><br>
+--window-pi-step</b> <i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Measures the nucleotide
 diversity in windows, with the number provided as the window
@@ -778,8 +778,8 @@ has the suffix &quot;.weir.fst&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--fst-window-size</b>
-<i>&lt;int&gt;</i> <b><br>
---fst-window-step</b> <i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i> <b><br>
+--fst-window-step</b> <i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">These options can be used with
 &quot;--weir-fst-pop&quot; to do the Fst calculations on a
@@ -810,7 +810,7 @@ corresponding Expected numbers under HWE.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--TajimaD</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Outputs Tajima&rsquo;s D
 statistic in bins with size of the specified number. The
@@ -875,7 +875,7 @@ missingness on a per-site basis. The file has the suffix
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--SNPdensity</b>
-<i>&lt;int&gt;</i></p>
+<i>&lt;integer&gt;</i></p>
 
 <p style="margin-left:17%;">Calculates the number and
 density of SNPs in bins of size defined by this option. The
