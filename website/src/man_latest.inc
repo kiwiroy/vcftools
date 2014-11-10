@@ -356,15 +356,21 @@ that site, divided by the total number of non-missing
 alleles at that site.</p>
 
 
-<p style="margin-left:14%; margin-top: 1em"><b>--non-ref-af</b>
-<i>&lt;float&gt;</i> <b><br>
---max-non-ref-af</b> <i>&lt;float&gt;</i></p>
+<p style="margin-left:14%; margin-top: 1em">
+<b>--non-ref-af</b> <i>&lt;float&gt;</i> <br>
+<b>--max-non-ref-af</b> <i>&lt;float&gt;</i><br>
+<b>--non-ref-ac</b> <i>&lt;float&gt;</i> <br>
+<b>--max-non-ref-ac</b> <i>&lt;float&gt;</i> <br><br>
+<b>--non-ref-af-any</b> <i>&lt;float&gt;</i> <br>
+<b>--max-non-ref-af-any</b> <i>&lt;float&gt;</i><br>
+<b>--non-ref-ac-any</b> <i>&lt;float&gt;</i> <br>
+<b>--max-non-ref-ac-any</b> <i>&lt;float&gt;</i>
+</p>
 
 <p style="margin-left:17%;">Include only sites with all
-Non-Reference (ALT) Allele Frequencies greater than or equal
-to the &quot;--non-ref-af&quot; value and less than or equal
-to the &quot;--max-non-ref-af&quot; value. One of these
-options may be used without the other. Allele frequency is
+Non-Reference (ALT) Allele Frequencies (af) or Counts (ac) within the range specified, and including the specified value. 
+The default options require <b>all</b> alleles to meet the specified criteria, whereas the options appended with 'any' require only one
+allele to meet the criteria. The Allele frequency is
 defined as the number of times an allele appears over all
 individuals at that site, divided by the total number of
 non-missing alleles at that site.</p>
@@ -379,19 +385,6 @@ value and less than or equal to the &quot;--max-mac&quot;
 value. One of these options may be used without the other.
 Allele count is simply the number of times that allele
 appears over all individuals at that site.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--non-ref-ac</b>
-<i>&lt;float&gt;</i> <b><br>
---max-non-ref-ac</b> <i>&lt;float&gt;</i></p>
-
-<p style="margin-left:17%;">Include only sites with all
-Non-Reference (ALT) Allele Counts greater than or equal to
-the &quot;--non-ref-ac&quot; value and less than or equal to
-the &quot;--max-non-ref-ac&quot; value. One of these options
-may be used without the other. Allele count is simply the
-number of times that allele appears over all individuals at
-that site.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--min-alleles</b>

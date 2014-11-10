@@ -47,9 +47,9 @@ public:
 	void filter_sites_by_chromosome(const set<string> &chrs_to_keep, const set<string> &chrs_to_exclude);
 	void filter_sites_by_quality(double min_quality);
 	void filter_sites_by_mean_depth(double min_mean_depth, double max_mean_depth);
-	void filter_sites_by_frequency_and_call_rate(double min_maf, double max_maf, double min_non_ref_af, double max_non_ref_af, double min_site_call_rate);
+	void filter_sites_by_frequency_and_call_rate(double min_maf, double max_maf, double min_non_ref_af, double max_non_ref_af, double min_non_ref_af_any, double max_non_ref_af_any, double min_site_call_rate);
 	void filter_sites_by_allele_type(bool keep_only_indels, bool remove_indels);
-	void filter_sites_by_allele_count(double min_mac, double max_mac, double min_non_ref_ac, double max_non_ref_ac, double max_missing_call_count);
+	void filter_sites_by_allele_count(double min_mac, double max_mac, double min_non_ref_ac, double max_non_ref_ac, double min_non_ref_ac_any, double max_non_ref_ac_any, double max_missing_call_count);
 	void filter_sites_by_number_of_alleles(int min_alleles, int max_alleles);
 	void filter_sites_by_HWE_pvalue(double min_HWE_pvalue);
 	void filter_sites_by_BED_file(const string &bed_file, bool BED_exclude = false);

@@ -85,6 +85,8 @@ public:
 	int max_missing_call_count;
 	int max_non_ref_ac;
 	double max_non_ref_af;
+	int max_non_ref_ac_any;
+	double max_non_ref_af_any;
 	int max_N_indv;
 	int min_alleles;
 	int min_genotype_depth;
@@ -95,6 +97,8 @@ public:
 	double min_mean_depth;
 	int min_non_ref_ac;
 	double min_non_ref_af;
+	int min_non_ref_ac_any;
+	double min_non_ref_af_any;
 	double min_quality;
 	double min_r2;
 	double min_site_call_rate;

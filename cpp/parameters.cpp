@@ -64,6 +64,9 @@ parameters::parameters(int argc, char *argv[])
 	max_missing_call_count = numeric_limits<int>::max();
 	max_non_ref_ac = numeric_limits<int>::max();
 	max_non_ref_af = numeric_limits<double>::max();
+	max_non_ref_ac_any = numeric_limits<int>::max();
+	max_non_ref_af_any = numeric_limits<double>::max();
+
 	max_N_indv = -1;
 	min_alleles = -1;
 	min_genotype_depth = -1;
@@ -77,6 +80,8 @@ parameters::parameters(int argc, char *argv[])
 	min_site_call_rate = 0;
 	min_non_ref_ac = -1;
 	min_non_ref_af = -1.0;
+	min_non_ref_ac_any = -1;
+	min_non_ref_af_any = -1.0;
 	num_outputs = 0;
 	output_012_matrix = false;
 	output_as_IMPUTE = false;
@@ -277,6 +282,8 @@ void parameters::read_parameters()
 		else if (in_str == "--max-missing-count") { max_missing_call_count = atoi(get_arg(i+1).c_str()); i++; } // Site maximum missing genotypes
 		else if (in_str == "--max-non-ref-ac") { max_non_ref_ac = atoi(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AC
 		else if (in_str == "--max-non-ref-af") { max_non_ref_af = atof(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AF
+		else if (in_str == "--max-non-ref-ac-any") { max_non_ref_ac_any = atoi(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AC
+		else if (in_str == "--max-non-ref-af-any") { max_non_ref_af_any = atof(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AF
 		else if (in_str == "--maxDP") { max_genotype_depth = atoi(get_arg(i+1).c_str()); i++; }				// Maximum genotype depth
 		else if (in_str == "--max-indv") {max_N_indv = atoi(get_arg(i+1).c_str()); i++; }
 		else if (in_str == "--min-alleles") { min_alleles = atoi(get_arg(i+1).c_str()); i++; }				// Minimum number of alleles per-site
@@ -289,6 +296,8 @@ void parameters::read_parameters()
 		else if (in_str == "--missing-site") {output_site_missingness = true; num_outputs++;}				// Output Site missingness summary
 		else if (in_str == "--non-ref-ac") { min_non_ref_ac = atoi(get_arg(i+1).c_str()); i++; }				// Minimum Site non-ref AC
 		else if (in_str == "--non-ref-af") { min_non_ref_af = atof(get_arg(i+1).c_str()); i++; }				// Minimum Site non-ref AF
+		else if (in_str == "--non-ref-ac-any") { min_non_ref_ac_any = atoi(get_arg(i+1).c_str()); i++; }				// Minimum Site non-ref AC
+		else if (in_str == "--non-ref-af-any") { min_non_ref_af_any = atof(get_arg(i+1).c_str()); i++; }				// Minimum Site non-ref AF
 		else if (in_str == "--not-chr") { chrs_to_exclude.insert(get_arg(i+1)); i++; }					// Chromosome to process
 		else if (in_str == "--out") { output_prefix = get_arg(i+1); i++; }							// Output file prefix
 		else if (in_str == "--pca") { output_PCA = true; min_alleles=2; max_alleles=2; num_outputs++;}
@@ -415,6 +424,8 @@ void parameters::print_params()
 	if (max_mean_depth != defaults.max_mean_depth) LOG.printLOG("\t--max-meanDP " + output_log::dbl2str(max_mean_depth, 3) + "\n");
 	if (max_non_ref_ac != defaults.max_non_ref_ac) LOG.printLOG("\t--max-non-ref-ac " + output_log::dbl2str(max_non_ref_ac, 3) + "\n");
 	if (max_non_ref_af != defaults.max_non_ref_af) LOG.printLOG("\t--max-non-ref-af " + output_log::dbl2str(max_non_ref_af, 3) + "\n");
+	if (max_non_ref_ac_any != defaults.max_non_ref_ac_any) LOG.printLOG("\t--max-non-ref-ac-any " + output_log::dbl2str(max_non_ref_ac_any, 3) + "\n");
+	if (max_non_ref_af_any != defaults.max_non_ref_af_any) LOG.printLOG("\t--max-non-ref-af-any " + output_log::dbl2str(max_non_ref_af_any, 3) + "\n");
 	if (max_N_indv != defaults.max_N_indv) LOG.printLOG("\t--max-indv " + output_log::int2str(max_N_indv) + "\n");
 	if (min_alleles != defaults.min_alleles) LOG.printLOG("\t--min-alleles " + output_log::int2str(min_alleles) + "\n");
 	if (min_genotype_depth != defaults.min_genotype_depth) LOG.printLOG("\t--minDP " + output_log::dbl2str(min_genotype_depth, 3) + "\n");
@@ -428,6 +439,8 @@ void parameters::print_params()
 	if (min_site_call_rate != defaults.min_site_call_rate) LOG.printLOG("\t--max-missing " + output_log::dbl2str(min_site_call_rate, 3) + "\n");
 	if (min_non_ref_ac != defaults.min_non_ref_ac) LOG.printLOG("\t--non-ref-ac " + output_log::dbl2str(min_non_ref_ac, 3) + "\n");
 	if (min_non_ref_af != defaults.min_non_ref_af) LOG.printLOG("\t--non-ref-af " + output_log::dbl2str(min_non_ref_af, 3) + "\n");
+	if (min_non_ref_ac != defaults.min_non_ref_ac_any) LOG.printLOG("\t--non-ref-ac-any " + output_log::dbl2str(min_non_ref_ac_any, 3) + "\n");
+	if (min_non_ref_af != defaults.min_non_ref_af_any) LOG.printLOG("\t--non-ref-af-any " + output_log::dbl2str(min_non_ref_af_any, 3) + "\n");
 	if (output_012_matrix) LOG.printLOG("\t--012\n");
 	if (output_as_IMPUTE) LOG.printLOG("\t--IMPUTE\n");
 	if (output_BEAGLE_genotype_likelihoods_GL) LOG.printLOG("\t--BEAGLE-GL\n");
@@ -665,8 +678,14 @@ void parameters::check_parameters()
 	{
 		if ((min_non_ref_af < 0.0) || (min_non_ref_af > 1.0)) error("Non-Ref Allele Frequency must be between 0 and 1.", 4);
 	}
+	if (min_non_ref_af_any != defaults.min_non_ref_af_any)
+	{
+		if ((min_non_ref_af_any < 0.0) || (min_non_ref_af_any > 1.0)) error("Non-Ref Allele Frequency must be between 0 and 1.", 4);
+	}
 	if (max_non_ref_af < min_non_ref_af) error("Maximum Non-Ref Allele Frequency must not be less that Minimum Non-Ref AF.", 4);
 	if (max_non_ref_ac < min_non_ref_ac) error("Maximum Non-Ref Allele Count must not be less that Minimum Non-Ref AC.", 4);
+	if (max_non_ref_af_any < min_non_ref_af_any) error("Maximum Non-Ref Allele Frequency must not be less that Minimum Non-Ref AF.", 4);
+	if (max_non_ref_ac_any < min_non_ref_ac_any) error("Maximum Non-Ref Allele Count must not be less that Minimum Non-Ref AC.", 4);
 	if (min_site_call_rate > 1) error("Minimum Call rate cannot be greater than 1.", 5);
 	if (max_alleles < min_alleles) error("Max Number of Alleles must be greater than Min Number of Alleles.", 6);
 	if (max_mean_depth < min_mean_depth) error("Max Mean Depth must be greater the Min Mean Depth.", 7);

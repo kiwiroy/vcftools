@@ -49,8 +49,8 @@ int entry::apply_filters(const parameters &params)
 	filter_genotypes_by_quality_value(params.min_genotype_quality);
 	filter_genotypes_by_depth_range(params.min_genotype_depth, params.max_genotype_depth);
 	filter_genotypes_by_filter_flag(params.geno_filter_flags_to_exclude, params.remove_all_filtered_genotypes);
-	filter_sites_by_frequency_and_call_rate(params.min_maf, params.max_maf, params.min_non_ref_af, params.max_non_ref_af, params.min_site_call_rate);
-	filter_sites_by_allele_count(params.min_mac, params.max_mac, params.min_non_ref_ac, params.max_non_ref_ac, params.max_missing_call_count);
+	filter_sites_by_frequency_and_call_rate(params.min_maf, params.max_maf, params.min_non_ref_af, params.max_non_ref_af, params.min_non_ref_af_any, params.max_non_ref_af_any, params.min_site_call_rate);
+	filter_sites_by_allele_count(params.min_mac, params.max_mac, params.min_non_ref_ac, params.max_non_ref_ac, params.min_non_ref_ac_any, params.max_non_ref_ac_any, params.max_missing_call_count);
 	filter_sites_by_HWE_pvalue(params.min_HWE_pvalue);
 	filter_sites_by_thinning(params.min_interSNP_distance);
 
@@ -761,13 +761,19 @@ void entry::filter_sites_by_number_of_alleles(int min_alleles, int max_alleles)
 		passed_filters = false;
 }
 
-void entry::filter_sites_by_frequency_and_call_rate(double min_maf, double max_maf, double min_non_ref_af, double max_non_ref_af, double min_site_call_rate)
+void entry::filter_sites_by_frequency_and_call_rate(double min_maf, double max_maf,
+		double min_non_ref_af, double max_non_ref_af,
+		double min_non_ref_af_any, double max_non_ref_af_any,
+		double min_site_call_rate)
 {
 	// Filter sites so that all allele frequencies are between limits
 	if (passed_filters == false)
 		return;
 
-	if ((min_maf <= 0.0) && (max_maf >= 1.0) && (min_site_call_rate <= 0) && (min_non_ref_af <= 0.0) && (max_non_ref_af >= 1.0))
+	if ((min_maf <= 0.0) && (max_maf >= 1.0) &&
+			(min_site_call_rate <= 0) &&
+			(min_non_ref_af <= 0.0) && (max_non_ref_af >= 1.0) &&
+			(min_non_ref_af_any <= 0.0) && (max_non_ref_af_any >= 1.0))
 		return;
 
 	unsigned int N_alleles;
@@ -785,6 +791,7 @@ void entry::filter_sites_by_frequency_and_call_rate(double min_maf, double max_m
 
 	double freq, folded_freq;
 	double maf=numeric_limits<double>::max();
+	int N_failed = 0;
 	for (unsigned int ui=0; ui<N_alleles; ui++)
 	{
 		freq = allele_counts[ui] / (double)N_non_missing_chr;
@@ -793,7 +800,13 @@ void entry::filter_sites_by_frequency_and_call_rate(double min_maf, double max_m
 		maf = min(maf, folded_freq);
 		if ((ui > 0) && ((freq < min_non_ref_af) || (freq > max_non_ref_af)))
 			passed_filters = false;
+
+		if ((ui > 0) && ((freq < min_non_ref_af_any) || (freq > max_non_ref_af_any)))
+			N_failed++;
 	}
+
+	if (((min_non_ref_af > 0.0) || (max_non_ref_af < 1.0)) && (N_failed == (N_alleles-1)))
+		passed_filters = false;
 
 	if ((maf < min_maf) || (maf > max_maf))
 		passed_filters = false;
@@ -847,7 +860,10 @@ void entry::filter_sites_by_allele_type(bool keep_only_indels, bool remove_indel
 	}
 }
 
-void entry::filter_sites_by_allele_count(double min_mac, double max_mac, double min_non_ref_ac, double max_non_ref_ac, double max_missing_call_count)
+void entry::filter_sites_by_allele_count(double min_mac, double max_mac,
+		double min_non_ref_ac, double max_non_ref_ac,
+		double min_non_ref_ac_any, double max_non_ref_ac_any,
+		double max_missing_call_count)
 {
 	// Filter sites so that all allele counts are between limits
 	if (passed_filters == false)
@@ -855,6 +871,7 @@ void entry::filter_sites_by_allele_count(double min_mac, double max_mac, double 
 
 	if ((min_mac <= 0) && (max_mac == numeric_limits<int>::max()) &&
 			(min_non_ref_ac <= 0) && (max_non_ref_ac == numeric_limits<int>::max()) &&
+			(min_non_ref_ac_any <= 0) && (max_non_ref_ac_any == numeric_limits<int>::max()) &&
 			(max_missing_call_count == numeric_limits<int>::max()))
 		return;
 
@@ -875,12 +892,19 @@ void entry::filter_sites_by_allele_count(double min_mac, double max_mac, double 
 	N_chr = get_N_chr();
 
 	int mac = numeric_limits<int>::max();
+	int N_failed = 0;
 	for (unsigned int ui=0; ui<N_alleles; ui++)
 	{
 		mac = min(allele_counts[ui], mac);
 		if ((ui > 0) && ((allele_counts[ui] < min_non_ref_ac) || (allele_counts[ui] > max_non_ref_ac)))
 			passed_filters = false;
+
+		if ((ui > 0) && ((allele_counts[ui] < min_non_ref_ac_any) || (allele_counts[ui] > max_non_ref_ac_any)))
+			N_failed++;
 	}
+
+	if (((min_non_ref_ac_any > 0) || (max_non_ref_ac_any < numeric_limits<int>::max())) && (N_failed == (N_alleles-1)))
+		passed_filters = false;
 
 	if ((mac < min_mac) || (mac > max_mac))
 		passed_filters = false;
