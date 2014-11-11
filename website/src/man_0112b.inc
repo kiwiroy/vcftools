@@ -24,7 +24,7 @@
 <a href="#GENOTYPE FILTERING OPTIONS">GENOTYPE FILTERING OPTIONS</a><br>
 <a href="#OUTPUT OPTIONS">OUTPUT OPTIONS</a><br>
 <a href="#COMPARISON OPTIONS">COMPARISON OPTIONS</a><br>
-<a href="#AUTHORS">AUTHORS</a><br>
+<a href="#AUTHOR">AUTHOR</a><br>
 
 <hr>
 
@@ -35,7 +35,7 @@
 
 
 <p style="margin-left:11%; margin-top: 1em">vcftools
-v0.1.13 &minus; Utilities for the variant call format (VCF)
+v0.1.12b &minus; Utilities for the variant call format (VCF)
 and binary variant call format (BCF)</p>
 
 <h2>SYNOPSIS
@@ -81,12 +81,13 @@ sites</p>
 input_file.vcf --remove-indels --recode --recode-INFO-all
 --out SNPs_only</p>
 
-<p style="margin-left:11%; margin-top: 1em">Output file
-comparing the sites in two vcf files</p>
+<p style="margin-left:11%; margin-top: 1em">Output files
+comparing and summarizing the individuals and sites in two
+vcf files</p>
 
 <p style="margin-left:14%;"><b>vcftools</b> --gzvcf
-input_file1.vcf.gz --gzdiff input_file2.vcf.gz --diff-site
---out in1_v_in2</p>
+input_file1.vcf.gz --gzdiff input_file2.vcf.gz --out
+in1_v_in2</p>
 
 <p style="margin-left:11%; margin-top: 1em">Output a new
 vcf file to standard out without any sites that have a
@@ -246,7 +247,7 @@ columns (chrom, chromStart and chromEnd) are required. The
 BED file is expected to have a header line.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--thin</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Thin sites so that no two sites
 are within the specified distance from one another.</p>
@@ -254,7 +255,7 @@ are within the specified distance from one another.</p>
 <p style="margin-left:14%; margin-top: 1em"><b>--mask</b>
 <i>&lt;filename&gt;</i> <b><br>
 --invert-mask</b> <i>&lt;filename&gt;</i> <b><br>
---mask-min</b> <i>&lt;integer&gt;</i></p>
+--mask-min</b> <i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">These options are used to
 specify a FASTA-like mask file to filter with. The mask file
@@ -359,31 +360,20 @@ alleles at that site.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--non-ref-af</b>
 <i>&lt;float&gt;</i> <b><br>
---max-non-ref-af</b> <i>&lt;float&gt;</i> <b><br>
---non-ref-ac</b> <i>&lt;integer&gt;</i> <b><br>
---max-non-ref-ac</b> <i>&lt;integer&gt;</i></p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--non-ref-af-any</b>
-<i>&lt;float&gt;</i> <b><br>
---max-non-ref-af-any</b> <i>&lt;float&gt;</i> <b><br>
---non-ref-ac-any</b> <i>&lt;integer&gt;</i> <b><br>
---max-non-ref-ac-any</b> <i>&lt;integer&gt;</i></p>
+--max-non-ref-af</b> <i>&lt;float&gt;</i></p>
 
 <p style="margin-left:17%;">Include only sites with all
-Non-Reference (ALT) Allele Frequencies (af) or Counts (ac)
-within the range specified, and including the specified
-value. The default options require <b>all</b> alleles to
-meet the specified criteria, whereas the options appended
-with &quot;any&quot; require only one allele to meet the
-criteria. The Allele frequency is defined as the number of
-times an allele appears over all individuals at that site,
-divided by the total number of non-missing alleles at that
-site.</p>
+Non-Reference (ALT) Allele Frequencies greater than or equal
+to the &quot;--non-ref-af&quot; value and less than or equal
+to the &quot;--max-non-ref-af&quot; value. One of these
+options may be used without the other. Allele frequency is
+defined as the number of times an allele appears over all
+individuals at that site, divided by the total number of
+non-missing alleles at that site.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--mac</b>
-<i>&lt;integer&gt;</i> <b><br>
---max-mac</b> <i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i> <b><br>
+--max-mac</b> <i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Include only sites with Minor
 Allele Count greater than or equal to the &quot;--mac&quot;
@@ -393,9 +383,22 @@ Allele count is simply the number of times that allele
 appears over all individuals at that site.</p>
 
 
+<p style="margin-left:14%; margin-top: 1em"><b>--non-ref-ac</b>
+<i>&lt;float&gt;</i> <b><br>
+--max-non-ref-ac</b> <i>&lt;float&gt;</i></p>
+
+<p style="margin-left:17%;">Include only sites with all
+Non-Reference (ALT) Allele Counts greater than or equal to
+the &quot;--non-ref-ac&quot; value and less than or equal to
+the &quot;--max-non-ref-ac&quot; value. One of these options
+may be used without the other. Allele count is simply the
+number of times that allele appears over all individuals at
+that site.</p>
+
+
 <p style="margin-left:14%; margin-top: 1em"><b>--min-alleles</b>
-<i>&lt;integer&gt;</i> <b><br>
---max-alleles</b> <i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i> <b><br>
+--max-alleles</b> <i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Include only sites with a
 number of alleles greater than or equal to the
@@ -443,7 +446,7 @@ indicates no missing data allowed).</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--max-missing-count</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Exclude sites with more than
 this number of missing genotypes over all individuals.</p>
@@ -497,7 +500,7 @@ line is expected.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--max-indv</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Randomly thins individuals so
 that only the specified number are retained.</p>
@@ -646,20 +649,8 @@ statistic. The output file has the suffix
 &quot;.geno.chisq&quot;.</p>
 
 
-<p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b>
-<i>&lt;positions list file&gt;</i> <b><br>
---geno-r2-positions</b> <i>&lt;positions list
-file&gt;</i></p>
-
-<p style="margin-left:17%;">Outputs a file reporting the r2
-statistics of the sites contained in the provided file
-verses all other sites. The output files have the suffix
-&quot;.list.hap.ld&quot; or &quot;.list.geno.ld&quot;,
-depending on which option is used.</p>
-
-
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the maximum number of SNPs between the SNPs being tested for
@@ -668,7 +659,7 @@ LD in the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;, and
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-bp</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the maximum number of physical bases between the SNPs being
@@ -678,7 +669,7 @@ functions.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-min</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the minimum number of SNPs between the SNPs being tested for
@@ -687,7 +678,7 @@ LD in the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;, and
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--ld-window-bp-min</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">This optional parameter defines
 the minimum number of physical bases between the SNPs being
@@ -704,22 +695,48 @@ minimum value for r2, below which the LD statistic is not
 reported by the &quot;--hap-r2&quot;, &quot;--geno-r2&quot;,
 and &quot;--geno-chisq&quot; functions.</p>
 
-
-<p style="margin-left:14%; margin-top: 1em"><b>--interchrom-hap-r2
-<br>
---interchrom-geno-r2</b></p>
+<p style="margin-left:14%;"><b>--interchrom-hap-r2</b></p>
 
 <p style="margin-left:17%;">Outputs a file reporting the r2
-statistics for sites on different chromosomes. The output
-files have the suffix &quot;.interchrom.hap.ld&quot; or
-&quot;.interchrom.geno.ld&quot;, depending on the option
-used.</p>
+statistics using phased haplotypes only with sites on
+different chromosomes. The output file has the suffix
+&quot;.interchrom.hap.ld&quot;. This option assumes that the
+VCF input file has phased haplotypes.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--interchrom-geno-r2</b></p>
+
+<p style="margin-left:17%;">Calculates the squared
+correlation coefficient between genotypes encoded as 0, 1
+and 2 to represent the number of non-reference alleles in
+each individual but only for sites on differing chromosomes.
+The output file has the suffix
+&quot;.interchrom.geno.ld&quot;.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--hap-r2-positions</b>
+<i>&lt;BED file&gt;</i></p>
+
+<p style="margin-left:17%;">Outputs a file reporting the r2
+statistics using phased haplotypes only at the sites
+contained in the provided BED file. The output file has the
+suffix &quot;.list.hap.ld&quot;. This option assumes that
+the VCF input file has phased haplotypes.</p>
+
+
+<p style="margin-left:14%; margin-top: 1em"><b>--geno-r2-positions</b>
+<i>&lt;BED file&gt;</i></p>
+
+<p style="margin-left:17%;">Calculates the squared
+correlation coefficient between genotypes only at the sites
+contained in the provided BED file. The output file has the
+suffix &quot;.list.geno.ld&quot;.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>OUTPUT
 TRANSITION/TRANSVERSION STATISTICS</b></p>
 
 <p style="margin-left:14%;"><b>--TsTv</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Calculates the Transition /
 Transversion ratio in bins of size defined by this option.
@@ -767,8 +784,8 @@ on a per-site basis. The output file has the suffix
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--window-pi</b>
-<i>&lt;integer&gt;</i> <b><br>
---window-pi-step</b> <i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i> <b><br>
+--window-pi-step</b> <i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Measures the nucleotide
 diversity in windows, with the number provided as the window
@@ -794,8 +811,8 @@ has the suffix &quot;.weir.fst&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--fst-window-size</b>
-<i>&lt;integer&gt;</i> <b><br>
---fst-window-step</b> <i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i> <b><br>
+--fst-window-step</b> <i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">These options can be used with
 &quot;--weir-fst-pop&quot; to do the Fst calculations on a
@@ -826,7 +843,7 @@ corresponding Expected numbers under HWE.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--TajimaD</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Outputs Tajima&rsquo;s D
 statistic in bins with size of the specified number. The
@@ -891,7 +908,7 @@ missingness on a per-site basis. The file has the suffix
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--SNPdensity</b>
-<i>&lt;integer&gt;</i></p>
+<i>&lt;int&gt;</i></p>
 
 <p style="margin-left:17%;">Calculates the number and
 density of SNPs in bins of size defined by this option. The
@@ -932,15 +949,6 @@ It shows both the count and the percentage of all indels for
 indel lengths that occur at least once in the input file.
 SNPs are considered indels with length zero. The output file
 has the suffix &quot;.indel.hist&quot;.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--hapcount</b>
-<i>&lt;BED file&gt;</i></p>
-
-<p style="margin-left:17%;">This option will output the
-number of unique haplotypes within user specified bins, as
-defined by the BED file. The output file has the suffix
-&quot;.hapcount&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--extract-FORMAT-info</b>
@@ -1098,7 +1106,8 @@ the files in the PLINK transposed format with suffixes
 
 <p style="margin-left:11%; margin-top: 1em">These options
 are used to compare the original variant file to another
-variant file and output the results.</p>
+variant file and output the results. All diff functions
+cannot be written to standard out.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>DIFF VCF
 FILE</b></p>
@@ -1110,29 +1119,17 @@ FILE</b></p>
 
 <p style="margin-left:17%;">These options compare the
 original input file to this specified VCF, gzipped VCF, or
-BCF file. These options must be specified with an additional
-option described below in order to specify what type of
-comparison is to be performed. See the examples section for
-typical usage.</p>
+BCF file. This option outputs two files describing the sites
+and individuals common / unique to each file. These files
+have the suffixes &quot;.diff.sites_in_files&quot; and
+&quot;.diff.indv_in_files&quot; respectively. <br>
+See examples section for usage help.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>DIFF
 OPTIONS</b></p>
 
-<p style="margin-left:14%;"><b>--diff-site</b></p>
 
-<p style="margin-left:17%;">Outputs the sites that are
-common / unique to each file. The output file has the suffix
-&quot;.diff.sites_in_files&quot;.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--diff-indv</b></p>
-
-<p style="margin-left:17%;">Outputs the individuals that
-are common / unique to each file. The output file has the
-suffix &quot;.diff.indv_in_files&quot;.</p>
-
-
-<p style="margin-left:14%; margin-top: 1em"><b>--diff-site-discordance</b></p>
+<p style="margin-left:14%;"><b>--diff-site-discordance</b></p>
 
 <p style="margin-left:17%;">This option can be used in
 conjuction with any of the above &quot;--diff&quot; options
@@ -1171,15 +1168,16 @@ in both files. The resulting output file has the suffix
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-switch-error</b></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to calculate phasing errors (specifically &quot;switch
-errors&quot;). This option creates an output file describing
-switch errors found between sites, with suffix
-&quot;.diff.switch&quot;.&lt;/p&gt;</p>
+<p style="margin-left:17%;">Used in conjuction with the
+--diff option to calculate phasing errors (specifically
+&quot;switch errors&quot;). This option generates two output
+files describing switch errors found between sites, and the
+average switch error per individual. These two files have
+the suffixes &quot;.diff.switch&quot; and
+&quot;.diff.indv.switch&quot; respectively.</p>
 
-<h2>AUTHORS
-<a name="AUTHORS"></a>
+<h2>AUTHOR
+<a name="AUTHOR"></a>
 </h2>
 
 

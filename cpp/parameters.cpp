@@ -439,8 +439,8 @@ void parameters::print_params()
 	if (min_site_call_rate != defaults.min_site_call_rate) LOG.printLOG("\t--max-missing " + output_log::dbl2str(min_site_call_rate, 3) + "\n");
 	if (min_non_ref_ac != defaults.min_non_ref_ac) LOG.printLOG("\t--non-ref-ac " + output_log::dbl2str(min_non_ref_ac, 3) + "\n");
 	if (min_non_ref_af != defaults.min_non_ref_af) LOG.printLOG("\t--non-ref-af " + output_log::dbl2str(min_non_ref_af, 3) + "\n");
-	if (min_non_ref_ac != defaults.min_non_ref_ac_any) LOG.printLOG("\t--non-ref-ac-any " + output_log::dbl2str(min_non_ref_ac_any, 3) + "\n");
-	if (min_non_ref_af != defaults.min_non_ref_af_any) LOG.printLOG("\t--non-ref-af-any " + output_log::dbl2str(min_non_ref_af_any, 3) + "\n");
+	if (min_non_ref_ac_any != defaults.min_non_ref_ac_any) LOG.printLOG("\t--non-ref-ac-any " + output_log::dbl2str(min_non_ref_ac_any, 3) + "\n");
+	if (min_non_ref_af_any != defaults.min_non_ref_af_any) LOG.printLOG("\t--non-ref-af-any " + output_log::dbl2str(min_non_ref_af_any, 3) + "\n");
 	if (output_012_matrix) LOG.printLOG("\t--012\n");
 	if (output_as_IMPUTE) LOG.printLOG("\t--IMPUTE\n");
 	if (output_BEAGLE_genotype_likelihoods_GL) LOG.printLOG("\t--BEAGLE-GL\n");

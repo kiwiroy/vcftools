@@ -1,7 +1,7 @@
 .\" Manpage for vcftools.
-.TH vcftools man page 1 "23 May 2014" "0.1.12b" "vcftools man page"
+.TH vcftools man page 1 "27 August 2014" "0.1.13" "vcftools man page"
 .SH NAME
-vcftools v0.1.12b \- Utilities for the variant call format (VCF) and binary variant call format (BCF)
+vcftools v0.1.13 \- Utilities for the variant call format (VCF) and binary variant call format (BCF)
 .SH SYNOPSIS
 .B vcftools
 [
@@ -29,10 +29,10 @@ Output a new vcf file from the input vcf file that removes any indel sites
 --vcf input_file.vcf --remove-indels --recode --recode-INFO-all --out SNPs_only
 .RE
 .PP
-Output files comparing and summarizing the individuals and sites in two vcf files
+Output file comparing the sites in two vcf files
 .RS 2
 .B vcftools  
---gzvcf input_file1.vcf.gz --gzdiff input_file2.vcf.gz --out in1_v_in2
+--gzvcf input_file1.vcf.gz --gzdiff input_file2.vcf.gz --diff-site --out in1_v_in2
 .RE
 .PP
 Output a new vcf file to standard out without any sites that have a filter tag, then compress it with gzip
@@ -143,7 +143,7 @@ Include or exclude a set of sites on the basis of a BED file. Only the first thr
 .RE
 .PP
 .B --thin 
-.I <int>
+.I <integer>
 .RS 2 
 Thin sites so that no two sites are within the specified distance from one another.
 .RE
@@ -155,7 +155,7 @@ Thin sites so that no two sites are within the specified distance from one anoth
 .I <filename>
 .br
 .B --mask-min 
-.I <int>
+.I <integer>
 .RS 2
 These options are used to specify a FASTA-like mask file to filter with. The mask file contains a sequence of integer digits (between 0 and 9) for each position on a chromosome that specify if a site at that position should be filtered or not.
 .br
@@ -240,33 +240,44 @@ Include only sites with a Minor Allele Frequency greater than or equal to the "-
 .br
 .B --max-non-ref-af 
 .I <float>
+.br
+.B --non-ref-ac 
+.I <integer>
+.br
+.B --max-non-ref-ac 
+.I <integer>
+.PP
+.B --non-ref-af-any 
+.I <float>
+.br
+.B --max-non-ref-af-any 
+.I <float>
+.br
+.B --non-ref-ac-any
+.I <integer>
+.br
+.B --max-non-ref-ac-any 
+.I <integer>
 .RS 2
-Include only sites with all Non-Reference (ALT) Allele Frequencies greater than or equal to the "--non-ref-af" value and less than or equal to the "--max-non-ref-af" value. One of these options may be used without the other. Allele frequency is defined as the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
+Include only sites with all Non-Reference (ALT) Allele Frequencies (af) or Counts (ac) within the range specified, and including the specified value. The default options require 
+.B all
+alleles to meet the specified criteria, whereas the options appended with "any" require only one allele to meet the criteria. The Allele frequency is defined as the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
 .RE
 .PP
 .B --mac 
-.I <int>
+.I <integer>
 .br
 .B --max-mac 
-.I <int>
+.I <integer>
 .RS 2
 Include only sites with Minor Allele Count greater than or equal to the "--mac" value and less than or equal to the "--max-mac" value. One of these options may be used without the other. Allele count is simply the number of times that allele appears over all individuals at that site.
 .RE
 .PP
-.B --non-ref-ac 
-.I <float>
-.br
-.B --max-non-ref-ac 
-.I <float>
-.RS 2
-Include only sites with all Non-Reference (ALT) Allele Counts greater than or equal to the "--non-ref-ac" value and less than or equal to the "--max-non-ref-ac" value. One of these options may be used without the other. Allele count is simply the number of times that allele appears over all individuals at that site.
-.RE
-.PP
 .B --min-alleles 
-.I <int>
+.I <integer>
 .br
 .B --max-alleles 
-.I <int>
+.I <integer>
 .RS 2
 Include only sites with a number of alleles greater than or equal to the "--min-alleles" value and less than or equal to the "--max-alleles" value. One of these options may be used without the other.
 .br
@@ -300,7 +311,7 @@ Exclude sites on the basis of the proportion of missing data (defined to be betw
 .RE
 .PP
 .B --max-missing-count 
-.I <int>
+.I <integer>
 .RS 2
 Exclude sites with more than this number of missing genotypes over all individuals.
 .RE
@@ -339,7 +350,7 @@ Provide a file containing a list of individuals to either include or exclude in 
 .RE
 .PP
 .B --max-indv 
-.I <int>
+.I <integer>
 .RS 2
 Randomly thins individuals so that only the specified number are retained.
 .RE
@@ -432,26 +443,35 @@ Calculates the squared correlation coefficient between genotypes encoded as 0, 1
 If your data contains sites with more than two alleles, then this option can be used to test for genotype independence via the chi-squared statistic. The output file has the suffix ".geno.chisq".
 .RE
 .PP
+.B --hap-r2-positions
+.I <positions list file>
+.br
+.B --geno-r2-positions
+.I <positions list file>
+.RS 2
+Outputs a file reporting the r2 statistics of the sites contained in the provided file verses all other sites. The output files have the suffix ".list.hap.ld" or ".list.geno.ld", depending on which option is used.
+.RE
+.PP
 .B --ld-window 
-.I <int>
+.I <integer>
 .RS 2
 This optional parameter defines the maximum number of SNPs between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
 .PP
 .B --ld-window-bp 
-.I <int>
+.I <integer>
 .RS 2
 This optional parameter defines the maximum number of physical bases between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
 .PP
 .B --ld-window-min 
-.I <int>
+.I <integer>
 .RS 2
 This optional parameter defines the minimum number of SNPs between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
 .PP
 .B --ld-window-bp-min
-.I <int>
+.I <integer>
 .RS 2
 This optional parameter defines the minimum number of physical bases between the SNPs being tested for LD in the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
@@ -461,31 +481,17 @@ This optional parameter defines the minimum number of physical bases between the
 .RS 2
 This optional parameter sets a minimum value for r2, below which the LD statistic is not reported by the "--hap-r2", "--geno-r2", and "--geno-chisq" functions.
 .RE
-.B --interchrom-hap-r2
-.RS 2
-Outputs a file reporting the r2 statistics using phased haplotypes only with sites on different chromosomes. The output file has the suffix ".interchrom.hap.ld". This option assumes that the VCF input file has phased haplotypes.
-.RE
 .PP
+.B --interchrom-hap-r2
+.br
 .B --interchrom-geno-r2
 .RS 2
-Calculates the squared correlation coefficient between genotypes encoded as 0, 1 and 2 to represent the number of non-reference alleles in each individual but only for sites on differing chromosomes. The output file has the suffix ".interchrom.geno.ld".
-.RE
-.PP
-.B --hap-r2-positions
-.I <BED file>
-.RS 2
-Outputs a file reporting the r2 statistics using phased haplotypes only at the sites contained in the provided BED file. The output file has the suffix ".list.hap.ld". This option assumes that the VCF input file has phased haplotypes.
-.RE
-.PP
-.B --geno-r2-positions
-.I <BED file>
-.RS 2
-Calculates the squared correlation coefficient between genotypes only at the sites contained in the provided BED file. The output file has the suffix ".list.geno.ld".
+Outputs a file reporting the r2 statistics for sites on different chromosomes. The output files have the suffix ".interchrom.hap.ld" or ".interchrom.geno.ld", depending on the option used.
 .RE
 .SS OUTPUT TRANSITION/TRANSVERSION STATISTICS
 .RS 2
 .B --TsTv 
-.I <int>
+.I <integer>
 .RS 2
 Calculates the Transition / Transversion ratio in bins of size defined by this option. Only uses bi-allelic SNPs. The resulting output file has the suffix ".TsTv".
 .RE
@@ -517,10 +523,10 @@ Measures nucleotide divergency on a per-site basis. The output file has the suff
 .RE
 .PP
 .B --window-pi 
-.I <int> 
+.I <integer> 
 .br
 .B --window-pi-step 
-.I <int>
+.I <integer>
 .RS 2
 Measures the nucleotide diversity in windows, with the number provided as the window size. The output file has the suffix ".windowed.pi". The latter is an optional argument used to specify the step size in between windows.
 .RE
@@ -533,10 +539,10 @@ This option is used to calculate an Fst estimate from Weir and Cockerham's 1984 
 .RE
 .PP
 .B --fst-window-size 
-.I <int>
+.I <integer>
 .br
 .B --fst-window-step 
-.I <int>
+.I <integer>
 .RS 2
 These options can be used with "--weir-fst-pop" to do the Fst calculations on a windowed basis instead of a per-site basis. These arguments specify the desired window size and the desired step size between windows.
 .RE
@@ -553,7 +559,7 @@ Reports a p-value for each site from a Hardy-Weinberg Equilibrium test (as defin
 .RE
 .PP
 .B --TajimaD 
-.I <int> 
+.I <integer> 
 .RS 2
 Outputs Tajima's D statistic in bins with size of the specified number. The output file has the suffix ".Tajima.D".
 .RE
@@ -594,7 +600,7 @@ Generates a file reporting the missingness on a per-site basis. The file has the
 .RE
 .PP
 .B --SNPdensity 
-.I <int>
+.I <integer>
 .RS 2
 Calculates the number and density of SNPs in bins of size defined by this option. The resulting output file has the suffix ".snpden".
 .RE
@@ -617,6 +623,12 @@ This option will generate a file detailing the location of singletons, and the i
 .B --hist-indel-len
 .RS 2
 This option will generate a histogram file of the length of all indels (including SNPs). It shows both the count and the percentage of all indels for indel lengths that occur at least once in the input file. SNPs are considered indels with length zero. The output file has the suffix ".indel.hist".
+.RE
+.PP
+.B --hapcount
+.I <BED file>
+.RS 2
+This option will output the number of unique haplotypes within user specified bins, as defined by the BED file. The output file has the suffix ".hapcount".
 .RE
 .PP
 .B --extract-FORMAT-info 
@@ -696,7 +708,7 @@ These options output the genotype data in PLINK PED format. With the first optio
 Note: The first option can be very slow on large datasets. Using the --chr option to divide up the dataset is advised, or alternatively use the --plink-tped option which outputs the files in the PLINK transposed format with suffixes ".tped" and ".tfam".
 .RE
 .SH COMPARISON OPTIONS
-These options are used to compare the original variant file to another variant file and output the results. All diff functions cannot be written to standard out.
+These options are used to compare the original variant file to another variant file and output the results.
 .SS DIFF VCF FILE
 .RS 2
 .B --diff 
@@ -708,12 +720,20 @@ These options are used to compare the original variant file to another variant f
 .B --diff-bcf 
 .I <filename>
 .RS 2
-These options compare the original input file to this specified VCF, gzipped VCF, or BCF file. This option outputs two files describing the sites and individuals common / unique to each file. These files have the suffixes ".diff.sites_in_files" and ".diff.indv_in_files" respectively.
-.br
-See examples section for usage help.
+These options compare the original input file to this specified VCF, gzipped VCF, or BCF file. These options must be specified with an additional option described below in order to specify what type of comparison is to be performed. See the examples section for typical usage. 
 .RE
 .SS DIFF OPTIONS
 .RS 2
+.B --diff-site
+.RS 2
+Outputs the sites that are common / unique to each file. The output file has the suffix ".diff.sites_in_files". 
+.RE
+.PP
+.B --diff-indv
+.RS 2
+Outputs the individuals that are common / unique to each file. The output file has the suffix ".diff.indv_in_files". 
+.RE
+.PP
 .B --diff-site-discordance
 .RS 2
 This option can be used in conjuction with any of the above "--diff" options to calculate discordance on a site by site basis. The resulting output file has the suffix ".diff.sites". 
@@ -737,9 +757,9 @@ This option can be used in conjuction with any of the above "--diff" options to 
 .PP
 .B --diff-switch-error
 .RS 2
-Used in conjuction with the --diff option to calculate phasing errors (specifically "switch errors"). This option generates two output files describing switch errors found between sites, and the average switch error per individual. These two files have the suffixes ".diff.switch" and ".diff.indv.switch" respectively. 
+This option can be used in conjuction with any of the above "--diff" options to calculate phasing errors (specifically "switch errors"). This option creates an output file describing switch errors found between sites, with suffix ".diff.switch".</p>
 .RE
-.SH AUTHOR
+.SH AUTHORS
 Adam Auton (adam.auton@einstein.yu.edu)
 .br
 Anthony Marcketta (anthony.marcketta@einstein.yu.edu)
