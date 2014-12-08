@@ -156,6 +156,7 @@ public:
 	static ifstream mask;
 	static string mask_chr;
 	static string mask_line;
+	static int mask_pos;
 	static string thin_chrom;
 	static int thin_pos;
 

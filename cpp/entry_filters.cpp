@@ -16,6 +16,7 @@ vector< deque<pair<int,int> > > entry::lims;
 ifstream entry::mask;
 string entry::mask_chr;
 string entry::mask_line;
+int entry::mask_pos;
 string entry::thin_chrom;
 int entry::thin_pos;
 
@@ -689,6 +690,7 @@ void entry::filter_sites_by_mask(const string &mask_file, bool invert_mask, int 
 		mask.open(mask_file.c_str());
 		mask_chr = "";
 		mask_line = "";
+		mask_pos = 1;
 
 		if (!mask.is_open())
 			LOG.error("Could not open mask file: " + mask_file);
@@ -701,24 +703,17 @@ void entry::filter_sites_by_mask(const string &mask_file, bool invert_mask, int 
 	parse_basic_entry();
 	next_chr = CHROM;
 
-	if (mask_chr != next_chr)
+	while (mask_chr != next_chr && !mask.eof())
 	{
-		mask_chr = "";
-		mask_line = "";
-		while (!mask.eof())
-		{
-			getline(mask, line);
-			line.erase( line.find_last_not_of(" \t") + 1);
+		getline(mask, line);
+		line.erase( line.find_last_not_of(" \t") + 1);
 
-			if (line[0] == '>')
-			// Header
-				mask_chr = line.substr(1, line.find_first_of(" \t")-1);
-			else
-			{
-				mask_line = line;
-				if (mask_chr == next_chr)
-					break;
-			}
+		if (line[0] == '>')
+		{
+			mask_chr = line.substr(1, line.find_first_of(" \t")-1);
+			mask_pos = 1;
+			getline(mask, line);
+			mask_line = line;
 		}
 	}
 
@@ -730,9 +725,28 @@ void entry::filter_sites_by_mask(const string &mask_file, bool invert_mask, int 
 		return;
 	}
 
-	if (next_pos <= mask_line.size())
+	while (next_pos > (mask_pos + mask_line.size()) && !mask.eof())
 	{
-		char mask_base = mask_line[next_pos-1]-48;
+		getline(mask, line);
+		line.erase( line.find_last_not_of(" \t") + 1);
+
+		if (line[0] == '>')
+		{
+			mask_chr = line.substr(1, line.find_first_of(" \t")-1);
+			mask_pos = 1;
+			passed_filters = false;
+			return;
+		}
+		else
+		{
+			mask_pos += mask_line.size();
+			mask_line = line;
+		}
+	}
+
+	if (next_chr == mask_chr && next_pos <= (mask_pos+mask_line.size()))
+	{
+		char mask_base = mask_line[next_pos-mask_pos]-48;
 		bool keep = (mask_base <= min_kept_mask_value);
 
 		if (invert_mask == true)
