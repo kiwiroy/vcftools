@@ -2186,8 +2186,8 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 
 	string positions_file = params.hap_rsq_position_list;
 	double min_r2 = params.min_r2;
-	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
 	vector< set<int > > keep_positions;
+	vector<int> list_positions;
 	map<string, int> chr_to_idx;
 	string line;
 	stringstream ss;
@@ -2201,10 +2201,11 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		LOG.error("Could not open Positions file: " + positions_file);
 
 	BED.ignore(numeric_limits<streamsize>::max(), '\n');
+	int nlist = 0;
 	while (!BED.eof())
 	{
 		getline(BED, line);
-		if (line[0] == '#')
+		if (line[0] == '#' || line == "")
 			continue;
 
 		ss.clear();
@@ -2220,8 +2221,14 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 
 		idx = chr_to_idx[CHROM];
 		keep_positions[idx].insert(POS);
+		nlist += 1;
 	}
 	BED.close();
+
+	if (nlist == 0)
+		LOG.error("No sites found in positions file.\n",0);
+
+	LOG.printLOG("\tRead in "+header::int2str(nlist)+" site(s) for LD analysis.\n");
 
 	string output_file = params.output_prefix + ".list.hap.ld";
 	streambuf * buf;
@@ -2247,11 +2254,19 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
-	mktemp(tmpname);
+	char *ret = mktemp(tmpname);
 	ofstream fd(tmpname, std::ios::out | std::ios::binary);
 	if (!fd.is_open())
 		LOG.error(" Could not open temporary file.\n", 12);
 
+	char tmpname2[new_tmp.size()];
+	strcpy(tmpname2, new_tmp.c_str());
+	ret = mktemp(tmpname2);
+	ofstream fd_POS(tmpname2, std::ios::out | std::ios::binary);
+	if (!fd_POS.is_open())
+		LOG.error(" Could not open temporary file.\n", 12);
+
+	nlist = 0;
 	while (!eof())
 	{
 		get_entry(variant_line);
@@ -2273,11 +2288,26 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
 
-		site_count++;
-		CHROM = CHROM+"\n";
+		bool check_pos = false;
+		if ( chr_to_idx.find(CHROM) != chr_to_idx.end() )
+			if ( keep_positions[ chr_to_idx[CHROM] ].find(POS) != keep_positions[ chr_to_idx[CHROM] ].end() )
+				check_pos = true;
 
-		fd.write(CHROM.c_str(), CHROM.size());
-		fd.write((const char*)&POS, sizeof(POS));
+		string chr = CHROM+"\n";
+
+		if (check_pos)
+		{
+			nlist++;
+			fd_POS.write(chr.c_str(), chr.size());
+			fd_POS.write((const char*)&POS, sizeof(POS));
+			list_positions.push_back(site_count);
+		}
+		else
+		{
+			site_count++;
+			fd.write(chr.c_str(), chr.size());
+			fd.write((const char*)&POS, sizeof(POS));
+		}
 
 		char out_byte;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
@@ -2286,19 +2316,26 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 			if (e->get_indv_PHASE(ui) != '|')
 			{
 				remove(tmpname);
+				remove(tmpname2);
 				LOG.error("Require phased haplotypes for r^2 calculation (use --phased)\n");
 			}
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
 			{
 				out_byte = 0x22;
-				fd.write(&out_byte, sizeof(out_byte));
+				if (check_pos)
+					fd_POS.write(&out_byte, sizeof(out_byte));
+				else
+					fd.write(&out_byte, sizeof(out_byte));
 				continue;
 			}
 
 			if (e->get_indv_ploidy(ui) != 2)
 			{
 				out_byte = 0x22;
-				fd.write(&out_byte, sizeof(out_byte));
+				if (check_pos)
+					fd_POS.write(&out_byte, sizeof(out_byte));
+				else
+					fd.write(&out_byte, sizeof(out_byte));
 				LOG.one_off_warning("\tLD: Only using diploid individuals.");
 				continue;
 			}
@@ -2313,47 +2350,47 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 				out_byte |= 0x02;
 			else
 				out_byte |= (char)geno.second;
-			fd.write(&out_byte, sizeof(out_byte));
+			if (check_pos)
+				fd_POS.write(&out_byte, sizeof(out_byte));
+			else
+				fd.write(&out_byte, sizeof(out_byte));
 		}
 	}
 	fd.close();
+	fd_POS.close();
 
 	ifstream tmp_file(tmpname, ios::binary);
+	ifstream tmp_file2(tmpname2, ios::binary);
 	vector<pair<int,int> > GTs, GTs2;
 	streampos file_pos = 0;
+	streampos file_pos2 = 0;
 
 	GTs.resize(meta_data.N_indv, make_pair(-1,-1));
 	GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
 
-	unsigned int uj = 0;
-	for(unsigned int ui=0; ui<site_count; ui++)
+	for(unsigned int ui=0; ui<nlist; ui++)
 	{
-		tmp_file.seekg(file_pos);
-		read_temp_site(tmp_file, CHROM, POS, GTs);
-		file_pos = tmp_file.tellg();
-
-		if (chr_to_idx.find(CHROM) == chr_to_idx.end())
-			continue;
-
-		idx = chr_to_idx[CHROM];
-		if (keep_positions[idx].find(POS) == keep_positions[idx].end())
-			continue;
+		tmp_file2.seekg(file_pos2);
+		read_temp_site(tmp_file2, CHROM, POS, GTs);
+		file_pos2 = tmp_file2.tellg();
 
 		tmp_file.seekg(0);
-		for(uj=0; uj<site_count; uj++)
+		for(unsigned int uj=0; uj<site_count; uj++)
 		{
-			if (ui == uj)
-				continue;
 			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
 
-			if(uj < (ui+skip))
-				continue;
 			if (CHROM != CHROM2)
 				continue;
-			if ((POS2 - POS) < bp_window_min)
+			if ( abs(POS2 - POS) < bp_window_min)
 				continue;
-			if ((POS2 - POS) > bp_window_size)
-				break;
+			if ( abs(POS2 - POS) > bp_window_size)
+				continue;
+
+			int list_pos = list_positions[ui];
+			if ( abs(list_pos - uj) < snp_window_min)
+				continue;
+			if ( abs(list_pos - uj) > snp_window_size)
+				continue;
 
 			calc_hap_r2(GTs, GTs2, r2, D, Dprime, chr_count);
 
@@ -2365,6 +2402,7 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 		}
 	}
 	remove(tmpname);
+	remove(tmpname2);
 	delete e;
 }
 
@@ -2381,6 +2419,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	int bp_window_min = params.ld_bp_window_min;
 
 	vector< set<int > > keep_positions;
+	vector<int> list_positions;
 	map<string, int> chr_to_idx;
 	string line;
 	stringstream ss;
@@ -2389,17 +2428,17 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	pair<int,int> geno;
 	unsigned int N_chr=0;
 	double min_r2 = params.min_r2;
-	unsigned int skip = (unsigned int)max((int)1, snp_window_min);
 
 	ifstream BED(params.geno_rsq_position_list.c_str());
 	if (!BED.is_open())
 		LOG.error("Could not open Positions file: " + params.geno_rsq_position_list);
 
 	BED.ignore(numeric_limits<streamsize>::max(), '\n');
+	int nlist = 0;
 	while (!BED.eof())
 	{
 		getline(BED, line);
-		if (line[0] == '#')
+		if (line[0] == '#' || line == "")
 			continue;
 
 		ss.clear();
@@ -2415,8 +2454,14 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 
 		idx = chr_to_idx[CHROM];
 		keep_positions[idx].insert(POS);
+		nlist++;
 	}
 	BED.close();
+
+	if (nlist == 0)
+		LOG.error("No sites found in positions file.\n",0);
+
+	LOG.printLOG("\tRead in "+header::int2str(nlist)+" site(s) for LD analysis.\n");
 
 	string output_file = params.output_prefix + ".list.geno.ld";
 	streambuf * buf;
@@ -2433,20 +2478,27 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 	ostream out(buf);
 	out << "CHR1\tPOS1\tCHR2\tPOS2\tN_INDV\tR^2" << endl;
 
-	int indv_count, count = 0;
+	int indv_count, site_count = 0;
 	double r2;
 	vector<char> variant_line;
 	entry *e = get_entry_object();
-	int fd = -1;
 
 	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
-
-	fd = mkstemp(tmpname);
-	if (fd == -1)
+	char *ret = mktemp(tmpname);
+	ofstream fd(tmpname, std::ios::out | std::ios::binary);
+	if (!fd.is_open())
 		LOG.error(" Could not open temporary file.\n", 12);
 
+	char tmpname2[new_tmp.size()];
+	strcpy(tmpname2, new_tmp.c_str());
+	ret = mktemp(tmpname2);
+	ofstream fd_POS(tmpname2, std::ios::out | std::ios::binary);
+	if (!fd_POS.is_open())
+		LOG.error(" Could not open temporary file.\n", 12);
+
+	nlist = 0;
 	while(!eof())
 	{
 		get_entry(variant_line);
@@ -2464,16 +2516,30 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 			continue;	// Isn't biallelic
 		}
 
-		count++;
 		e->parse_genotype_entries(true);
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
-		CHROM = CHROM+"\n";
 
-		int ret = ::write(fd,(const char*)CHROM.c_str(), CHROM.size());
-		if (ret == -1)
-			LOG.error(" Could not write to temporary file.\n");
-		ret = ::write(fd,(const char*)&POS, sizeof(POS));
+		bool check_pos = false;
+		if ( chr_to_idx.find(CHROM) != chr_to_idx.end() )
+			if ( keep_positions[ chr_to_idx[CHROM] ].find(POS) != keep_positions[ chr_to_idx[CHROM] ].end() )
+				check_pos = true;
+
+		string chr = CHROM+"\n";
+
+		if (check_pos)
+		{
+			nlist++;
+			fd_POS.write(chr.c_str(), chr.size());
+			fd_POS.write((const char*)&POS, sizeof(POS));
+			list_positions.push_back(site_count);
+		}
+		else
+		{
+			site_count++;
+			fd.write(chr.c_str(), chr.size());
+			fd.write((const char*)&POS, sizeof(POS));
+		}
 
 		char out_byte;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
@@ -2482,19 +2548,26 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 			if (e->get_indv_PHASE(ui) != '|')
 			{
 				remove(tmpname);
+				remove(tmpname2);
 				LOG.error("Require phased haplotypes for r^2 calculation (use --phased)\n");
 			}
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
 			{
 				out_byte = 0x22;
-				ret = ::write(fd,&out_byte, sizeof(out_byte));
+				if (check_pos)
+					fd_POS.write(&out_byte, sizeof(out_byte));
+				else
+					fd.write(&out_byte, sizeof(out_byte));
 				continue;
 			}
 
 			if (e->get_indv_ploidy(ui) != 2)
 			{
 				out_byte = 0x22;
-				ret = ::write(fd,&out_byte, sizeof(out_byte));
+				if (check_pos)
+					fd_POS.write(&out_byte, sizeof(out_byte));
+				else
+					fd.write(&out_byte, sizeof(out_byte));
 				LOG.one_off_warning("\tLD: Only using diploid individuals.");
 				continue;
 			}
@@ -2509,47 +2582,46 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 				out_byte |= 0x02;
 			else
 				out_byte |= (char)geno.second;
-			ret = ::write(fd,&out_byte, sizeof(out_byte));
+			if (check_pos)
+				fd_POS.write(&out_byte, sizeof(out_byte));
+			else
+				fd.write(&out_byte, sizeof(out_byte));
 		}
 	}
-	::close(fd);
+	fd.close();
+	fd_POS.close();
 
 	ifstream tmp_file(tmpname, ios::binary);
+	ifstream tmp_file2(tmpname2, ios::binary);
 	vector<pair<int,int> > GTs, GTs2;
 	streampos file_pos = 0;
+	streampos file_pos2 = 0;
 
-	unsigned int uj = 0;
 	GTs.resize(meta_data.N_indv, make_pair(-1,-1));
 	GTs2.resize(meta_data.N_indv, make_pair(-1,-1));
-	for(unsigned int ui=0; ui<count; ui++)
+	for(unsigned int ui=0; ui<nlist; ui++)
 	{
-		tmp_file.seekg(file_pos);
-		read_temp_site(tmp_file, CHROM, POS, GTs);
-		file_pos = tmp_file.tellg();
-
-		if (chr_to_idx.find(CHROM) == chr_to_idx.end())
-			continue;
-
-		idx = chr_to_idx[CHROM];
-		if (keep_positions[idx].find(POS) == keep_positions[idx].end())
-			continue;
+		tmp_file2.seekg(file_pos2);
+		read_temp_site(tmp_file2, CHROM, POS, GTs);
+		file_pos2 = tmp_file2.tellg();
 
 		tmp_file.seekg(0);
-		for(uj=0; uj<count; uj++)
+		for(unsigned int uj=0; uj<site_count; uj++)
 		{
-
-			if (ui == uj)
-				continue;
 			read_temp_site(tmp_file, CHROM2, POS2, GTs2);
 
-			if(uj < (ui+skip))
-				continue;
 			if (CHROM != CHROM2)
 				continue;
-			if ((POS2 - POS) < bp_window_min)
+			if ( abs(POS2 - POS) < bp_window_min)
 				continue;
-			if ((POS2 - POS) > bp_window_size)
-				break;
+			if ( abs(POS2 - POS) > bp_window_size)
+				continue;
+
+			int list_pos = list_positions[ui];
+			if ( abs(list_pos - uj) < snp_window_min)
+				continue;
+			if ( abs(list_pos - uj) > snp_window_size)
+				continue;
 
 			calc_geno_r2(GTs, GTs2, r2, indv_count);
 
@@ -2561,6 +2633,7 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 		}
 	}
 	remove(tmpname);
+	remove(tmpname2);
 	delete e;
 }
 
