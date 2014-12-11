@@ -144,7 +144,7 @@ void variant_file::output_as_plink(const parameters &params)
 			if (genotype.first < 0)
 				(*tmp_file) << "\t0";
 			else if (genotype.first > 1)
-				LOG.error("File contains entries with nonexistent genotypes.");
+				LOG.error("File contains entries with nonexistent genotypes at " + CHROM + ":" + output_log::int2str(e->get_POS()) );
 			else
 				(*tmp_file) << "\t" << alleles[genotype.first];
 
@@ -158,7 +158,7 @@ void variant_file::output_as_plink(const parameters &params)
 					(*tmp_file) << "\t0";
 			}
 			else if (genotype.second > 1)
-				LOG.error("File contains entries with nonexistent genotypes.");
+				LOG.error("File contains entries with nonexistent genotypes at " + CHROM + ":" + output_log::int2str(e->get_POS()) );
 			else
 				(*tmp_file) << "\t" << alleles[genotype.second];
 		}
@@ -296,7 +296,7 @@ void variant_file::output_as_plink_tped(const parameters &params)
 			if (genotype.first < 0)
 				TPED << "\t0";
 			else if (genotype.first > 1)
-				LOG.error("File contains entries with nonexistent genotypes.");
+				LOG.error("File contains entries with nonexistent genotypes at " + CHROM + ":" + output_log::int2str(e->get_POS()) );
 			else
 				TPED << "\t" << alleles[genotype.first];
 
@@ -310,7 +310,7 @@ void variant_file::output_as_plink_tped(const parameters &params)
 					TPED << "\t0";
 			}
 			else if (genotype.second > 1)
-				LOG.error("File contains entries with nonexistent genotypes.");
+				LOG.error("File contains entries with nonexistent genotypes at " + CHROM + ":" + output_log::int2str(e->get_POS()) );
 			else
 				TPED << "\t" << alleles[genotype.second];
 		}
