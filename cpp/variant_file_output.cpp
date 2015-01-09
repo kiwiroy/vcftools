@@ -1502,10 +1502,10 @@ void variant_file::output_haplotype_r2(const parameters &params)
 				continue;
 			}
 
-			if (e->get_indv_ploidy(ui) != 2)
+			if (e->get_indv_ploidy(ui) > 2)
 			{
 				out_line.push_back(0x22);
-				LOG.one_off_warning("\tLD: Only using diploid individuals.");
+				LOG.one_off_warning("\tLD: Cannot use polyploid individuals.");
 				continue;
 			}
 
@@ -2166,10 +2166,10 @@ void variant_file::output_interchromosomal_haplotype_r2(const parameters &params
 				continue;
 			}
 
-			if (e->get_indv_ploidy(ui) != 2)
+			if (e->get_indv_ploidy(ui) > 2)
 			{
 				out_line.push_back(0x22);
-				LOG.one_off_warning("\tLD: Only using diploid individuals.");
+				LOG.one_off_warning("\tLD: Cannot use polyploid individuals.");
 				continue;
 			}
 
@@ -2390,11 +2390,11 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 				continue;
 			}
 
-			if (e->get_indv_ploidy(ui) != 2)
+			if (e->get_indv_ploidy(ui) > 2)
 			{
 
 				out_line.push_back(0x22);
-				LOG.one_off_warning("\tLD: Only using diploid individuals.");
+				LOG.one_off_warning("\tLD: Cannot use polyploid individuals.");
 				continue;
 			}
 
@@ -2446,9 +2446,9 @@ void variant_file::output_haplotype_r2_of_SNP_list_vs_all_others(const parameter
 				continue;
 
 			int list_pos = list_positions[ui];
-			if ( abs(list_pos - uj) < snp_window_min)
+			if ( fabs(list_pos - uj) < snp_window_min)
 				continue;
-			if ( abs(list_pos - uj) > snp_window_size)
+			if ( fabs(list_pos - uj) > snp_window_size)
 				continue;
 
 			calc_hap_r2(GTs, GTs2, r2, D, Dprime, chr_count);
@@ -2680,9 +2680,9 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 				continue;
 
 			int list_pos = list_positions[ui];
-			if ( abs(list_pos - uj) < snp_window_min)
+			if ( fabs(list_pos - uj) < snp_window_min)
 				continue;
-			if ( abs(list_pos - uj) > snp_window_size)
+			if ( fabs(list_pos - uj) > snp_window_size)
 				continue;
 
 			calc_geno_r2(GTs, GTs2, r2, indv_count);
