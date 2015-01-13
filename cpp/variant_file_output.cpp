@@ -1554,6 +1554,8 @@ void variant_file::output_haplotype_r2(const parameters &params)
 				continue;
 			if (CHROM != CHROM2)
 				continue;
+			if (POS2 < POS)
+				LOG.one_off_warning("Warning: Input is unsorted, results may not be complete.");
 			if ((POS2 - POS) < bp_window_min)
 				continue;
 			if ((POS2 - POS) > bp_window_size)
@@ -1729,6 +1731,8 @@ void variant_file::output_genotype_r2(const parameters &params)
 				continue;
 			if (CHROM != CHROM2)
 				continue;
+			if (POS2 < POS)
+				LOG.one_off_warning("Warning: Input is unsorted, results may not be complete.");
 			if ((POS2 - POS) < bp_window_min)
 				continue;
 			if ((POS2 - POS) > bp_window_size)
@@ -1895,6 +1899,8 @@ void variant_file::output_genotype_chisq(const parameters &params, double min_pv
 				continue;
 			if (CHROM != CHROM2)
 				continue;
+			if (POS2 < POS)
+				LOG.one_off_warning("Warning: Input is unsorted, results may not be complete.");
 			if ((POS2 - POS) < bp_window_min)
 				continue;
 			if ((POS2 - POS) > bp_window_size)
