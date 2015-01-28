@@ -304,7 +304,7 @@ void vcf_file::read_line(string &out)
 				return;
 
 			out.append(gz_readbuffer);
-			if (strlen(gz_readbuffer) != gzMAX_LINE_LEN-1)
+			if ((strlen(gz_readbuffer) != gzMAX_LINE_LEN-1) || (gz_readbuffer[gzMAX_LINE_LEN-2] == '\n'))
 				again = false;
 		}
 		out.erase( out.find_last_not_of(" \t\n\r") + 1);	// Trim whitespace at end of line (required in gzipped case!)
