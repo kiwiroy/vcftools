@@ -152,7 +152,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 			else
 			{
 				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM1;
@@ -175,7 +175,7 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 			else
 			{
 				if (find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM2;
@@ -263,36 +263,12 @@ void variant_file::output_sites_in_files(const parameters &params, variant_file 
 			}
 			else
 			{
-				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end() || find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 
-				bool isNumber = true;
-				int CHROM1_int = -1;
-				for(unsigned int ui=0; ui<CHROM1.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM1[ui]);
-
-				if(isNumber)
-					CHROM1_int = header::str2int(CHROM1);
-
-				isNumber = true;
-				int CHROM2_int = -1;
-				for(unsigned int ui=0; ui<CHROM2.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM2[ui]);
-
-				if(isNumber)
-					CHROM2_int = header::str2int(CHROM2);
-
-				if(CHROM1_int == -1 && CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int == -1)
-					curr_CHROM = CHROM2;
-				else if(CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int < CHROM2_int)
-					curr_CHROM = CHROM1;
-				else
-					curr_CHROM = CHROM2;
-				all_CHROM.push_back(curr_CHROM);
+				LOG.error("Cannot determine chromosomal ordering of files, both files must contain the same chromosomes to use the diff functions.\nFound "+CHROM1+" in file 1 and "+CHROM2+" in file 2.\nUse option --not-chr to filter out chromosomes only found in one file.");
 			}
 		}
 	}
@@ -448,7 +424,7 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 			else
 			{
 				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM1;
@@ -469,7 +445,7 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 			else
 			{
 				if (find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM2;
@@ -518,35 +494,12 @@ void variant_file::output_discordance_by_indv(const parameters &params, variant_
 			}
 			else
 			{
-				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end() || find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 
-				bool isNumber = true;
-				int CHROM1_int = -1;
-				for(unsigned int ui=0; ui<CHROM1.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM1[ui]);
-
-				if(isNumber)
-					CHROM1_int = header::str2int(CHROM1);
-
-				isNumber = true;
-				int CHROM2_int = -1;
-				for(unsigned int ui=0; ui<CHROM2.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM2[ui]);
-
-				if(isNumber)
-					CHROM2_int = header::str2int(CHROM2);
-
-				if(CHROM1_int == -1 && CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int == -1)
-					curr_CHROM = CHROM2;
-				else if(CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int < CHROM2_int)
-					curr_CHROM = CHROM1;
-				else
-					curr_CHROM = CHROM2;
+				LOG.error("Cannot determine chromosomal ordering of files, both files must contain the same chromosomes to use the diff functions.\nFound "+CHROM1+" in file 1 and "+CHROM2+" in file 2.\nUse option --not-chr to filter out chromosomes only found in one file.");
 			}
 		}
 
@@ -780,7 +733,7 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 			else
 			{
 				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM1;
@@ -803,7 +756,7 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 			else
 			{
 				if (find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM2;
@@ -868,35 +821,12 @@ void variant_file::output_discordance_by_site(const parameters &params, variant_
 			}
 			else
 			{
-				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end() || find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 
-				bool isNumber = true;
-				int CHROM1_int = -1;
-				for(unsigned int ui=0; ui<CHROM1.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM1[ui]);
-
-				if(isNumber)
-					CHROM1_int = header::str2int(CHROM1);
-
-				isNumber = true;
-				int CHROM2_int = -1;
-				for(unsigned int ui=0; ui<CHROM2.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM2[ui]);
-
-				if(isNumber)
-					CHROM2_int = header::str2int(CHROM2);
-
-				if(CHROM1_int == -1 && CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int == -1)
-					curr_CHROM = CHROM2;
-				else if(CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int < CHROM2_int)
-					curr_CHROM = CHROM1;
-				else
-					curr_CHROM = CHROM2;
+				LOG.error("Cannot determine chromosomal ordering of files, both files must contain the same chromosomes to use the diff functions.\nFound "+CHROM1+" in file 1 and "+CHROM2+" in file 2.\nUse option --not-chr to filter out chromosomes only found in one file.");
 			}
 		}
 
@@ -1039,6 +969,9 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 	int N_common_SNPs = 0, N_SNPs_file1_only=0, N_SNPs_file2_only=0;
 	vector<vector<int> > discordance_matrix(4, vector<int>(4, 0));
 
+	if (combined_individuals.size() <= 0)
+		LOG.error("No overlapping individuals can be found.");
+
 	while(true)
 	{
 		if(new_e1)
@@ -1095,7 +1028,7 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 			else
 			{
 				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM1;
@@ -1116,7 +1049,7 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 			else
 			{
 				if (find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM2;
@@ -1175,35 +1108,12 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 			}
 			else
 			{
-				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end() || find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 
-				bool isNumber = true;
-				int CHROM1_int = -1;
-				for(unsigned int ui=0; ui<CHROM1.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM1[ui]);
-
-				if(isNumber)
-					CHROM1_int = header::str2int(CHROM1);
-
-				isNumber = true;
-				int CHROM2_int = -1;
-				for(unsigned int ui=0; ui<CHROM2.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM2[ui]);
-
-				if(isNumber)
-					CHROM2_int = header::str2int(CHROM2);
-
-				if(CHROM1_int == -1 && CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int == -1)
-					curr_CHROM = CHROM2;
-				else if(CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int < CHROM2_int)
-					curr_CHROM = CHROM1;
-				else
-					curr_CHROM = CHROM2;
+				LOG.error("Cannot determine chromosomal ordering of files, both files must contain the same chromosomes to use the diff functions.\nFound "+CHROM1+" in file 1 and "+CHROM2+" in file 2.\nUse option --not-chr to filter out chromosomes only found in one file.");
 			}
 		}
 
@@ -1232,7 +1142,10 @@ void variant_file::output_discordance_matrix(const parameters &params, variant_f
 				indv2 = combined_individuals_it->second.second;
 
 				if ((indv1 == -1) || (indv2 == -1))
+				{
+					LOG.one_off_warning("Non-matching individual found. Skipping all such combinations.");
 					continue;	// Individual not found in one of the files
+				}
 
 				// Alleles match, so can compare ids instead of strings
 				e1->get_indv_GENOTYPE_ids(indv1, geno_ids1);
@@ -1346,6 +1259,9 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	vector<pair<string, int> > prev_pos_file2(N_combined_indv, missing_loc);
 	pair<string, string> file1_hap1, file1_hap2, file2_hap1;
 
+	if (N_combined_indv <= 0)
+		LOG.error("No overlapping individuals can be found.");
+
 	while(true)
 	{
 		if(new_e1)
@@ -1401,7 +1317,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 			else
 			{
 				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM1;
@@ -1421,7 +1337,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 			else
 			{
 				if (find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 				else
 				{
 					curr_CHROM = CHROM2;
@@ -1470,36 +1386,12 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 			}
 			else
 			{
-				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end() || find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
-					LOG.error("Both files must be sorted in the same chromosomal order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM1) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM1+" in file 1 appears to be out of order.");
+				if(find(all_CHROM.begin(), all_CHROM.end(), CHROM2) != all_CHROM.end())
+					LOG.error("Both files must be sorted in the same chromosomal order.\n"+CHROM2+" in file 2 appears to be out of order.");
 
-				bool isNumber = true;
-				int CHROM1_int = -1;
-				for(unsigned int ui=0; ui<CHROM1.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM1[ui]);
-
-				if(isNumber)
-					CHROM1_int = header::str2int(CHROM1);
-
-				isNumber = true;
-				int CHROM2_int = -1;
-				for(unsigned int ui=0; ui<CHROM2.size(); ui++)
-					isNumber = isNumber && isdigit(CHROM2[ui]);
-
-				if(isNumber)
-					CHROM2_int = header::str2int(CHROM2);
-
-				if(CHROM1_int == -1 && CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int == -1)
-					curr_CHROM = CHROM2;
-				else if(CHROM2_int == -1)
-					curr_CHROM = CHROM1;
-				else if(CHROM1_int < CHROM2_int)
-					curr_CHROM = CHROM1;
-				else
-					curr_CHROM = CHROM2;
-			}
+				LOG.error("Cannot determine chromosomal ordering of files, both files must contain the same chromosomes to use the diff functions.\nFound "+CHROM1+" in file 1 and "+CHROM2+" in file 2.\nUse option --not-chr to filter out chromosomes only found in one file.");			}
 		}
 		if(new_e1 && new_e2)
 		{
@@ -1523,7 +1415,10 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 				indv2 = combined_individuals_it->second.second;
 
 				if ((indv1 == -1) || (indv2 == -1))
+				{
+					LOG.one_off_warning("Non-matching individual found. Skipping all such combinations.");
 					continue;	// Individual not found in one of the files
+				}
 
 				e1->get_indv_GENOTYPE_strings(indv1, genotype1);
 				e2->get_indv_GENOTYPE_strings(indv2, genotype2);
@@ -1577,7 +1472,6 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 	delete e1;
 	delete e2;
 
-	/*
 	output_file = params.output_prefix + ".diff.indv.switch";
 	ofstream idiscord(output_file.c_str());
 	if (!idiscord.is_open())
@@ -1606,7 +1500,7 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 		indv_count++;
 	}
 	idiscord.close();
-	*/
+
 	LOG.printLOG("Found " + output_log::int2str(N_common_SNPs) + " sites common to both files.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file1_only) + " sites only in main file.\n");
 	LOG.printLOG("Found " + output_log::int2str(N_SNPs_file2_only) + " sites only in second file.\n");

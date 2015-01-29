@@ -708,7 +708,7 @@ These options output the genotype data in PLINK PED format. With the first optio
 Note: The first option can be very slow on large datasets. Using the --chr option to divide up the dataset is advised, or alternatively use the --plink-tped option which outputs the files in the PLINK transposed format with suffixes ".tped" and ".tfam".
 .RE
 .SH COMPARISON OPTIONS
-These options are used to compare the original variant file to another variant file and output the results.
+These options are used to compare the original variant file to another variant file and output the results. All of the diff functions require both files to contain the same chromosomes and that the files be sorted in the same order. If one of the files contains chromosomes that the other file does not, use the --not-chr filter to remove them from the analysis.
 .SS DIFF VCF FILE
 .RS 2
 .B --diff 
@@ -720,7 +720,7 @@ These options are used to compare the original variant file to another variant f
 .B --diff-bcf 
 .I <filename>
 .RS 2
-These options compare the original input file to this specified VCF, gzipped VCF, or BCF file. These options must be specified with an additional option described below in order to specify what type of comparison is to be performed. See the examples section for typical usage. 
+These options compare the original input file to this specified VCF, gzipped VCF, or BCF file. These options must be specified with one additional option described below in order to specify what type of comparison is to be performed. See the examples section for typical usage. 
 .RE
 .SS DIFF OPTIONS
 .RS 2
@@ -736,28 +736,28 @@ Outputs the individuals that are common / unique to each file. The output file h
 .PP
 .B --diff-site-discordance
 .RS 2
-This option can be used in conjuction with any of the above "--diff" options to calculate discordance on a site by site basis. The resulting output file has the suffix ".diff.sites". 
+This option calculates discordance on a site by site basis. The resulting output file has the suffix ".diff.sites". 
 .RE
 .PP
 .B --diff-indv-discordance
 .RS 2
-This option can be used in conjuction with any of the above "--diff" options to calculate discordance on a per-individual basis. The resulting output file has the suffix ".diff.indv".
+This option calculates discordance on a per-individual basis. The resulting output file has the suffix ".diff.indv".
 .RE
 .PP
 .B --diff-indv-map 
 .I <filename>
 .RS 2
-This option can be used in conjuction with any of the above "--diff" options to specify a mapping of individual IDs in the second file to those in the first file. 
+This option allows the user to specify a mapping of individual IDs in the second file to those in the first file. The program expects the file to contain a tab-delimited line containing an individual's name in file one followed by that same individual's name in file two with one mapping per line. 
 .RE
 .PP
 .B --diff-discordance-matrix
 .RS 2
-This option can be used in conjuction with any of the above "--diff" options to calculate a discordance matrix. This option only works with bi-allelic loci with matching alleles that are present in both files. The resulting output file has the suffix ".diff.discordance.matrix". 
+This option calculates a discordance matrix. This option only works with bi-allelic loci with matching alleles that are present in both files. The resulting output file has the suffix ".diff.discordance.matrix". 
 .RE
 .PP
 .B --diff-switch-error
 .RS 2
-This option can be used in conjuction with any of the above "--diff" options to calculate phasing errors (specifically "switch errors"). This option creates an output file describing switch errors found between sites, with suffix ".diff.switch".</p>
+This option calculates phasing errors (specifically "switch errors"). This option creates an output file describing switch errors found between sites, with suffix ".diff.switch".
 .RE
 .SH AUTHORS
 Adam Auton (adam.auton@einstein.yu.edu)
