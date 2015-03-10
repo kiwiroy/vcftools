@@ -1661,11 +1661,6 @@ void variant_file::output_genotype_r2(const parameters &params)
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			out_byte = 0x00;
-			if (e->get_indv_PHASE(ui) != '|')
-			{
-				remove(tmpname);
-				LOG.error("Require phased haplotypes for r^2 calculation (use --phased)\n");
-			}
 			if (include_indv[ui] == false)
 			{
 				indv_miss++;
@@ -1998,11 +1993,6 @@ void variant_file::output_interchromosomal_genotype_r2(const parameters &params)
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			out_byte = 0x00;
-			if (e->get_indv_PHASE(ui) != '|')
-			{
-				remove(tmpname);
-				LOG.error("Require phased haplotypes for r^2 calculation (use --phased)\n");
-			}
 			if (include_indv[ui] == false)
 			{
 				indv_miss++;
@@ -2615,12 +2605,6 @@ void variant_file::output_genotype_r2_of_SNP_list_vs_all_others(const parameters
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			out_byte = 0x00;
-			if (e->get_indv_PHASE(ui) != '|')
-			{
-				remove(tmpname);
-				remove(tmpname2);
-				LOG.error("Require phased haplotypes for r^2 calculation (use --phased)\n");
-			}
 			if (include_indv[ui] == false)
 			{
 				indv_miss++;
