@@ -40,6 +40,7 @@ public:
 	string BED_file;
 	set<string> chrs_to_exclude;
 	set<string> chrs_to_keep;
+	string chrom_map_file;
 	string contigs_file;
 	bool derived;
 	bool diff_discordance_matrix;

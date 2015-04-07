@@ -50,23 +50,43 @@ void variant_file::output_as_plink(const parameters &params)
 	int POS;
 	string ID, CHROM, CHROM2;
 	map<string, string> CHROM_to_PLINK;
-	for (int i=1; i<23; i++)
+
+	if (params.chrom_map_file != "")
 	{
-		ostringstream convert;
-		convert << i;
-		CHROM_to_PLINK["chr" + convert.str()] = convert.str();
-		CHROM_to_PLINK[convert.str()] = convert.str();
+		ifstream chrom_map(params.chrom_map_file.c_str());
+		if (!chrom_map.is_open())
+			LOG.error("Could not open chromosome mapping file: " + params.chrom_map_file);
+		string chr, plink;
+		unsigned int N_chrom_entries=0;
+		while (!chrom_map.eof())
+		{
+			chrom_map >> chr >> plink;
+			CHROM_to_PLINK[chr] = plink;
+			N_chrom_entries++;
+		}
+		chrom_map.close();
+		LOG.printLOG("\tRead " + output_log::int2str(N_chrom_entries) + " chromosome mapping file entries.\n");
 	}
-	CHROM_to_PLINK["chrX"] = "X";
-	CHROM_to_PLINK["chrY"] = "Y";
-	CHROM_to_PLINK["chrXY"] = "XY";
-	CHROM_to_PLINK["chrMT"] = "MT";
-	CHROM_to_PLINK["chrM"] = "M";
-	CHROM_to_PLINK["X"] = "X";
-	CHROM_to_PLINK["Y"] = "Y";
-	CHROM_to_PLINK["XY"] = "XY";
-	CHROM_to_PLINK["MT"] = "MT";
-	CHROM_to_PLINK["M"] = "M";
+	else
+	{
+		for (int i=1; i<23; i++)
+		{
+			ostringstream convert;
+			convert << i;
+			CHROM_to_PLINK["chr" + convert.str()] = convert.str();
+			CHROM_to_PLINK[convert.str()] = convert.str();
+		}
+		CHROM_to_PLINK["chrX"] = "X";
+		CHROM_to_PLINK["chrY"] = "Y";
+		CHROM_to_PLINK["chrXY"] = "XY";
+		CHROM_to_PLINK["chrMT"] = "MT";
+		CHROM_to_PLINK["chrM"] = "M";
+		CHROM_to_PLINK["X"] = "X";
+		CHROM_to_PLINK["Y"] = "Y";
+		CHROM_to_PLINK["XY"] = "XY";
+		CHROM_to_PLINK["MT"] = "MT";
+		CHROM_to_PLINK["M"] = "M";
+	}
 
 	vector<string> alleles;
 	char phase;
@@ -112,7 +132,7 @@ void variant_file::output_as_plink(const parameters &params)
 				CHROM_to_PLINK[CHROM] = tmp;
 			else
 			{
-				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
+				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.");
 				CHROM_to_PLINK[CHROM] = "0";
 			}
 		}
@@ -211,21 +231,42 @@ void variant_file::output_as_plink_tped(const parameters &params)
 
 	string CHROM, CHROM2;
 	map<string, string> CHROM_to_PLINK;
-	for (int i=1; i<23; i++)
+	if (params.chrom_map_file != "")
 	{
-		ostringstream convert;
-		convert << i;
-		CHROM_to_PLINK["chr" + convert.str()] = convert.str();
-		CHROM_to_PLINK[convert.str()] = convert.str();
+		ifstream chrom_map(params.chrom_map_file.c_str());
+		if (!chrom_map.is_open())
+			LOG.error("Could not open chromosome mapping file: " + params.chrom_map_file);
+		string chr, plink;
+		unsigned int N_chrom_entries=0;
+		while (!chrom_map.eof())
+		{
+			chrom_map >> chr >> plink;
+			CHROM_to_PLINK[chr] = plink;
+			N_chrom_entries++;
+		}
+		chrom_map.close();
+		LOG.printLOG("\n\tRead " + output_log::int2str(N_chrom_entries) + " chromosome mapping file entries.\n");
 	}
-	CHROM_to_PLINK["chrX"] = "X";
-	CHROM_to_PLINK["chrY"] = "Y";
-	CHROM_to_PLINK["chrXY"] = "XY";
-	CHROM_to_PLINK["chrMT"] = "MT";
-	CHROM_to_PLINK["X"] = "X";
-	CHROM_to_PLINK["Y"] = "Y";
-	CHROM_to_PLINK["XY"] = "XY";
-	CHROM_to_PLINK["MT"] = "MT";
+	else
+	{
+		for (int i=1; i<23; i++)
+		{
+			ostringstream convert;
+			convert << i;
+			CHROM_to_PLINK["chr" + convert.str()] = convert.str();
+			CHROM_to_PLINK[convert.str()] = convert.str();
+		}
+		CHROM_to_PLINK["chrX"] = "X";
+		CHROM_to_PLINK["chrY"] = "Y";
+		CHROM_to_PLINK["chrXY"] = "XY";
+		CHROM_to_PLINK["chrMT"] = "MT";
+		CHROM_to_PLINK["chrM"] = "M";
+		CHROM_to_PLINK["X"] = "X";
+		CHROM_to_PLINK["Y"] = "Y";
+		CHROM_to_PLINK["XY"] = "XY";
+		CHROM_to_PLINK["MT"] = "MT";
+		CHROM_to_PLINK["M"] = "M";
+	}
 
 	vector<string> alleles;
 	char phase;
@@ -266,7 +307,7 @@ void variant_file::output_as_plink_tped(const parameters &params)
 				CHROM_to_PLINK[CHROM] = tmp;
 			else
 			{
-				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.\n");
+				LOG.one_off_warning("\nUnrecognized values used for CHROM: " + CHROM + " - Replacing with 0.");
 				CHROM_to_PLINK[CHROM] = "0";
 			}
 		}
@@ -581,12 +622,12 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 
 	unsigned int n_sites = 0;
 	int max_pos = -1;
-	int fd = -1;
+	char* fd;
 
 	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
-	mktemp(tmpname);
+	fd = mktemp(tmpname);
 	string locs_tmp_filename(tmpname);
 	ofstream *locs_tmp_file = new ofstream(tmpname);
 	if (!locs_tmp_file->good())
@@ -614,7 +655,7 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 
 		char tmpname[new_tmp.size()];
 		strcpy(tmpname, new_tmp.c_str());
-		mktemp(tmpname);
+		fd = mktemp(tmpname);
 
 		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())
@@ -635,7 +676,7 @@ void variant_file::output_as_LDhat_phased(const parameters &params)
 
 		char tmpname2[new_tmp.size()];
 		strcpy(tmpname2, new_tmp.c_str());
-		mktemp(tmpname2);
+		fd = mktemp(tmpname2);
 
 		ofstream *tmp_file2 = new ofstream(tmpname2);
 		if (!tmp_file2->good())
@@ -761,12 +802,12 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 
 	unsigned int n_sites = 0;
 	int max_pos = -1;
-	int fd = -1;
+	char* fd;
 
 	string new_tmp = params.temp_dir+"/vcftools.XXXXXX";
 	char tmpname[new_tmp.size()];
 	strcpy(tmpname, new_tmp.c_str());
-	mktemp(tmpname);
+	fd = mktemp(tmpname);
 	string locs_tmp_filename(tmpname);
 	ofstream *locs_tmp_file = new ofstream(tmpname);
 	if (!locs_tmp_file->good())
@@ -794,7 +835,7 @@ void variant_file::output_as_LDhat_unphased(const parameters &params)
 
 		char tmpname[new_tmp.size()];
 		strcpy(tmpname, new_tmp.c_str());
-		mktemp(tmpname);
+		fd = mktemp(tmpname);
 		string filename(tmpname);
 		ofstream *tmp_file = new ofstream(tmpname);
 		if (!tmp_file->good())

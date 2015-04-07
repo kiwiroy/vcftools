@@ -94,7 +94,7 @@ void vcf_entry::set_indv_GENOTYPE_and_PHASE(unsigned int indv, const string &in)
 		// Check for polypoidy
 		size_t pos2 = in.find_last_of("/|");
 		if (pos != pos2)
-			LOG.error("Polypolidy found, and not supported by vcftools: " + CHROM + ":" + header::int2str(POS));
+			LOG.error("Polyploidy found, and not supported by vcftools: " + CHROM + ":" + header::int2str(POS));
 	}
 
 	parsed_GT[indv] = true;

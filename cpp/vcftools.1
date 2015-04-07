@@ -702,10 +702,14 @@ These options output genotype likelihood information for input into the BEAGLE p
 .B --plink
 .br
 .B --plink-tped
+.br
+.B --chrom-map
 .RS 2
 These options output the genotype data in PLINK PED format. With the first option, two files are generated, with suffixes ".ped" and ".map". Note that only bi-allelic loci will be output. Further details of these files can be found in the PLINK documentation. 
 .br
 Note: The first option can be very slow on large datasets. Using the --chr option to divide up the dataset is advised, or alternatively use the --plink-tped option which outputs the files in the PLINK transposed format with suffixes ".tped" and ".tfam".
+.br
+For usage with variant sites in species other than humans, the --chrom-map option may be used to specify a file name that has a tab-delimited mapping of chromosome name to a desired integer value with one line per chromosome. This file must contain a mapping for every chromosome value found in the file.
 .RE
 .SH COMPARISON OPTIONS
 These options are used to compare the original variant file to another variant file and output the results. All of the diff functions require both files to contain the same chromosomes and that the files be sorted in the same order. If one of the files contains chromosomes that the other file does not, use the --not-chr filter to remove them from the analysis.

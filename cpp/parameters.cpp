@@ -26,6 +26,7 @@ parameters::parameters(int argc, char *argv[])
 	bcf_format = false;
 	BED_exclude = false;
 	BED_file = "";
+	chrom_map_file = "";
 	contigs_file = "";
 	derived = false;
 	diff_discordance_matrix = false;
@@ -191,6 +192,7 @@ void parameters::read_parameters()
 		}
 		else if (in_str == "-c") {stream_out = true;}						// Write output to stream
 		else if (in_str == "--chr") { chrs_to_keep.insert(get_arg(i+1)); i++; }					// Chromosome to process
+		else if (in_str == "--chrom-map") { chrom_map_file = get_arg(i+1); i++; }// Chromosome map for plink conversion
 		else if (in_str == "--contigs") { contigs_file = get_arg(i+1); i++;}	// Contigs file for header
 		else if (in_str == "--counts") {output_counts = true; num_outputs++;}								// Output per-site allele count statistics
 		else if (in_str == "--counts2") {output_counts = true; suppress_allele_output = true; num_outputs++;}								// Output per-site allele count statistics
@@ -391,6 +393,7 @@ void parameters::print_params()
 			LOG.printLOG("\t--not-chr " + tmp + "\n");
 		}
 	}
+	if (chrom_map_file != defaults.chrom_map_file) LOG.printLOG("\t--chrom-map " + chrom_map_file + "\n");
 	if (contigs_file != defaults.contigs_file) LOG.printLOG("\t--contigs " + contigs_file + "\n");
 	if (derived != defaults.derived) LOG.printLOG("\t--derived\n");
 	if (end_pos != defaults.end_pos) LOG.printLOG("\t--to-bp " + output_log::int2str(end_pos) + "\n");
