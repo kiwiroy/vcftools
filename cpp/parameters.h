@@ -89,6 +89,7 @@ public:
 	int max_non_ref_ac_any;
 	double max_non_ref_af_any;
 	int max_N_indv;
+	string mendel_ped_file;
 	int min_alleles;
 	int min_genotype_depth;
 	double min_genotype_quality;

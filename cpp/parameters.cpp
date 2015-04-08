@@ -67,8 +67,8 @@ parameters::parameters(int argc, char *argv[])
 	max_non_ref_af = numeric_limits<double>::max();
 	max_non_ref_ac_any = numeric_limits<int>::max();
 	max_non_ref_af_any = numeric_limits<double>::max();
-
 	max_N_indv = -1;
+	mendel_ped_file = "";
 	min_alleles = -1;
 	min_genotype_depth = -1;
 	min_genotype_quality = -1.0;
@@ -288,6 +288,7 @@ void parameters::read_parameters()
 		else if (in_str == "--max-non-ref-af-any") { max_non_ref_af_any = atof(get_arg(i+1).c_str()); i++; }		// Minimum Site non-ref AF
 		else if (in_str == "--maxDP") { max_genotype_depth = atoi(get_arg(i+1).c_str()); i++; }				// Maximum genotype depth
 		else if (in_str == "--max-indv") {max_N_indv = atoi(get_arg(i+1).c_str()); i++; }
+		else if (in_str == "--mendel") {mendel_ped_file = get_arg(i+1); i++; num_outputs++; }
 		else if (in_str == "--min-alleles") { min_alleles = atoi(get_arg(i+1).c_str()); i++; }				// Minimum number of alleles per-site
 		else if (in_str == "--min-meanDP") { min_mean_depth = atof(get_arg(i+1).c_str()); i++; }			// Site Minimum mean depth
 		else if (in_str == "--min-r2") { min_r2 = atof(get_arg(i+1).c_str()); i++; }					// Min r^2 for LD output
@@ -430,6 +431,7 @@ void parameters::print_params()
 	if (max_non_ref_ac_any != defaults.max_non_ref_ac_any) LOG.printLOG("\t--max-non-ref-ac-any " + output_log::dbl2str(max_non_ref_ac_any, 3) + "\n");
 	if (max_non_ref_af_any != defaults.max_non_ref_af_any) LOG.printLOG("\t--max-non-ref-af-any " + output_log::dbl2str(max_non_ref_af_any, 3) + "\n");
 	if (max_N_indv != defaults.max_N_indv) LOG.printLOG("\t--max-indv " + output_log::int2str(max_N_indv) + "\n");
+	if (mendel_ped_file != defaults.mendel_ped_file) LOG.printLOG("\t--mendel " + mendel_ped_file + "\n");
 	if (min_alleles != defaults.min_alleles) LOG.printLOG("\t--min-alleles " + output_log::int2str(min_alleles) + "\n");
 	if (min_genotype_depth != defaults.min_genotype_depth) LOG.printLOG("\t--minDP " + output_log::dbl2str(min_genotype_depth, 3) + "\n");
 	if (min_genotype_quality != defaults.min_genotype_quality) LOG.printLOG("\t--minGQ " + output_log::dbl2str(min_genotype_quality, 3) + "\n");

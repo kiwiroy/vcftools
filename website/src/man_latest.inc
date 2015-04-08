@@ -942,6 +942,14 @@ number of unique haplotypes within user specified bins, as
 defined by the BED file. The output file has the suffix
 &quot;.hapcount&quot;.</p>
 
+<p style="margin-left:14%; margin-top: 1em"><b>--mendel</b>
+<i>&lt;PED file&gt;</i></p>
+
+<p style="margin-left:17%;">This option is use to report mendel 
+errors identified in trios. The command requires a PLINK-style 
+PED file, with the first four columns specifying a family ID, 
+the child ID, the father ID, and the mother ID. The output of 
+this command has the suffix &quot;.mendel&quot;.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--extract-FORMAT-info</b>
 <i>&lt;string&gt;</i></p>

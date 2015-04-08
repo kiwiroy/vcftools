@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
 	if (params.output_relatedness_Manichaikul == true) vf->output_indv_relatedness_Manichaikul(params);
 	if (params.output_PCA == true) vf->output_PCA(params);
 	if (params.output_N_PCA_SNP_loadings > 0) vf->output_PCA_SNP_loadings(params);
+	if (params.mendel_ped_file != "") vf->output_mendel_inconsistencies(params);
 
 	if (params.fst_window_size <= 0 && params.weir_fst_populations.size() > 0) vf->output_weir_and_cockerham_fst(params);
 	else if (params.weir_fst_populations.size() > 0) vf->output_windowed_weir_and_cockerham_fst(params);

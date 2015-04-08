@@ -5169,6 +5169,146 @@ void variant_file::output_indel_hist(const parameters &params)
 	}
 }
 
+void variant_file::output_mendel_inconsistencies(const parameters &params)
+{
+	LOG.printLOG("Outputting Mendel Errors.\n");
+
+	ifstream PED(params.mendel_ped_file.c_str());
+	if (!PED.is_open())
+		LOG.error("Could not open PED file: " + params.mendel_ped_file);
+
+	string line; stringstream ss;
+	string family, child, mother, father;
+	vector<int> child_idx, mother_idx, father_idx;
+	vector<string> family_ids;
+	PED.ignore(numeric_limits<streamsize>::max(), '\n');
+
+	while (!PED.eof())
+	{
+		getline(PED, line);
+		if ((line[0] == '#') || (line.size() == 0))
+			continue;
+
+		ss.clear();
+		ss.str(line);
+		ss >> family >> child >> father >> mother;
+
+		if ((child == "0") || (father == "0") || (mother == "0"))
+			continue;
+
+		int idx1 = -1, idx2 = -1, idx3 = -1;
+		vector<string>::iterator it = find(meta_data.indv.begin(), meta_data.indv.end(), child);
+		if (it != meta_data.indv.end())
+			idx1 = distance(meta_data.indv.begin(), it);
+		it = find(meta_data.indv.begin(), meta_data.indv.end(), mother);
+		if (it != meta_data.indv.end())
+			idx2 = distance(meta_data.indv.begin(), it);
+		it = find(meta_data.indv.begin(), meta_data.indv.end(), father);
+		if (it != meta_data.indv.end())
+			idx3 = distance(meta_data.indv.begin(), it);
+
+		if ((idx1 != -1) && (idx2 != -1) && (idx3 != -1))
+		{	// Trio is in the VCF
+			if (include_indv[idx1] == false)
+				continue;
+			if (include_indv[idx2] == false)
+				continue;
+			if (include_indv[idx3] == false)
+				continue;
+
+			child_idx.push_back(idx1); mother_idx.push_back(idx2); father_idx.push_back(idx3);
+			family_ids.push_back(child + "_" + father + "_" + mother);
+		}
+	}
+	PED.close();
+
+	LOG.printLOG("Found " + LOG.int2str(child_idx.size()) + " trios in the VCF file.\n");
+
+	if (child_idx.size() == 0)
+		LOG.error("No PED individuals found in VCF.\n", 5);
+
+	string output_file = params.output_prefix + ".mendel";
+
+	streambuf * buf;
+	ofstream temp_out;
+	if (!params.stream_out)
+	{
+		temp_out.open(output_file.c_str(), ios::out);
+		if (!temp_out.is_open()) LOG.error("Could not open Mendel Error output file: " + output_file, 4);
+		buf = temp_out.rdbuf();
+	}
+	else
+		buf = cout.rdbuf();
+
+	ostream out(buf);
+
+
+	pair<int, int> child_alleles, child_alleles2;
+	pair<int, int> mother_alleles;
+	pair<int, int> father_alleles;
+	string CHROM; int POS;
+	string REF, ALT;
+	out << "CHR\tPOS\tREF\tALT\tFAMILY\tCHILD\tFATHER\tMOTHER" << endl;
+
+	vector<char> variant_line;
+	entry *e = get_entry_object();
+	while(!eof())
+	{
+		get_entry(variant_line);
+		e->reset(variant_line);
+		N_entries += e->apply_filters(params);
+
+		if(!e->passed_filters)
+			continue;
+		N_kept_entries++;
+		e->parse_basic_entry(true);
+		e->parse_genotype_entries(true);
+
+		CHROM = e->get_CHROM();
+		POS = e->get_POS();
+
+		for (unsigned int trio=0; trio<child_idx.size(); trio++)
+		{
+			int idx1 = child_idx[trio], idx2 = mother_idx[trio], idx3 = father_idx[trio];
+			if ((e->include_genotype[idx1] == false) || (e->include_genotype[idx2] == false) || (e->include_genotype[idx3] == false))
+				continue;
+
+			e->get_indv_GENOTYPE_ids(idx1, child_alleles);
+
+			e->get_indv_GENOTYPE_ids(idx2, mother_alleles);
+
+			e->get_indv_GENOTYPE_ids(idx3, father_alleles);
+
+			if ((child_alleles.first == -1) || (child_alleles.second == -1) ||
+					(mother_alleles.first == -1) || (mother_alleles.second == -1) ||
+					(father_alleles.first == -1) || (father_alleles.second == -1))
+				continue;
+
+		//	cout << CHROM << "\t" << POS << "\t" << REF << "\t" << ALT << "\t" << family_ids[trio] << "\t" << child_alleles.first << "/" << child_alleles.second;
+		//	cout << "\t" << father_alleles.first << "/" << father_alleles.second << "\t" << mother_alleles.first << "/" << mother_alleles.second << endl;
+
+			set<pair<int, int> > possible_child_genotypes;
+			possible_child_genotypes.insert(make_pair(mother_alleles.first, father_alleles.first));
+			possible_child_genotypes.insert(make_pair(mother_alleles.first, father_alleles.second));
+			possible_child_genotypes.insert(make_pair(mother_alleles.second, father_alleles.first));
+			possible_child_genotypes.insert(make_pair(mother_alleles.second, father_alleles.second));
+
+			child_alleles2 = make_pair(child_alleles.second, child_alleles.first);
+
+			if ((possible_child_genotypes.find(child_alleles) == possible_child_genotypes.end()) && (possible_child_genotypes.find(child_alleles2) == possible_child_genotypes.end()))
+			{	// Mendel error!
+				CHROM = e->get_CHROM();
+				POS = e->get_POS();
+				REF = e->get_REF();
+				ALT = e->get_ALT();
+				out << CHROM << "\t" << POS << "\t" << REF << "\t" << ALT << "\t" << family_ids[trio] << "\t" << child_alleles.first << "/" << child_alleles.second;
+				out << "\t" << father_alleles.first << "/" << father_alleles.second << "\t" << mother_alleles.first << "/" << mother_alleles.second << endl;
+			}
+		}
+	}
+	delete e;
+}
+
 void variant_file::write_stats(const parameters &params)
 {
 	vector<char> variant_line;
