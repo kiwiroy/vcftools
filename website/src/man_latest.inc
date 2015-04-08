@@ -845,7 +845,8 @@ frequency. The resulting file has the suffix
 
 <p style="margin-left:17%;">This option will identify and
 output Long Runs of Homozygosity. The output file has the
-suffix &quot;.LROH&quot;.</p>
+suffix &quot;.LROH&quot;. This function is experimental, and
+will use a lot of memory if applied to large datasets. </p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--relatedness</b></p>

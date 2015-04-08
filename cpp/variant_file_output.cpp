@@ -4299,7 +4299,7 @@ void variant_file::output_LROH(const parameters &params)
 	int POS;
 	entry *e = get_entry_object();
 	pair<int, int> alleles;
-	vector< vector< pair<string, int> > > s_vector;
+	vector< vector< int > > s_vector;
 	vector< vector<pair<double, double> > > p_emission;
 	vector< vector< vector<double> > > p_trans;
 	vector<int> last_POS;
@@ -4415,7 +4415,7 @@ void variant_file::output_LROH(const parameters &params)
 			A[3] = p_trans_nonauto_to_nonauto;
 
 			p_trans[ui].push_back(A);
-			s_vector[ui].push_back(make_pair(CHROM,POS));
+			s_vector[ui].push_back(POS);
 			last_POS[ui] = POS;
 		}
 	}
@@ -4488,8 +4488,7 @@ void variant_file::output_LROH(const parameters &params)
 			{
 				if (in_auto == false)
 				{	// Start of autozygous region
-						CHROM = s_vector[ui][i].first;
-						start_pos = s_vector[ui][i].second;
+					start_pos = s_vector[ui][i];
 				}
 				N_SNPs++;
 				in_auto = true;
@@ -4498,7 +4497,7 @@ void variant_file::output_LROH(const parameters &params)
 			{
 				if (in_auto == true)
 				{	// end of autozygous region
-					end_pos = s_vector[ui][i].second;
+					end_pos = s_vector[ui][i];
 					if (N_SNPs >= min_SNPs)
 						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 				}
@@ -4508,7 +4507,7 @@ void variant_file::output_LROH(const parameters &params)
 		}
 		if (in_auto == true)
 		{	// Report final region if needed
-			end_pos = s_vector[ui][N_obs-1].second;
+			end_pos = s_vector[ui][N_obs-1];
 			if (N_SNPs >= min_SNPs)
 				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
 		}
