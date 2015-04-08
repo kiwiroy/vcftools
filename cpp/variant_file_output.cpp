@@ -4349,6 +4349,7 @@ void variant_file::output_LROH(const parameters &params)
 
 		vector<int> indv_alleles(meta_data.N_indv, -1);
 
+		bool is_poly = false;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
@@ -4371,8 +4372,14 @@ void variant_file::output_LROH(const parameters &params)
 			if (alleles.first != alleles.second)
 				N_hets++;
 
+			if (X > 0)
+				is_poly = true;
+
 			indv_alleles[ui] = X;
 		}
+
+		if (is_poly == false)
+			continue;
 
 		double h = N_hets / double(N_genotypes);
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
