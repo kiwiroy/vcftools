@@ -4303,6 +4303,7 @@ void variant_file::output_LROH(const parameters &params)
 	vector< vector<pair<double, double> > > p_emission;
 	vector< vector< vector<double> > > p_trans;
 	vector<int> last_POS;
+	vector<vector<bool> > is_het;
 
 	streambuf * buf;
 	ofstream temp_out;
@@ -4316,12 +4317,13 @@ void variant_file::output_LROH(const parameters &params)
 		buf = cout.rdbuf();
 
 	ostream out(buf);
-	out << "CHROM\tAUTO_START\tAUTO_END\tN_VARIANTS\tINDV" << endl;
+	out << "CHROM\tAUTO_START\tAUTO_END\tMIN_START\tMAX_END\tN_VARIANTS_BETWEEN_MAX_BOUNDARIES\tN_MISMATCHES\tINDV" << endl;
 
 	s_vector.resize(meta_data.N_indv);
 	p_emission.resize(meta_data.N_indv);
 	p_trans.resize(meta_data.N_indv);
 	last_POS.resize(meta_data.N_indv,-1);
+	is_het.resize(meta_data.N_indv);
 
 	while(!eof())
 	{
@@ -4334,11 +4336,11 @@ void variant_file::output_LROH(const parameters &params)
 		N_kept_entries++;
 
 		e->parse_basic_entry(true);
-		if (e->get_N_alleles() != 2)
-		{
-			LOG.one_off_warning("\tLROH: Only using bialleleic sites.");
-			continue;	// TODO: Probably could do without this...
-		}
+		//if (e->get_N_alleles() != 2)
+		//{
+		//	LOG.one_off_warning("\tLROH: Only using bialleleic sites.");
+		//	continue;	// TODO: Probably could do without this...
+		//}
 
 		CHROM = e->get_CHROM();
 		POS = e->get_POS();
@@ -4349,7 +4351,7 @@ void variant_file::output_LROH(const parameters &params)
 
 		vector<int> indv_alleles(meta_data.N_indv, -1);
 
-		bool is_poly = false;
+		bool has_non_ref = false;
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
@@ -4365,23 +4367,23 @@ void variant_file::output_LROH(const parameters &params)
 			}
 
 			if ((alleles.first < 0) || (alleles.second < 0))
-				continue;
+				continue;	// Skip missing genotypes
 
-			unsigned int X = alleles.first + alleles.second;
+			if ((alleles.first > 0) || (alleles.second > 0))
+				has_non_ref = true;
+
 			N_genotypes++;
-			if (alleles.first != alleles.second)
+			bool is_het = (alleles.first != alleles.second);
+			if (is_het == true)
 				N_hets++;
 
-			if (X > 0)
-				is_poly = true;
-
-			indv_alleles[ui] = X;
+			indv_alleles[ui] = (int)is_het;
 		}
 
-		if (is_poly == false)
+		if (has_non_ref == false)
 			continue;
 
-		double h = N_hets / double(N_genotypes);
+		double h = N_hets / double(N_genotypes);	// Heterozygosity
 		for (unsigned int ui=0; ui<meta_data.N_indv; ui++)
 		{
 			if ((include_indv[ui] == false) || (e->include_genotype[ui] == false))
@@ -4397,12 +4399,14 @@ void variant_file::output_LROH(const parameters &params)
 				p_emission_given_nonauto = h;
 				p_emission_given_auto = genotype_error_rate;
 				p_emission[ui].push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
+				is_het[ui].push_back(true);
 			}
 			else
 			{	// Homozygote
 				p_emission_given_nonauto = 1.0-h;
 				p_emission_given_auto = 1.0-genotype_error_rate;
 				p_emission[ui].push_back(make_pair(p_emission_given_auto, p_emission_given_nonauto));
+				is_het[ui].push_back(false);
 			}
 
 			if (last_POS[ui] > 0)
@@ -4481,14 +4485,13 @@ void variant_file::output_LROH(const parameters &params)
 			p_auto[i] = alpha[i][0] * beta[i][0] / (alpha[i][0] * beta[i][0] + alpha[i][1] * beta[i][1]);
 
 		// Generate output
-		// TODO: Would be good to report actual limits of homozygosity
-		// (i.e. extend regions out until first heterozygote),
-		// as opposed to regions with p>threshold.
-		// TODO: Also would be good to report heterozygotic SNPs found in homozygotic regions.
-
 		bool in_auto=false;
 		int start_pos=0, end_pos=0;
 		int N_SNPs = 0;
+		int N_SNPs_between_hets = 0;
+		int N_hets_in_region = 0;
+		int last_het_pos = s_vector[ui][0];
+		int next_het_pos = -1;
 		for (int i=0; i<N_obs; i++)
 		{
 			if (p_auto[i] > p_auto_threshold)
@@ -4498,25 +4501,49 @@ void variant_file::output_LROH(const parameters &params)
 					start_pos = s_vector[ui][i];
 				}
 				N_SNPs++;
+				N_SNPs_between_hets++;
+				if (is_het[ui][i] == true)
+					N_hets_in_region++;
 				in_auto = true;
 			}
 			else
 			{
 				if (in_auto == true)
 				{	// end of autozygous region
-					end_pos = s_vector[ui][i];
+					// Find next_het position
+					next_het_pos = s_vector[ui][N_obs-1];
+					for (int j=i; j<N_obs; j++)
+					{
+						if (is_het[ui][j] == true)
+						{
+							next_het_pos = s_vector[ui][j];
+							break;
+						}
+						N_SNPs_between_hets++;
+					}
+
+					end_pos = s_vector[ui][i-1];
 					if (N_SNPs >= min_SNPs)
-						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
+					{
+						out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << (last_het_pos+1) << "\t" << (next_het_pos-1) << "\t" << N_SNPs_between_hets << "\t" << N_hets_in_region << "\t" << meta_data.indv[ui] << endl;
+					}
 				}
 				in_auto = false;
 				N_SNPs = 0;
+				N_hets_in_region = 0;
+				if (is_het[ui][i] == true)
+				{
+					last_het_pos = s_vector[ui][i];
+					N_SNPs_between_hets = 0;
+				}
 			}
 		}
 		if (in_auto == true)
 		{	// Report final region if needed
 			end_pos = s_vector[ui][N_obs-1];
+			next_het_pos = s_vector[ui][N_obs-1];
 			if (N_SNPs >= min_SNPs)
-				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << N_SNPs << "\t" << meta_data.indv[ui] << endl;
+				out << CHROM << "\t" << start_pos << "\t" << end_pos << "\t" << (last_het_pos+1) << "\t" << next_het_pos << "\t" << N_SNPs_between_hets << "\t" << N_hets_in_region << "\t" << meta_data.indv[ui] << endl;
 		}
 	}
 }
