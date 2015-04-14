@@ -1460,8 +1460,8 @@ void variant_file::output_switch_error(const parameters &params, variant_file &d
 								}
 								prev_geno_file1[indv_count] = genotype1;
 								prev_geno_file2[indv_count] = genotype2;
-								prev_pos_file1[indv_count] = make_pair<string,int>(CHROM1,POS1);
-								prev_pos_file2[indv_count] = make_pair<string,int>(CHROM2,POS2);
+								prev_pos_file1[indv_count] = std::pair<string,int>(CHROM1,POS1);
+								prev_pos_file2[indv_count] = std::pair<string,int>(CHROM2,POS2);
 							}
 						}
 					}

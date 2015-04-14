@@ -243,7 +243,9 @@ The file can have comment lines that start with a
 <p style="margin-left:17%;">Include or exclude a set of
 sites on the basis of a BED file. Only the first three
 columns (chrom, chromStart and chromEnd) are required. The
-BED file is expected to have a header line.</p>
+BED file is expected to have a header line. A site will be
+kept or excluded if any part of any allele (REF or ALT) at a
+site is within the range of one of the BED entries.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--thin</b>
 <i>&lt;integer&gt;</i></p>
@@ -846,7 +848,7 @@ frequency. The resulting file has the suffix
 <p style="margin-left:17%;">This option will identify and
 output Long Runs of Homozygosity. The output file has the
 suffix &quot;.LROH&quot;. This function is experimental, and
-will use a lot of memory if applied to large datasets. </p>
+will use a lot of memory if applied to large datasets.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--relatedness</b></p>
@@ -943,14 +945,17 @@ number of unique haplotypes within user specified bins, as
 defined by the BED file. The output file has the suffix
 &quot;.hapcount&quot;.</p>
 
+
 <p style="margin-left:14%; margin-top: 1em"><b>--mendel</b>
 <i>&lt;PED file&gt;</i></p>
 
-<p style="margin-left:17%;">This option is use to report mendel 
-errors identified in trios. The command requires a PLINK-style 
-PED file, with the first four columns specifying a family ID, 
-the child ID, the father ID, and the mother ID. The output of 
-this command has the suffix &quot;.mendel&quot;.</p>
+<p style="margin-left:17%;">This option is use to report
+mendel errors identified in trios. The command requires a
+PLINK-style PED file, with the first four columns specifying
+a family ID, the child ID, the father ID, and the mother ID.
+The output of this command has the suffix
+&quot;.mendel&quot;.</p>
+
 
 <p style="margin-left:14%; margin-top: 1em"><b>--extract-FORMAT-info</b>
 <i>&lt;string&gt;</i></p>
@@ -1086,7 +1091,8 @@ is suitable for input into BEAGLE via the &quot;like=&quot;
 argument.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--plink <br>
---plink-tped</b></p>
+--plink-tped <br>
+--chrom-map</b></p>
 
 <p style="margin-left:17%;">These options output the
 genotype data in PLINK PED format. With the first option,
@@ -1098,7 +1104,13 @@ Note: The first option can be very slow on large datasets.
 Using the --chr option to divide up the dataset is advised,
 or alternatively use the --plink-tped option which outputs
 the files in the PLINK transposed format with suffixes
-&quot;.tped&quot; and &quot;.tfam&quot;.</p>
+&quot;.tped&quot; and &quot;.tfam&quot;. <br>
+For usage with variant sites in species other than humans,
+the --chrom-map option may be used to specify a file name
+that has a tab-delimited mapping of chromosome name to a
+desired integer value with one line per chromosome. This
+file must contain a mapping for every chromosome value found
+in the file.</p>
 
 <h2>COMPARISON OPTIONS
 <a name="COMPARISON OPTIONS"></a>
@@ -1107,7 +1119,12 @@ the files in the PLINK transposed format with suffixes
 
 <p style="margin-left:11%; margin-top: 1em">These options
 are used to compare the original variant file to another
-variant file and output the results.</p>
+variant file and output the results. All of the diff
+functions require both files to contain the same chromosomes
+and that the files be sorted in the same order. If one of
+the files contains chromosomes that the other file does not,
+use the --not-chr filter to remove them from the
+analysis.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>DIFF VCF
 FILE</b></p>
@@ -1119,10 +1136,10 @@ FILE</b></p>
 
 <p style="margin-left:17%;">These options compare the
 original input file to this specified VCF, gzipped VCF, or
-BCF file. These options must be specified with an additional
-option described below in order to specify what type of
-comparison is to be performed. See the examples section for
-typical usage.</p>
+BCF file. These options must be specified with one
+additional option described below in order to specify what
+type of comparison is to be performed. See the examples
+section for typical usage.</p>
 
 <p style="margin-left:11%; margin-top: 1em"><b>DIFF
 OPTIONS</b></p>
@@ -1143,49 +1160,45 @@ suffix &quot;.diff.indv_in_files&quot;.</p>
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-site-discordance</b></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to calculate discordance on a site by site basis. The
-resulting output file has the suffix
-&quot;.diff.sites&quot;.</p>
+<p style="margin-left:17%;">This option calculates
+discordance on a site by site basis. The resulting output
+file has the suffix &quot;.diff.sites&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-indv-discordance</b></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to calculate discordance on a per-individual basis. The
-resulting output file has the suffix
-&quot;.diff.indv&quot;.</p>
+<p style="margin-left:17%;">This option calculates
+discordance on a per-individual basis. The resulting output
+file has the suffix &quot;.diff.indv&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-indv-map</b>
 <i>&lt;filename&gt;</i></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to specify a mapping of individual IDs in the second file to
-those in the first file.</p>
+<p style="margin-left:17%;">This option allows the user to
+specify a mapping of individual IDs in the second file to
+those in the first file. The program expects the file to
+contain a tab-delimited line containing an
+individual&rsquo;s name in file one followed by that same
+individual&rsquo;s name in file two with one mapping per
+line.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-discordance-matrix</b></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to calculate a discordance matrix. This option only works
-with bi-allelic loci with matching alleles that are present
-in both files. The resulting output file has the suffix
+<p style="margin-left:17%;">This option calculates a
+discordance matrix. This option only works with bi-allelic
+loci with matching alleles that are present in both files.
+The resulting output file has the suffix
 &quot;.diff.discordance.matrix&quot;.</p>
 
 
 <p style="margin-left:14%; margin-top: 1em"><b>--diff-switch-error</b></p>
 
-<p style="margin-left:17%;">This option can be used in
-conjuction with any of the above &quot;--diff&quot; options
-to calculate phasing errors (specifically &quot;switch
-errors&quot;). This option creates an output file describing
-switch errors found between sites, with suffix
-&quot;.diff.switch&quot;.&lt;/p&gt;</p>
+<p style="margin-left:17%;">This option calculates phasing
+errors (specifically &quot;switch errors&quot;). This option
+creates an output file describing switch errors found
+between sites, with suffix &quot;.diff.switch&quot;.</p>
 
 <h2>AUTHORS
 <a name="AUTHORS"></a>

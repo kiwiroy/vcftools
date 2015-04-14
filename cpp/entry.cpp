@@ -589,8 +589,8 @@ void entry::make_typed_float_vector(vector<char> &out, const string &in, int num
 	}
 
 	float value;
-	char missing[4] = {0x01, 0x00, 0x80, 0x7F};
-	char end[4] = {0x02, 0x00, 0x80, 0x7F};
+	char missing[4] = {static_cast<char>(0x01), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
+	char end[4] = {static_cast<char>(0x02), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
 
 	for(unsigned int ui=0; (int)ui<max_val; ui++)
 	{
@@ -652,8 +652,8 @@ void entry::make_typed_float_vector(vector<char> &out, const vector<string> &in,
 	}
 
 	float value;
-	char missing[4] = {0x01, 0x00, 0x80, 0x7F};
-	char end[4] = {0x02, 0x00, 0x80, 0x7F};
+	char missing[4] = {static_cast<char>(0x01), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
+	char end[4] = {static_cast<char>(0x02), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
 	for (unsigned int ui=0; ui<in.size(); ui++)
 	{
 		header::tokenize(in[ui], ',', split_string);
@@ -867,10 +867,10 @@ void entry::skip_section(unsigned int *line_position, const vector<char> &line)
 
 bool entry::check_missing(unsigned int line_position, const unsigned int type, const vector<char> &line)
 {
-	static char missing_float[4] = {0x01, 0x00, 0x80, 0x7F};
-	static char missing_int1 = 0x80;
-	static char missing_int2[2] = {0x00, 0x80};
-	static char missing_int3[4] = {0x00, 0x00, 0x00, 0x80};
+	static char missing_float[4] = {static_cast<char>(0x01), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
+	static char missing_int1 = static_cast<char>(0x80);
+	static char missing_int2[2] = {static_cast<char>(0x00), static_cast<char>(0x80)};
+	static char missing_int3[4] = {static_cast<char>(0x00), static_cast<char>(0x00), static_cast<char>(0x00), static_cast<char>(0x80)};
 
 	char test_char;
 	bool missing = true;
@@ -926,10 +926,10 @@ bool entry::check_missing(unsigned int line_position, const unsigned int type, c
 
 bool entry::check_end(unsigned int line_position, const unsigned int type, const vector<char> &line)
 {
-	static char end_float[4] = {0x02, 0x00, 0x80, 0x7F};
-	static char end_int1 = 0x81;
-	static char end_int2[2] = {0x01, 0x80};
-	static char end_int3[4] = {0x01, 0x00, 0x00, 0x80};
+	static char end_float[4] = {static_cast<char>(0x02), static_cast<char>(0x00), static_cast<char>(0x80), static_cast<char>(0x7F)};
+	static char end_int1 = static_cast<char>(0x81);
+	static char end_int2[2] = {static_cast<char>(0x01), static_cast<char>(0x80)};
+	static char end_int3[4] = {static_cast<char>(0x01), static_cast<char>(0x00), static_cast<char>(0x00), static_cast<char>(0x80)};
 
 	char test_char;
 	bool end = true;

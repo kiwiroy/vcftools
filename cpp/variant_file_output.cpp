@@ -3588,14 +3588,14 @@ void variant_file::output_weir_and_cockerham_fst(const parameters &params)
 			c[j] = hbar[j] / 2.0;
 			snp_Fst[j] = a[j]/(a[j]+b[j]+c[j]);
 
-			if ((!isnan(a[j])) && (!isnan(b[j])) && (!isnan(c[j])))
+			if ((!std::isnan(a[j])) && (!std::isnan(b[j])) && (!std::isnan(c[j])))
 			{
 				sum_a += a[j];
 				sum_all += (a[j]+b[j]+c[j]);
 			}
 		}
 		double fst = sum_a/sum_all;
-		if (!isnan(fst))
+		if (!std::isnan(fst))
 		{
 			sum1 += sum_a;
 			sum2 += sum_all;
@@ -3764,14 +3764,14 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 			c[j] = hbar[j] / 2.0;
 			snp_Fst[j] = a[j]/(a[j]+b[j]+c[j]);
 
-			if ((!isnan(a[j])) && (!isnan(b[j])) && (!isnan(c[j])))
+			if ((!std::isnan(a[j])) && (!std::isnan(b[j])) && (!std::isnan(c[j])))
 			{
 				sum_a += a[j];
 				sum_all += (a[j]+b[j]+c[j]);
 			}
 		}
 		double fst = sum_a/sum_all;
-		if (!isnan(fst))
+		if (!std::isnan(fst))
 		{
 			int pos = (int)e->get_POS();
 			CHROM = e->get_CHROM();
@@ -3828,7 +3828,7 @@ void variant_file::output_windowed_weir_and_cockerham_fst(const parameters &para
 		CHROM = chrs[ui];
 		for (unsigned int s=0; s<bins[CHROM].size(); s++)
 		{
-			if ((bins[CHROM][s][1] != 0) && (!isnan(bins[CHROM][s][0])) && (!isnan(bins[CHROM][s][1])) && (bins[CHROM][s][3] > 0))
+			if ((bins[CHROM][s][1] != 0) && (!std::isnan(bins[CHROM][s][0])) && (!std::isnan(bins[CHROM][s][1])) && (bins[CHROM][s][3] > 0))
 			{
 				double weighted_Fst = bins[CHROM][s][0] / bins[CHROM][s][1];
 				double mean_Fst = bins[CHROM][s][2] / bins[CHROM][s][3];
